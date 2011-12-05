@@ -32,6 +32,9 @@
 
 
 namespace srd {
+
+        void test_mode(bool testing);
+        bool test_mode();
         
         srd::vector_string
                 filter_keys(const std::string password,

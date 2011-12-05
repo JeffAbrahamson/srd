@@ -26,6 +26,7 @@
 #include <stdexcept>
 #include <termios.h>
 
+#include "interface.h"
 #include "crypt.h"
 #include "types.h"
 
@@ -72,8 +73,13 @@ int main(int argc, char *argv[])
                 return 1;
         }
 
-        // get passwd
-        string passwd = get_password();
+        bool is_test = options.count("TEST") > 0;
+        string passwd;
+        if(is_test) {
+                passwd = options["TEST"].as<string>();
+                test_mode(true);
+        } else
+                passwd = get_password();
         
         // do something
         bool verbose = options.count("verbose") > 0;
@@ -123,7 +129,6 @@ int main(int argc, char *argv[])
                 return 0;
         }
 
-        cout << "Invoke match here." << endl;
         do_match(passwd, match_key, match_data, match_or, match_exact, verbose);
         return 0;
 }
@@ -157,7 +162,7 @@ static BPO::variables_map parse_options(int argc, char *argv[])
                 ("match-data,d", BPO::value<vector_string>(),
                  "Restrict to records whose data match")
                 ("exact-match,E",
-                 "Exact match only");
+                 "Exact match only (applies to all matching)");
 
         BPO::options_description display("Display options");
         display.add_options()
@@ -167,9 +172,14 @@ static BPO::variables_map parse_options(int argc, char *argv[])
                  "Display key even if unique match")
                 ("grep,g", BPO::value<string>(),
                  "Output filter for data");
-                
+
+        BPO::options_description test("Test options (don't use outside regression tests)");
+        test.add_options()
+                ("TEST,T", BPO::value<string>(),
+                 "Test mode, use local data directory, specify password on commandline");
+        
         BPO::options_description options("Allowed options");
-        options.add(general).add(actions).add(matching).add(display);
+        options.add(general).add(actions).add(matching).add(display).add(test);
         
         BPO::positional_options_description pos;
         pos.add("match-key", -1);

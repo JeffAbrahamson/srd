@@ -33,6 +33,26 @@
 #include "types.h"
 
 
+/*
+  In test mode, we'll use a local data directory whose name is based
+  on the password.
+*/
+static bool testing = false;
+
+
+void srd::test_mode(bool in)
+{
+        testing = in;
+}
+
+
+
+bool srd::test_mode()
+{
+        return testing;
+}
+
+
 
 srd::vector_string srd::filter_keys(const std::string password,
                                     const srd::vector_string match_key,
