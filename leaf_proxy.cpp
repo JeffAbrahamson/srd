@@ -65,7 +65,8 @@ leaf_proxy::leaf_proxy(const string pass,
 
 /*
   Copy constructor.  Note that we don't copy the leaf we proxy, just
-  the information to be able to proxy it.
+  the information to be able to proxy it.  See the comment in
+  operator=() about why.
 */
 leaf_proxy::leaf_proxy(const leaf_proxy &other)
         : password(other.password),

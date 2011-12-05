@@ -1,0 +1,93 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="description" content="Code structure for srd">
+<meta name="author" content="Jeff Abrahamson">
+<style type="text/css">
+body {
+    font-family: "lucida grande", Arial, Helvetica, sans-serif;
+    font-size: 14px;
+}
+</style>
+</head>
+<body>
+
+<header>
+<h1>About the <b>srd</b> code.</h1>
+</header>
+
+<article>
+<p>
+This is a quick tour of the <b>srd</b> source code.
+</p>
+
+<h2>Functional Overview</h2>
+
+<p>
+From a functional viewpoint, srd manages a set of text fragments.
+Think of them as text on sticky (PostIt(TM)) notes.  Each text
+fragment has a name, which is also text.  Text may be retrieved from a
+single note or from multiple notes and is searchable.  We'll refer to
+the name and the note as key and payload.
+</p>
+
+<h2>Implementation Overview</h2>
+
+<p>
+From an implementation viewpoint, the principle is an index (called
+the root) and a bunch of files (called leaves).  The root is a file
+that maps user-readable names (which can be changed by the user) to
+permanent names (numbers) to file names for text fragments (which text
+fragments may also be changed by the user).  The root also remembers a
+hash of the password so that we may verify that the user has provided
+a reasonable password.
+</p>
+
+<h2>File Overview</h2>
+
+<p>
+<b>main.cpp</b> is the principle entry point for the program.  In other
+words, it contains <tt>main()</tt>.  It handles option parsing.  It then talks
+to <b>interface.cpp</b>.
+</p>
+
+<p>
+The main entry point for the library (.so) version of the code is
+<b>interface.cpp</b>.  It serves merely to enforce abstraction between the
+commandline (or, eventually, other) interface and the functionality.
+</p>
+
+<p>
+<b>root.cpp</b> is the index object.  It is tested by <b>root_test.cpp</b>.
+</p>
+
+<p>
+The root's main data structure is a leaf_proxy_map (implemented in
+<b>leaf_proxy_map.cpp</b>, tested by <b>leaf_proxy_test.cpp</b>).  The
+leaf_proxy_map is also the abstraction by which we return search
+results, facilitating searching on existing results.
+</p>
+
+<p> A leaf proxy (<b>leaf_proxy.cpp</b>) represents a leaf without
+loading the data.  Once we load the file, the leaf proxy contains a
+pointer to the leaf (<b>leaf.cpp</b>, tested in <b>leaf_test.cpp</b>).
+</p>
+
+
+<p> <b>compress.cpp</b> (tested by <b>compress_test.cpp</b>) and
+<b>crypt.cpp</b> (tested by <b>crypt_test.cpp</b>) are mixins that
+handle compression/decompression and encryption/decryption
+respectively.
+File operations are abstracted in the mixin class <b>file.cpp</b> (tested by
+<b>file_test.cpp</b>).
+</p>
+
+<p>
+Many of the tests require text to manipulate.  The file <b>test_text.cpp</b>
+provides that text.
+</p>
+</article>
+
+</body>
+</html>

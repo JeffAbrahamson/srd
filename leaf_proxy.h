@@ -33,7 +33,7 @@
 namespace srd {
 
         /*
-          A leaf, meaning a dataa node, but not necessarily loaded.
+          A leaf, meaning a data node, but not necessarily loaded.
           The actual data handling and persistence is done by the leaf
           class.  We make a pointer to a leaf when we load one, and we
           delete the leaf object and null the pointer when we don't

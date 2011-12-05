@@ -56,8 +56,11 @@ snap : clean
 	-mkdir snapshot/$$(date +'%Y-%m-%d')
 	cp *.cpp *.h Makefile snapshot/$$(date +'%Y-%m-%d')
 
-time :
-	@../time.sh time.txt
-
 TAGS : *cpp *h
 	etags *cpp *h
+
+
+# Personal to JMA...
+time :
+	awk -F: '{sum += $$2} END {print sum " minutes (" sum/60 " hours)"}' < time.txt
+

@@ -41,10 +41,11 @@ namespace srd {
           to do so, persist our data (via the inherited file object).
 
           We have a key and a payload.  For purposes of being useful,
-          we keep track of the password.  That's admittedly not idea,
-          since a core dump would potentially contain the password
-          multiple times, which would make it easier to find.  On the
-          other hand, it's not the human-readable pass phrase at least.
+          we keep track of the password.  That's admittedly not a good
+          idea, since a core dump would potentially contain the
+          password multiple times, which would make it easier to find.
+          On the other hand, it's not the human-readable pass phrase
+          at least.
         */
         class leaf : public file, public compress, public crypt {
         public:
