@@ -1,0 +1,147 @@
+/*
+  Copyright 2011  Jeff Abrahamson
+  
+  This file is part of srd.
+  
+  srd is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+  
+  srd is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+  
+  You should have received a copy of the GNU General Public License
+  along with srd.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
+
+#include "leaf_proxy.h"
+#include "leaf_proxy_map.h"
+
+
+
+using namespace srd;
+using namespace std;
+
+
+
+/*
+  Return leaf proxies for all leaves whose key matches pattern.
+*/
+leaf_proxy_map leaf_proxy_map::filter_keys(srd::vector_string patterns)
+{
+        leaf_proxy_map results = leaf_proxy_map();
+        for(iterator it = begin(); it != end(); it++) {
+                leaf_proxy &proxy = (*it).second;
+                bool found_in_this_proxy = false;
+                for(vector_string::const_iterator pat_it = patterns.begin();
+                    !found_in_this_proxy && pat_it != patterns.end();
+                    pat_it++) {
+                        if(proxy.key().find(*pat_it) != string::npos) {
+                                found_in_this_proxy = true;
+                                results[it->first] = proxy;
+                        }
+                }
+        }
+        return results;
+}
+
+
+
+/*
+  Return leaf proxies for all leaves whose payload matches pattern.
+*/
+leaf_proxy_map leaf_proxy_map::filter_payloads(vector_string patterns)
+{
+        leaf_proxy_map results = leaf_proxy_map();
+        for(iterator it = begin(); it != end(); it++) {
+                leaf_proxy &proxy = (*it).second;
+                bool found_in_this_proxy = false;
+                for(vector_string::const_iterator pat_it = patterns.begin();
+                    !found_in_this_proxy && pat_it != patterns.end();
+                    pat_it++) {
+                        if(proxy.payload().find(*pat_it) != string::npos) {
+                                found_in_this_proxy = true;
+                                results[it->first] = proxy;
+                        }
+                }
+        }
+        return results;
+}
+
+
+
+/*
+  Return leaf proxies for all leaves whose key matches key_pattern and
+  whose payload matches payload_pattern.
+*/
+leaf_proxy_map leaf_proxy_map::filter_keys_and_payloads(vector_string key_patterns,
+                                                        vector_string payload_patterns)
+{
+        leaf_proxy_map results = leaf_proxy_map();
+        for(iterator it = begin(); it != end(); it++) {
+                leaf_proxy &proxy = (*it).second;
+                bool key_found_in_this_proxy = false;
+                for(vector_string::const_iterator pat_it = key_patterns.begin();
+                    !key_found_in_this_proxy && pat_it != key_patterns.end();
+                    pat_it++) {
+                        if(proxy.key().find(*pat_it) != string::npos) {
+                                key_found_in_this_proxy = true;
+                        }
+                }
+                if(key_found_in_this_proxy) {
+                        bool payload_found_in_this_proxy = false;
+                        for(vector_string::const_iterator pat_it = payload_patterns.begin();
+                            !payload_found_in_this_proxy && pat_it != payload_patterns.end();
+                            pat_it++) {
+                                if(proxy.payload().find(*pat_it) != string::npos) {
+                                        payload_found_in_this_proxy = true;
+                                        results[it->first] = proxy;
+                                }
+                        }
+                }
+                
+        }
+        return results;
+}
+
+
+
+/*
+  Return leaf proxies for all leaves whose key matches key_pattern or
+  whose payload matches payload_pattern.
+*/
+leaf_proxy_map leaf_proxy_map::filter_keys_or_payloads(vector_string key_patterns,
+                                                       vector_string payload_patterns)
+{
+        leaf_proxy_map results = leaf_proxy_map();
+        for(iterator it = begin(); it != end(); it++) {
+                leaf_proxy &proxy = (*it).second;
+                bool found_in_this_proxy = false;
+                for(vector_string::const_iterator pat_it = key_patterns.begin();
+                    !found_in_this_proxy && pat_it != key_patterns.end();
+                    pat_it++) {
+                        if(proxy.key().find(*pat_it) != string::npos) {
+                                found_in_this_proxy = true;
+                                results[it->first] = proxy;
+                        }
+                }
+                for(vector_string::const_iterator pat_it = payload_patterns.begin();
+                    !found_in_this_proxy && pat_it != payload_patterns.end();
+                    pat_it++) {
+                        if(proxy.payload().find(*pat_it) != string::npos) {
+                                found_in_this_proxy = true;
+                                results[it->first] = proxy;
+                        }
+                }
+                
+        }
+        return results;
+}
+
+
+

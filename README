@@ -1,0 +1,12 @@
+srd is a secure rolodesk, which is a bit of a retro name for an
+encrypted set of notes.  In modern parlance, it might be called a
+password vault, but the idea is to be able to write and retrieve
+arbitrary bits of text.
+
+srd is being developed on an ubuntu linux system.  There's no real
+reason to suspect it wouldn't work elsewhere, but that hasn't been
+tested.
+
+At the moment, the code is incomplete.  GIT, after all, is meant for
+development.
+
