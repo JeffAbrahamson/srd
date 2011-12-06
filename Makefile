@@ -8,6 +8,7 @@ SRC = 			\
 	leaf.cpp	\
 	leaf_proxy.cpp	\
 	leaf_proxy_map.cpp \
+	mode.cpp	\
 	root.cpp	\
 
 HEADER =		\
@@ -18,6 +19,7 @@ HEADER =		\
 	leaf.h  	\
 	leaf_proxy.h	\
 	leaf_proxy_map.h \
+	mode.h		\
 	root.h  	\
 	types.h		\
 
@@ -40,9 +42,9 @@ all : srd test TAGS
 srd : main.o $(HEADER) $(OBJECT) Makefile
 	$(GCC) -o srd main.o $(OBJECT) $(LIBS)
 
-test : compress_test crypt_test file_test leaf_test leaf_proxy_test root_test
+test : compress_test crypt_test file_test leaf_test leaf_proxy_test mode_test root_test
 
-%_test : %_test.o test_text.o $(OBJECT)
+%_test : %_test.o test_text.o mode.o $(OBJECT)
 	$(GCC) -o $@ $^ $(LIBS)
 	-./$@
 

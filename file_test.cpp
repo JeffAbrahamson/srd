@@ -28,6 +28,7 @@
 
 #include "crypt.h"
 #include "file.h"
+#include "mode.h"
 #include "test_text.h"
 #include "types.h"
 
@@ -45,10 +46,14 @@ int main(int argc, char *argv[])
 {
         cout << "Testing file.cpp" << endl;
         
+        mode(Verbose, false);
+        mode(Testing, true);
+        
         int err_count = 0;
         err_count += test_exists("/", "tmp", true);
         err_count += test_exists("/", "TMP", false);
-        err_count += test_exists("/bin", "echo", true);        
+        //  /bin/echo always exists on linux systems, right?
+        err_count += test_exists("/bin", "echo", true);
         err_count += test_exists("/bin", "echo-not", false);        
 
         vector_string messages = test_text();

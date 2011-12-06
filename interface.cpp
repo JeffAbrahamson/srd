@@ -73,8 +73,7 @@ static leaf_proxy_map do_filter(const string password,
                                 const vector_string match_key,
                                 const vector_string match_payload,
                                 const vector_string match_or,
-                                const bool match_exact,
-                                const bool verbose)
+                                const bool match_exact)
 {
         root root(password, "", test_mode());
         leaf_proxy_map lpm = root.filter_keys_and_payloads(match_key, match_payload);
@@ -91,15 +90,13 @@ vector_string filter_to_keys(const string password,
                              const vector_string match_key,
                              const vector_string match_payload,
                              const vector_string match_or,
-                             const bool match_exact,
-                             const bool verbose)
+                             const bool match_exact)
 {
         leaf_proxy_map lpm = do_filter(password,
                                        match_key,
                                        match_payload,
                                        match_or,
-                                       match_exact,
-                                       verbose);
+                                       match_exact);
         vector_string vs;
         //for_each(lpm.begin(), lpm.end(), back_inserter(vs));
         for(leaf_proxy_map::const_iterator it = lpm.begin();
@@ -112,6 +109,16 @@ vector_string filter_to_keys(const string password,
 }
 
 
+vector_string filter_to_keys_sub(root root,
+                                 const vector_string match_key,
+                                 const vector_string match_payload,
+                                 const vector_string match_or,
+                                 const bool match_exact)
+{
+}
+
+
+
 /*
   Fetch the root and filter as requested.  Return a map of matching
   key/payload pairs.
@@ -120,15 +127,13 @@ map<string, string> filter_to_records(const string password,
                                       const vector_string match_key,
                                       const vector_string match_payload,
                                       const vector_string match_or,
-                                      const bool match_exact,
-                                      const bool verbose)
+                                      const bool match_exact)
 {
         leaf_proxy_map lpm = do_filter(password,
                                        match_key,
                                        match_payload,
                                        match_or,
-                                       match_exact,
-                                       verbose);
+                                       match_exact);
         map<string, string> m;
         //for_each(lpm.begin(), lpm.end(), inserter(m, m.begin()));
         for(leaf_proxy_map::const_iterator it = lpm.begin();

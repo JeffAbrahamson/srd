@@ -18,23 +18,34 @@
 */
 
 
+#include <iostream>
+#include <map>
 
-#ifndef  __COMPRESS_H__
-#define __COMPRESS_H__ 1
+#include "mode.h"
 
-#include <string>
 
-namespace srd {
+using namespace std;
 
-        /*
-          This is a simple mixin class that provides compression and decompression.
-        */
-        class compress {
-        public:
-                const std::string compression(const std::string);
-                const std::string decompression(const std::string, unsigned int = 0);
-                
-        };
+
+static map<Mode, bool> modes;
+
+
+void mode(const Mode m, const bool new_state)
+{
+        modes[m] = new_state;
 }
 
-#endif  /* __COMPRESS_H__*/
+
+const bool mode(const Mode m)
+{
+        map<Mode, bool>::const_iterator it = modes.find(m);
+        if(it == modes.end()) {
+                cerr << "Failed to find mode " << m << endl;
+                cerr << "This is a bug whose effects are undefined." << endl;
+                cerr << "Continuing as though the result had been false." << endl;
+                return false;
+        }
+        return it->second;
+}
+
+

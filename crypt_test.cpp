@@ -25,6 +25,7 @@
 #include <vector>
 
 #include "crypt.h"
+#include "mode.h"
 #include "test_text.h"
 #include "types.h"
 
@@ -41,6 +42,9 @@ static int test_encryption(const string message);
 int main(int argc, char *argv[])
 {
         cout << "Testing crypt.cpp" << endl;
+        
+        mode(Verbose, false);
+        mode(Testing, true);
         
         int err_count = 0;
         vector_string messages = test_text();

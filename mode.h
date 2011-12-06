@@ -19,22 +19,27 @@
 
 
 
-#ifndef  __COMPRESS_H__
-#define __COMPRESS_H__ 1
+#ifndef __MODE_H__
+#define __MODE_H__ 1
 
-#include <string>
 
-namespace srd {
+/*
+  Maintain a map of modes.
 
-        /*
-          This is a simple mixin class that provides compression and decompression.
-        */
-        class compress {
-        public:
-                const std::string compression(const std::string);
-                const std::string decompression(const std::string, unsigned int = 0);
-                
-        };
-}
+  Written for verbose and testing, to avoid having to pass them around
+  everywhere in case we need them deep down.  Especially verbose.
+  
+  Some might call this a kludge or even inelegant.  Abused, it would be.
+*/
 
-#endif  /* __COMPRESS_H__*/
+
+enum Mode {
+        Verbose,
+        Testing,
+};
+
+void mode(const Mode m, const bool new_state);
+const bool mode(const Mode m);
+
+
+#endif  /* __MODE_H__*/

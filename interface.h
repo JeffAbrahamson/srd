@@ -41,8 +41,7 @@ namespace srd {
                                const srd::vector_string match_key,
                                const srd::vector_string match_data,
                                const srd::vector_string match_all,
-                               const bool match_exact,
-                               const bool verbose);
+                               const bool match_exact);
         
 
         std::map<std::string, std::string>
@@ -50,8 +49,7 @@ namespace srd {
                                   const srd::vector_string match_key,
                                   const srd::vector_string match_data,
                                   const srd::vector_string match_all,
-                                  const bool match_exact,
-                                  const bool verbose);
+                                  const bool match_exact);
 
 
 }

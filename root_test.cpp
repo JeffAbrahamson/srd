@@ -26,6 +26,7 @@
 #include <unistd.h>
 
 #include "crypt.h"
+#include "mode.h"
 #include "root.h"
 #include "test_text.h"
 #include "types.h"
@@ -46,6 +47,9 @@ int confirm_once(root &root, pair<string, string> text);
 int main(int argc, char *argv[])
 {
         cout << "Testing root.cpp" << endl;
+        
+        mode(Verbose, false);
+        mode(Testing, true);
         
         int err_count = test_root_basic();
         err_count += test_root_singles();

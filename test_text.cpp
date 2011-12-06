@@ -17,11 +17,11 @@
   along with srd.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
 #include <map>
 #include <string>
 #include <vector>
 
+#include "mode.h"
 #include "test_text.h"
 #include "types.h"
 #include "types.h"
@@ -29,6 +29,7 @@
 
 using namespace srd;
 using namespace std;
+
 
 
 vector_string srd::test_text()

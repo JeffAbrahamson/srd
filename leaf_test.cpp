@@ -26,6 +26,7 @@
 #include <unistd.h>
 
 #include "leaf.h"
+#include "mode.h"
 #include "test_text.h"
 #include "types.h"
 
@@ -41,6 +42,9 @@ static int test_leaf(string);
 int main(int argc, char *argv[])
 {
         cout << "Testing leaf.cpp" << endl;
+        
+        mode(Verbose, false);
+        mode(Testing, true);
         
         int err_count = 0;
         vector_string messages = test_text();

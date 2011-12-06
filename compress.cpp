@@ -24,6 +24,7 @@
 #include <string>
 
 #include "compress.h"
+#include "mode.h"
 
 
 using namespace srd;
@@ -40,7 +41,7 @@ using namespace std;
 /*
   Compress a string.
 */
-const string compress::compression(const string in_buf, const bool verbose)
+const string compress::compression(const string in_buf)
 {
         // As documented at http://www.bzip.org/1.0.3/html/util-fns.html
         unsigned int output_max_size = static_cast<double>(in_buf.size()) * 1.06 + 600.5;
@@ -58,7 +59,7 @@ const string compress::compression(const string in_buf, const bool verbose)
                                            const_cast<char *>(in_buf.c_str()),
                                            in_buf.size(),
                                            1, // blockSize100k, in the range 1..9
-                                           verbose,
+                                           (const bool)mode(Verbose),
                                            0  // workFactor
                                            );
         string the_error;
@@ -99,8 +100,7 @@ const string compress::compression(const string in_buf, const bool verbose)
   Decompress a string.
 */
 const string compress::decompression(const string in_buf,
-                                     unsigned int uncompressed_size_hint,
-                                     bool verbose)
+                                     unsigned int uncompressed_size_hint)
 {
         if(0 == uncompressed_size_hint)
                 uncompressed_size_hint = 5 * in_buf.size();
@@ -118,7 +118,7 @@ const string compress::decompression(const string in_buf,
                                              const_cast<char *>(in_buf.c_str()),
                                              in_buf.size(),
                                              false, // small is false: else slower
-                                             verbose
+                                             mode(Verbose)
                                              );
 
         string the_error;

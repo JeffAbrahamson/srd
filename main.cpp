@@ -28,6 +28,7 @@
 
 #include "interface.h"
 #include "crypt.h"
+#include "mode.h"
 #include "types.h"
 
 
@@ -40,19 +41,17 @@ class help_exception : public exception {};
 
 static BPO::variables_map parse_options(int, char *[]);
 static string get_password();
-static void do_shell(const string, const bool);
-static void change_password(const string, const bool);
+static void do_shell(const string);
+static void change_password(const string);
 static void do_edit(const string,
                     const vector_string,
                     const vector_string,
                     const vector_string,
-                    bool,
                     bool);
 static void do_match(const string,
                      const vector_string,
                      const vector_string,
                      const vector_string,
-                     bool,
                      bool);
 
 
@@ -82,14 +81,15 @@ int main(int argc, char *argv[])
                 passwd = get_password();
         
         // do something
-        bool verbose = options.count("verbose") > 0;
+        const bool verbose = options.count("verbose") > 0;
+        mode(Verbose, verbose);
 
         if(options.count("shell")) {
-                do_shell(passwd, verbose);
+                do_shell(passwd);
                 return 0;
         }
         if(options.count("passwd")) {
-                change_password(passwd, verbose);
+                change_password(passwd);
                 return 0;
         }
 
@@ -125,11 +125,11 @@ int main(int argc, char *argv[])
                 cout << "match-exact=" << match_exact << endl;
         
         if(options.count("edit")) {
-                do_edit(passwd, match_key, match_data, match_or, match_exact, verbose);
+                do_edit(passwd, match_key, match_data, match_or, match_exact);
                 return 0;
         }
 
-        do_match(passwd, match_key, match_data, match_or, match_exact, verbose);
+        do_match(passwd, match_key, match_data, match_or, match_exact);
         return 0;
 }
 
@@ -231,14 +231,14 @@ static string get_password()
 
 
 
-static void do_shell(const string password, const bool verbose)
+static void do_shell(const string password)
 {
         // ################
         cout << "do_shell() not yet implemented." << endl;
 }
 
 
-static void change_password(const string password, bool verbose)
+static void change_password(const string password)
 {
         // ################
         cout << "change_password() not yet implemented." << endl;
@@ -249,8 +249,7 @@ static void do_edit(const string password,
                     const vector_string match_key,
                     const vector_string match_data,
                     const vector_string match_or,
-                    const bool match_exact,
-                    const bool verbose)
+                    const bool match_exact)
 {
         
         
@@ -267,8 +266,7 @@ static void do_match(const string password,
                      const vector_string match_key,
                      const vector_string match_data,
                      const vector_string match_or,
-                     const bool match_exact,
-                     const bool verbose)
+                     const bool match_exact)
 {
         // ################
         cout << "do_match() not yet implemented." << endl;
