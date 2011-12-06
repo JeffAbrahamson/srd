@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
         err_count += test_exists("/bin", "echo-not", false);        
 
         vector_string messages = test_text();
-        err_count = count_if(messages.begin(), messages.end(), test_file);
+        err_count += count_if(messages.begin(), messages.end(), test_file);
 
         if(err_count)
                 cout << "Errors (" << err_count << ") in test!!" << endl;
@@ -65,7 +65,7 @@ int main(int argc, char *argv[])
 
 static int test_exists(const char *dir, const char *base, bool expect_exists)
 {
-        file file(string(dir), string(base), true);
+        file file(string(base), string(dir), true);
         try {
                 if(expect_exists == file.exists())
                         return 0;
