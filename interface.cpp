@@ -37,34 +37,6 @@ using namespace srd;
 using namespace std;
 
 
-/*
-  In test mode, we'll use a local data directory whose name is based
-  on the password.
-*/
-static bool testing = false;
-
-
-/*
-  Indicate whether test mode or production mode.  The difference is
-  largely (exclusively) where we store the data.  Cf. the file()
-  constructor in file.cpp.
-*/
-void srd::test_mode(bool in)
-{
-        testing = in;
-}
-
-
-
-/*
-  Return whether or not we are in test mode.
-*/
-bool srd::test_mode()
-{
-        return testing;
-}
-
-
 
 /*
   Fetch the root and filter as requested.
@@ -115,6 +87,7 @@ vector_string filter_to_keys_sub(root root,
                                  const vector_string match_or,
                                  const bool match_exact)
 {
+        return vector_string();
 }
 
 
@@ -144,5 +117,4 @@ map<string, string> filter_to_records(const string password,
         }
         return m;
 }
-
 

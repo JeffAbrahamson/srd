@@ -19,12 +19,16 @@
 
 
 #include <assert.h>
+#include <boost/foreach.hpp>
+#include <boost/tokenizer.hpp>
+#include <iostream>
 #include <functional>
 #include <string>
 
 #include "leaf_proxy.h"
 
 
+using namespace boost;
 using namespace srd;
 using namespace std;
 
@@ -145,6 +149,34 @@ const string leaf_proxy::payload()
         validate();
         return the_leaf->payload();
 }
+
+
+
+/*
+  Print the leaf's key.
+*/
+void leaf_proxy::print_key()
+{
+        init_leaf();
+        cout << "[" << key() << "]" << endl;
+}
+
+
+
+/*
+  Print the leaf's payload.
+  Optionally filter the output for lines matching pattern.
+*/
+void leaf_proxy::print_payload(const string pattern)
+{
+        string prefix = "  ";           // Someday make this an option maybe
+        char_separator<char> sep("\n"); // This will surely break on MacOS and Windows.
+        tokenizer<char_separator<char> > lines(payload(), sep);
+        BOOST_FOREACH(string line, lines)
+                if(0 == pattern.size() || string::npos != line.find(pattern))
+                        cout << prefix << line << endl;
+}
+
 
 
 

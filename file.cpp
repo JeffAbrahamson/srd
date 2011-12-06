@@ -66,12 +66,13 @@ file::file()
   Return the name of the directory in which the file lives or will live.
   Compute the name if needed.  Create the directory if needed.
 */
-const string file::dirname() {
+const string file::dirname()
+{
         if("" == m_dir_name) {
                 // Test mode only affects what directory we generate, if asked.
                 if(mode(Testing)) {
                         ostringstream spath;
-                        spath << "srd-test-" << getpid();
+                        spath << "srd-test-0000-" << getenv("LOGNAME");
                         m_dir_name = spath.str();
                 } else
                         m_dir_name = string(getenv("HOME")) + "/srd2/";
@@ -91,7 +92,8 @@ const string file::dirname() {
   Return the name by which we will know the file.
   Compute the name if needed.
 */
-const string file::basename() {
+const string file::basename()
+{
         //if("" == m_base_name) {
         if(m_base_name == "") {
                 ostringstream sname;

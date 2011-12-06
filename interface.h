@@ -27,15 +27,13 @@
 #include <string>
 #include <vector>
 
+#include "leaf_proxy.h"
 #include "types.h"
 
 
 
 namespace srd {
 
-        void test_mode(bool testing);
-        bool test_mode();
-        
         srd::vector_string
                 filter_to_keys(const std::string password,
                                const srd::vector_string match_key,
@@ -50,7 +48,6 @@ namespace srd {
                                   const srd::vector_string match_data,
                                   const srd::vector_string match_all,
                                   const bool match_exact);
-
 
 }
 

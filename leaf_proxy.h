@@ -66,6 +66,9 @@ namespace srd {
                 void payload(const std::string);
                 const std::string payload();
 
+                void print_key();
+                void print_payload(const std::string payload);
+
                 const std::string basename();
                 void commit();
                 void erase();

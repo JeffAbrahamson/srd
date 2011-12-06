@@ -28,7 +28,9 @@
 
 #include "interface.h"
 #include "crypt.h"
+#include "leaf_proxy_map.h"
 #include "mode.h"
+#include "root.h"
 #include "types.h"
 
 
@@ -74,10 +76,10 @@ int main(int argc, char *argv[])
 
         bool is_test = options.count("TEST") > 0;
         string passwd;
-        if(is_test) {
+        mode(Testing, is_test);
+        if(is_test)
                 passwd = options["TEST"].as<string>();
-                test_mode(true);
-        } else
+        else
                 passwd = get_password();
         
         // do something
@@ -247,17 +249,29 @@ static void change_password(const string password)
 
 static void do_edit(const string password,
                     const vector_string match_key,
-                    const vector_string match_data,
+                    const vector_string match_payload,
                     const vector_string match_or,
                     const bool match_exact)
 {
-        
-        
-        // ################
-        cout << "do_edit() not yet implemented." << endl;
-        return;
+        root root(password, "");
+        if(0 == match_key.size() && 0 == match_payload.size() && 0 == match_or.size()) {
+                do_edit_sub(
+        leaf_proxy_map lpm = root.filter_keys_and_payloads(match_key, match_payload);
+        if(match_or.size())
+                lpm = lpm.filter_keys_or_payloads(match_or, match_or);
+        if(0 == lpm.size()) {
+                cout << "No record matches." << endl;
+        } else if(1 == lpm.size()) {
+                cout << "Got one response, let's edit it!" << endl;
+        } else {
+                cout << "got multiple response." << endl;
+                for(leaf_proxy_map::iterator it = lpm.begin();
+                    it != lpm.end();
+                    ++it)
+                        it->second.print_key();
+        }
 
-        //vector_string;
+        return;
 }
 
 
