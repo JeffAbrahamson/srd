@@ -37,21 +37,21 @@ namespace srd {
         bool test_mode();
         
         srd::vector_string
-                filter_keys(const std::string password,
-                            const srd::vector_string match_key,
-                            const srd::vector_string match_data,
-                            const srd::vector_string match_all,
-                            const bool match_exact,
-                            const bool verbose);
-
-
-        std::map<std::string, std::string>
-                filter_records(const std::string password,
+                filter_to_keys(const std::string password,
                                const srd::vector_string match_key,
                                const srd::vector_string match_data,
                                const srd::vector_string match_all,
                                const bool match_exact,
                                const bool verbose);
+        
+
+        std::map<std::string, std::string>
+                filter_to_records(const std::string password,
+                                  const srd::vector_string match_key,
+                                  const srd::vector_string match_data,
+                                  const srd::vector_string match_all,
+                                  const bool match_exact,
+                                  const bool verbose);
 
 
 }

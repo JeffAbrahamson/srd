@@ -33,6 +33,10 @@
 #include "types.h"
 
 
+using namespace srd;
+using namespace std;
+
+
 /*
   In test mode, we'll use a local data directory whose name is based
   on the password.
@@ -40,6 +44,11 @@
 static bool testing = false;
 
 
+/*
+  Indicate whether test mode or production mode.  The difference is
+  largely (exclusively) where we store the data.  Cf. the file()
+  constructor in file.cpp.
+*/
 void srd::test_mode(bool in)
 {
         testing = in;
@@ -47,6 +56,9 @@ void srd::test_mode(bool in)
 
 
 
+/*
+  Return whether or not we are in test mode.
+*/
 bool srd::test_mode()
 {
         return testing;
@@ -54,28 +66,77 @@ bool srd::test_mode()
 
 
 
-srd::vector_string srd::filter_keys(const std::string password,
-                                    const srd::vector_string match_key,
-                                    const srd::vector_string match_data,
-                                    const srd::vector_string match_all,
-                                    const bool match_exact,
-                                    const bool verbose)
+/*
+  Fetch the root and filter as requested.
+*/
+static leaf_proxy_map do_filter(const string password,
+                                const vector_string match_key,
+                                const vector_string match_payload,
+                                const vector_string match_or,
+                                const bool match_exact,
+                                const bool verbose)
 {
-        //srd::node_root root;
-        
-        srd::vector_string v; // ################
-        return v;
+        root root(password, "", test_mode());
+        leaf_proxy_map lpm = root.filter_keys_and_payloads(match_key, match_payload);
+        if(match_or.size())
+                lpm = lpm.filter_keys_or_payloads(match_or, match_or);
+        return lpm;
 }
 
 
-std::map<std::string, std::string> srd::filter_records(const std::string password,
-                                                       const srd::vector_string match_key,
-                                                       const srd::vector_string match_data,
-                                                       const srd::vector_string match_all,
-                                                       const bool match_exact,
-                                                       const bool verbose)
+/*
+  Fetch the root and filter as requested.  Return a vector of matching keys.
+*/
+vector_string filter_to_keys(const string password,
+                             const vector_string match_key,
+                             const vector_string match_payload,
+                             const vector_string match_or,
+                             const bool match_exact,
+                             const bool verbose)
 {
-        std::map<std::string, std::string> m; // ################
+        leaf_proxy_map lpm = do_filter(password,
+                                       match_key,
+                                       match_payload,
+                                       match_or,
+                                       match_exact,
+                                       verbose);
+        vector_string vs;
+        //for_each(lpm.begin(), lpm.end(), back_inserter(vs));
+        for(leaf_proxy_map::const_iterator it = lpm.begin();
+            it != lpm.end();
+            ++it) {
+                leaf_proxy lp = it->second;
+                vs.push_back(lp.key());
+        }
+        return vs;
+}
+
+
+/*
+  Fetch the root and filter as requested.  Return a map of matching
+  key/payload pairs.
+*/
+map<string, string> filter_to_records(const string password,
+                                      const vector_string match_key,
+                                      const vector_string match_payload,
+                                      const vector_string match_or,
+                                      const bool match_exact,
+                                      const bool verbose)
+{
+        leaf_proxy_map lpm = do_filter(password,
+                                       match_key,
+                                       match_payload,
+                                       match_or,
+                                       match_exact,
+                                       verbose);
+        map<string, string> m;
+        //for_each(lpm.begin(), lpm.end(), inserter(m, m.begin()));
+        for(leaf_proxy_map::const_iterator it = lpm.begin();
+            it != lpm.end();
+            ++it) {
+                leaf_proxy lp = it->second;
+                m[lp.key()] = lp.payload();
+        }
         return m;
 }
 
