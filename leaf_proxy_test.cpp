@@ -71,14 +71,14 @@ static int test_leaf_proxy(const string message)
 
         string base_name, dir_name, full_path;
         {
-                leaf_proxy first_leaf_proxy(password, "", "", true);
+                leaf_proxy first_leaf_proxy(password, "", "");
                 first_leaf_proxy.key(key);
                 first_leaf_proxy.payload(message);
                 base_name = first_leaf_proxy.basename();
                 first_leaf_proxy.commit();
         }
         
-        leaf_proxy second_leaf_proxy(password, base_name, "", true);
+        leaf_proxy second_leaf_proxy(password, base_name, "");
         int ret = 0;
         if(second_leaf_proxy.basename().size() == 0) {
                 cout << "Proxy has empty basename." << endl;
@@ -94,7 +94,7 @@ static int test_leaf_proxy(const string message)
         }
         second_leaf_proxy.erase();
 
-        leaf_proxy third_leaf_proxy(password, base_name, "", true);
+        leaf_proxy third_leaf_proxy(password, base_name, "");
         if(third_leaf_proxy.basename().size() == 0) {
                 cout << "Proxy has empty basename." << endl;
                 ret++;

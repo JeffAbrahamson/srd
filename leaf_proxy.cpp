@@ -51,9 +51,8 @@ leaf_proxy::leaf_proxy()
 */
 leaf_proxy::leaf_proxy(const string pass,
                        const string base,
-                       const string dir,
-                       const bool test)
-        : password(pass), base_name(base), dir_name(dir), testing(test)
+                       const string dir)
+        : password(pass), base_name(base), dir_name(dir)
 {
         assert(!password.empty());
         the_leaf = NULL;
@@ -72,7 +71,6 @@ leaf_proxy::leaf_proxy(const leaf_proxy &other)
         : password(other.password),
           base_name(other.base_name),
           dir_name(other.dir_name),
-          testing(other.testing),
           valid(other.valid),
           the_leaf(NULL)
 {
@@ -93,7 +91,6 @@ leaf_proxy &leaf_proxy::operator=(const leaf_proxy &other)
         password = other.password;
         base_name = other.base_name;
         dir_name = other.dir_name;
-        testing = other.testing;
         valid = other.valid;
         the_leaf = NULL;
 
@@ -204,7 +201,7 @@ void leaf_proxy::init_leaf()
 {
         validate();
         if(!the_leaf)
-                the_leaf = new leaf(password, base_name, dir_name, testing);
+                the_leaf = new leaf(password, base_name, dir_name);
         if(!base_name.empty())
                 assert(base_name == the_leaf->basename());
         if(!dir_name.empty())

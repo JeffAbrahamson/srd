@@ -34,6 +34,7 @@
 
 #include "crypt.h"
 #include "file.h"
+#include "mode.h"
 
 
 using namespace srd;
@@ -44,9 +45,8 @@ using namespace std;
   Create a file if we know something about what to call it.
 */
 file::file(const string base_name,
-           const string dir_name,
-           const bool testing)
-        : m_testing(testing), m_dir_name(dir_name), m_base_name(base_name), m_dir_verified(false)
+           const string dir_name)
+        : m_dir_name(dir_name), m_base_name(base_name), m_dir_verified(false)
 {
 }
 
@@ -55,8 +55,8 @@ file::file(const string base_name,
 /*
   Create a file if we don't know anything about what to call it.
 */
-file::file(const bool testing)
-        : m_testing(testing), m_dir_verified(false)
+file::file()
+        : m_dir_verified(false)
 {
 }
 
@@ -68,7 +68,8 @@ file::file(const bool testing)
 */
 const string file::dirname() {
         if("" == m_dir_name) {
-                if(m_testing) {
+                // Test mode only affects what directory we generate, if asked.
+                if(mode(Testing)) {
                         ostringstream spath;
                         spath << "srd-test-" << getpid();
                         m_dir_name = spath.str();

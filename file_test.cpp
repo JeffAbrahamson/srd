@@ -70,9 +70,9 @@ int main(int argc, char *argv[])
 
 static int test_exists(const char *dir, const char *base, bool expect_exists)
 {
-        file file(string(base), string(dir), true);
+        file my_file(base, dir);
         try {
-                if(expect_exists == file.exists())
+                if(expect_exists == my_file.exists())
                         return 0;
                 return 1;
         }
@@ -91,7 +91,7 @@ static int test_file(string message)
         int ret = 0;
         string filename;   // Remember so we can clean up no matter what
         try {
-                file my_file(true);
+                file my_file;
                 filename = my_file.full_path();
                 my_file.file_contents(message);
                 string dup_message(my_file.file_contents());

@@ -76,7 +76,7 @@ static int test_root_basic()
         vector_string messages = test_text();
         string password = pseudo_random_string(20);
 
-        root *the_root = new root(password, "", true);
+        root *the_root = new root(password, "");
 
         for(vector_string::iterator it = messages.begin();
             it != messages.end();
@@ -91,7 +91,7 @@ static int test_root_basic()
         delete the_root;        // force commit, shouldn't need this ################
         
         cout << "Re-instantiating root." << endl;
-        the_root = new root(password, "", true);
+        the_root = new root(password, "");
         for(vector_string::iterator it = messages.begin();
             it != messages.end();
             it++) {
@@ -123,7 +123,7 @@ static int test_root_singles()
         string password = pseudo_random_string(15);
         {
                 // Instantiate and add (key,value) pairs
-                root root(password, "", true);
+                root root(password, "");
                 // Using a std::for_each and boost::bind here would add to a
                 // temporary object, so iterate by hand.  Is there a better way?
                 for(map<string, string>::const_iterator it = text.begin();

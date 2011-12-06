@@ -31,7 +31,8 @@ namespace srd {
         /*
           A simple mix-in class to handle reading and writing (binary) files,
           as well as testing for existence and removing them.
-            This could surely be done more cleverly.  Or already has been.
+
+          This could surely be done more cleverly.  Or already has been.
 
           At construction time, we can optionally specify a directory and a name
           (base_name) for the file.  Otherwise, these are determined following
@@ -40,10 +41,9 @@ namespace srd {
         class file {
                 
         public:
-                file(const bool testing = false);
+                file();
                 file(const std::string base_name,
-                     const std::string dir_name = std::string(),
-                     const bool testing = false);
+                     const std::string dir_name = std::string());
                 ~file() {};
 
                 const std::string dirname();
@@ -59,12 +59,10 @@ namespace srd {
 
                 void rm();
                 bool exists();
-                bool testing() { return m_testing; };
                 
         protected:
 
-                // Test mode only affects what directory we generate, if asked.
-                const bool m_testing;
+                
 
         private:
 

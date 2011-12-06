@@ -52,8 +52,8 @@ using namespace std;
 
   The name of the root node must be determinable solely by the password.
 */
-root::root(const string pass, const string dir_name, const bool testing)
-        : file(testing), password(pass), modified(false)
+root::root(const string pass, const string dir_name)
+        : password(pass), modified(false)
 {
         string base_name(pass);
         for(int i = 0; i < 30; i++)
@@ -92,7 +92,7 @@ root::root(const string pass, const string dir_name, const bool testing)
 */
 void root::instantiate_leaf_proxy(string proxy_key)
 {
-        (*this)[proxy_key] = leaf_proxy(password, proxy_key, "", testing());
+        (*this)[proxy_key] = leaf_proxy(password, proxy_key, "");
 }
 
 
@@ -128,7 +128,7 @@ root::~root()
 void root::add_leaf(const string key, const string payload)
 {
         validate();
-        leaf_proxy proxy(password, "", dirname(), testing());
+        leaf_proxy proxy(password, "", dirname());
         proxy.key(key);
         proxy.payload(payload);
         proxy.commit();

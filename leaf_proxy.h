@@ -45,8 +45,7 @@ namespace srd {
                 leaf_proxy();   // needed by std::map::operator[]()
                 leaf_proxy(const std::string password,
                            const std::string base_name = std::string(),
-                           const std::string dir_name = std::string(),
-                           const bool testing = false);
+                           const std::string dir_name = std::string());
                 /*
                   Deleting the leaf pointer will cause the leaf to
                   persist if appropriate.  It would be perverse to
@@ -80,7 +79,6 @@ namespace srd {
                 std::string password; // should be const but for operator=()
                 std::string base_name;
                 std::string dir_name;
-                bool testing;   // should be const but for operator=()
                 bool valid;
                 
                 leaf *the_leaf;

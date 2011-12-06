@@ -46,9 +46,8 @@ using namespace std;
 */
 leaf::leaf(const string pass,
            const string base_name,
-           const string dir_name,
-           const bool testing)
-        : file(testing), password(pass), modified(false)
+           const string dir_name)
+        : password(pass), modified(false)
 {
         basename(base_name);    // If empty, will be computed for us
         dirname(dir_name);      // If empty, will be computed for us

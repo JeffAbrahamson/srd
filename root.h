@@ -48,8 +48,7 @@ namespace srd {
         class root : public file, public compress, public crypt, public leaf_proxy_map {
         public:
                 root(const std::string password,
-                     const std::string path = std::string(),
-                     const bool testing = false);
+                     const std::string path = std::string());
                 virtual ~root();
 
                 // A leaf (or leaf proxy) contains a key and payload.
