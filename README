@@ -23,3 +23,25 @@ feedback.
 A handful of minor but important features haven't been implemented
 yet.  A couple opportunities for better efficiency are identified,
 again, see issues for details.
+
+There's also some code cleanup that's clearly called for.  You're
+looking at code during development. ;-)
+
+All this should happen over the next week or two, as I have a bit of
+time for doing such things.
+
+
+Why did I write this?
+
+I wrote a short python script once upon a time to do something
+similar.  I developed a bunch of features I wanted to add.  It became
+a rewrite.  As an exercise, I decided to see how much longer it would
+take to write it in C++ rather than python.  (Answer:  about five times
+longer.)  And it amuses me.  And it pushes me to look at some new
+libraries and language features that I don't get to use at work.
+
+The other answer, since there's no shortage of password vaults out
+there, is that (1) I wanted something that lives nicely on the
+commandline, and (2) I wanted to understand the code so that I'm sure
+it's doing what I want.  Those could probably both have been satisfied
+more easily without writing code, but would have left me less happy.
