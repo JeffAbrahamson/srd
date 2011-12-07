@@ -120,7 +120,6 @@ void file::file_contents(string data)
         }
         fs.write(data.data(), data.size());
         fs.close();
-        
 }
 
 

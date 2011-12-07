@@ -37,7 +37,7 @@ using namespace std;
 
 
 
-static int test_root_basic();
+static int test_root_basic(string password);
 static int test_root_singles();
 //static void add_pair(root &root, pair<string, string> couple);
 int confirm_once(root &root, pair<string, string> text);
@@ -50,8 +50,10 @@ int main(int argc, char *argv[])
         
         mode(Verbose, false);
         mode(Testing, true);
+        string password = pseudo_random_string(20);
         
-        int err_count = test_root_basic();
+        int err_count = test_root_basic(password);
+        err_count += test_root_basic(password);
         err_count += test_root_singles();
         
         if(err_count)
@@ -69,44 +71,45 @@ int main(int argc, char *argv[])
   Persist the root node, then reconstitute it.
   Confirm that we get back what we expect.
 */
-static int test_root_basic()
+static int test_root_basic(string password)
 {
         int error_count = 0;
-        
         vector_string messages = test_text();
-        string password = pseudo_random_string(20);
 
-        root *the_root = new root(password, "");
+        {
+                root root(password, "");
 
-        for(vector_string::iterator it = messages.begin();
-            it != messages.end();
-            it++) {
-                ostringstream ss;
-                ss << it->size();
-                string key(ss.str());
-                string foo = *it;
-                string payload(*it);
-                the_root->add_leaf(key, payload);
+                for(vector_string::iterator it = messages.begin();
+                    it != messages.end();
+                    it++) {
+                        ostringstream ss;
+                        ss << it->size();
+                        string key(ss.str());
+                        string foo = *it;
+                        string payload(*it);
+                        root.add_leaf(key, payload);
+                }
         }
-        delete the_root;        // force commit, shouldn't need this ################
         
         cout << "Re-instantiating root." << endl;
-        the_root = new root(password, "");
-        for(vector_string::iterator it = messages.begin();
-            it != messages.end();
-            it++) {
-                // For each message, confirm that we can find it.
-                ostringstream ss;
-                ss << it->size();
-                string key(ss.str());
-                string foo = *it;
-                string payload(*it);
-                // So we are expecting (key, payload)
-                vector_string payloads_to_find;
-                payloads_to_find.push_back(*it);
-                leaf_proxy_map results = the_root->filter_payloads(payloads_to_find);
-                if(0 == results.size())
-                        error_count++;
+        {
+                root root(password, "");
+                for(vector_string::iterator it = messages.begin();
+                    it != messages.end();
+                    it++) {
+                        // For each message, confirm that we can find it.
+                        ostringstream ss;
+                        ss << it->size();
+                        string key(ss.str());
+                        string foo = *it;
+                        string payload(*it);
+                        // So we are expecting (key, payload)
+                        vector_string payloads_to_find;
+                        payloads_to_find.push_back(*it);
+                        leaf_proxy_map results = root.filter_payloads(payloads_to_find);
+                        if(0 == results.size())
+                                error_count++;
+                }
         }
         return error_count;
 }
@@ -120,6 +123,10 @@ static int test_root_singles()
 {
         int error_count = 0;
         map<string, string> text = orderly_text();
+        // A new password to guarantee a new root.
+        // But mode(Testing) is still true, so we'll nonetheless
+        // use the testing directory.  It will just have an additional
+        // root (and leaves) stored in it.
         string password = pseudo_random_string(15);
         {
                 // Instantiate and add (key,value) pairs

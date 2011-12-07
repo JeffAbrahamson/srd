@@ -32,6 +32,7 @@
 
 #include "compress.h"
 #include "crypt.h"
+#include "mode.h"
 #include "file.h"
 #include "root.h"
 #include "leaf_proxy.h"
@@ -133,6 +134,7 @@ void root::add_leaf(const string key, const string payload)
         proxy.payload(payload);
         proxy.commit();
         (*this)[proxy.basename()] = proxy;
+        modified = true;        // Adding a leaf requires persisting the root.
         validate();
 }
 
@@ -201,6 +203,8 @@ void root::commit()
 
         leaf_names.clear();
         validate();
+        if(mode(Verbose))
+                cout << "root committed, size=" << size() << endl;
 }
 
 

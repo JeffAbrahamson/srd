@@ -26,6 +26,7 @@
 #include <string>
 
 #include "leaf_proxy.h"
+#include "mode.h"
 
 
 using namespace boost;
@@ -204,6 +205,8 @@ void leaf_proxy::commit()
         if(the_leaf) {
                 the_leaf->commit();
                 validate();
+                if(mode(Verbose))
+                        cout << "leaf committed" << endl;
         }
 }
 

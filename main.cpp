@@ -24,7 +24,12 @@
 //#include <crypto++/base64.h>
 //#include <crypto++/sha.h>
 #include <stdexcept>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
 #include <termios.h>
+#include <unistd.h>
+
 
 #include "interface.h"
 #include "crypt.h"
@@ -55,6 +60,8 @@ static void do_match(const string,
                      const vector_string,
                      const vector_string,
                      bool);
+static void user_add(root &root);
+static bool user_edit(string &key, string &payload);
 
 
 int main(int argc, char *argv[])
@@ -255,12 +262,17 @@ static void do_edit(const string password,
 {
         root root(password, "");
         if(0 == match_key.size() && 0 == match_payload.size() && 0 == match_or.size()) {
-                do_edit_sub(
-        leaf_proxy_map lpm = root.filter_keys_and_payloads(match_key, match_payload);
+                // Edit request with no search criteria means create new
+                user_add(root);
+        }
+        leaf_proxy_map lpm = root.filter_keys(match_key);
+        if(match_payload.size())
+                lpm = lpm.filter_payloads(match_payload);
         if(match_or.size())
                 lpm = lpm.filter_keys_or_payloads(match_or, match_or);
         if(0 == lpm.size()) {
                 cout << "No record matches." << endl;
+                user_add(root);
         } else if(1 == lpm.size()) {
                 cout << "Got one response, let's edit it!" << endl;
         } else {
@@ -287,4 +299,70 @@ static void do_match(const string password,
 }
 
 
+/*
+  User interaction to add a new leaf to the root.
+*/
+static void user_add(root &root)
+{
+        string key("");
+        string payload("");
+        user_edit(key, payload);
+        root.add_leaf(key, payload);
+}
+
+
+
+/*
+  Call the user's $EDITOR on key/payload.
+  Return true if modified, false otherwise.
+*/
+static bool user_edit(string &key, string &payload)
+{
+        ostringstream sdata;
+        sdata << "[" << key << "]" << endl << payload;
+        string data = sdata.str();
+
+        ostringstream sfilename;
+        sfilename << getenv("LOGNAME") << "-" << getpid() << "-";
+        sfilename << message_digest(key, true);
+        file fdata(sfilename.str(), "/tmp");
+        fdata.file_contents(data);
+
+        // Probably should fork and exec to avoid shell layer
+        char *editor = getenv("EDITOR");
+        if(!editor) {
+                cerr << "EDITOR is not defined, we'll try vi." << endl;
+                editor = (char *)"vi";
+        }
+        ostringstream scommand;
+        scommand << editor << " " << fdata.full_path();
+        int ret = system(scommand.str().c_str());
+        if(ret) {
+                perror("Failure executing editor");
+                return false;
+        }
+
+        string new_data = fdata.file_contents();
+        if(new_data == data)
+                return false;
+        size_t pos = new_data.find_first_of('\n');
+        if(string::npos == pos) {
+                cerr << "Failed to find end of key (end of first line)." << endl;
+                return false;
+        }
+        string first_line(new_data.substr(0, pos));
+        size_t first_length = first_line.size();
+        if('[' != first_line[0] || ']' != first_line[first_length - 1]) {
+                cerr << "First line is corrupt: failed to find square brackets at extremities."
+                     << endl;
+                cerr << first_line << endl;
+                // We might hope to offer to re-invoke the editor
+                return false;
+        }
+        first_line = first_line.substr(1, first_length - 2);
+        string remainder(new_data.substr(pos));
+        key = first_line;
+        payload = remainder;
+        return true;
+}
 

@@ -78,6 +78,8 @@ leaf_proxy_map leaf_proxy_map::filter_payloads(vector_string patterns)
 /*
   Return leaf proxies for all leaves whose key matches key_pattern and
   whose payload matches payload_pattern.
+
+  NOTE:  This function is obsolete, no?  It's just filter_keys().filter_payloads().
 */
 leaf_proxy_map leaf_proxy_map::filter_keys_and_payloads(vector_string key_patterns,
                                                         vector_string payload_patterns)

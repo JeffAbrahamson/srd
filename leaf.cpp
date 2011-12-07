@@ -28,6 +28,7 @@
 
 #include "crypt.h"
 #include "leaf.h"
+#include "mode.h"
 
 
 using namespace srd;
@@ -92,6 +93,8 @@ void leaf::commit()
         file_contents(cipher_text);
         modified = false;
         validate();
+        if(mode(Verbose))
+                cout << "leaf committed" << endl;
 }
 
 
