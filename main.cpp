@@ -264,24 +264,33 @@ static void do_edit(const string password,
         if(0 == match_key.size() && 0 == match_payload.size() && 0 == match_or.size()) {
                 // Edit request with no search criteria means create new
                 user_add(root);
+                return;
         }
         leaf_proxy_map lpm = root.filter_keys(match_key);
         if(match_payload.size())
                 lpm = lpm.filter_payloads(match_payload);
         if(match_or.size())
                 lpm = lpm.filter_keys_or_payloads(match_or, match_or);
+
         if(0 == lpm.size()) {
                 cout << "No record matches." << endl;
-                user_add(root);
-        } else if(1 == lpm.size()) {
-                cout << "Got one response, let's edit it!" << endl;
-        } else {
-                cout << "got multiple response." << endl;
-                for(leaf_proxy_map::iterator it = lpm.begin();
-                    it != lpm.end();
-                    ++it)
-                        it->second.print_key();
+                return;
         }
+        if(1 == lpm.size()) {
+                string proxy_key = lpm.begin()->first;
+                leaf_proxy lp = lpm.begin()->second;
+                string key = lp.key();
+                string payload = lp.payload();
+                if(!user_edit(key, payload))
+                        return;
+                root.set_leaf(proxy_key, key, payload);
+                return;
+        }
+        
+        for(leaf_proxy_map::iterator it = lpm.begin();
+            it != lpm.end();
+            ++it)
+                it->second.print_key();
 
         return;
 }
@@ -323,12 +332,12 @@ static bool user_edit(string &key, string &payload)
         string data = sdata.str();
 
         ostringstream sfilename;
-        sfilename << getenv("LOGNAME") << "-" << getpid() << "-";
+        sfilename << "srd-temp-" << getenv("LOGNAME") << "-" << getpid() << "-";
         sfilename << message_digest(key, true);
         file fdata(sfilename.str(), "/tmp");
         fdata.file_contents(data);
 
-        // Probably should fork and exec to avoid shell layer
+        // Probably should fork and exec to avoid shell layer in system()
         char *editor = getenv("EDITOR");
         if(!editor) {
                 cerr << "EDITOR is not defined, we'll try vi." << endl;
@@ -360,7 +369,7 @@ static bool user_edit(string &key, string &payload)
                 return false;
         }
         first_line = first_line.substr(1, first_length - 2);
-        string remainder(new_data.substr(pos));
+        string remainder(new_data.substr(pos + 1));
         key = first_line;
         payload = remainder;
         return true;
