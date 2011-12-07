@@ -59,7 +59,15 @@ static void do_match(const string,
                      const vector_string,
                      const vector_string,
                      const vector_string,
-                     bool);
+                     bool,
+                     const bool keys_only,
+                     const bool full_display,
+                     const string grep);
+static leaf_proxy_map get_leaf_proxy_map(root &root,
+                                         const vector_string match_key,
+                                         const vector_string match_data,
+                                         const vector_string match_or,
+                                         const bool match_exact);
 static void user_add(root &root);
 static bool user_edit(string &key, string &payload);
 
@@ -138,7 +146,13 @@ int main(int argc, char *argv[])
                 return 0;
         }
 
-        do_match(passwd, match_key, match_data, match_or, match_exact);
+        string grep_pattern;
+        if(options.count("grep") > 0)
+                grep_pattern = options["grep"].as<string>();
+        do_match(passwd, match_key, match_data, match_or, match_exact,
+                 options.count("keys-only") > 0,
+                 options.count("full-display") > 0,
+                 grep_pattern);
         return 0;
 }
 
@@ -176,9 +190,9 @@ static BPO::variables_map parse_options(int argc, char *argv[])
         BPO::options_description display("Display options");
         display.add_options()
                 ("keys-only,k",
-                 "Display keys only")
-                ("key-display,K",
-                 "Display key even if unique match")
+                 "Display keys only (default true if multiple matches, false for single match)")
+                ("full-display,f",
+                 "Display full data (default true for single match, false for multiple matches)")
                 ("grep,g", BPO::value<string>(),
                  "Output filter for data");
 
@@ -266,12 +280,8 @@ static void do_edit(const string password,
                 user_add(root);
                 return;
         }
-        leaf_proxy_map lpm = root.filter_keys(match_key);
-        if(match_payload.size())
-                lpm = lpm.filter_payloads(match_payload);
-        if(match_or.size())
-                lpm = lpm.filter_keys_or_payloads(match_or, match_or);
-
+        leaf_proxy_map lpm = get_leaf_proxy_map(root, match_key, match_payload,
+                                                match_or, match_exact);
         if(0 == lpm.size()) {
                 cout << "No record matches." << endl;
                 return;
@@ -299,12 +309,59 @@ static void do_edit(const string password,
 
 static void do_match(const string password,
                      const vector_string match_key,
-                     const vector_string match_data,
+                     const vector_string match_payload,
                      const vector_string match_or,
-                     const bool match_exact)
+                     const bool match_exact,
+                     const bool keys_only,
+                     const bool full_display,
+                     const string grep)
 {
-        // ################
-        cout << "do_match() not yet implemented." << endl;
+        root root(password, "");
+        if(0 == match_key.size() && 0 == match_payload.size() && 0 == match_or.size()) {
+                // Edit request with no search criteria means create new
+                cerr << "No match criteria provided." << endl;
+                cerr << "To match all records, use an empty key (\"\")." << endl;
+                return;
+        }
+        leaf_proxy_map lpm = get_leaf_proxy_map(root, match_key, match_payload,
+                                                match_or, match_exact);
+        
+        /*
+          If one hit
+            ...and key_display, display only key.
+            ...and full_display, display all data.
+            ...else display full data.
+
+          If multiple hits
+            ...and key_display, display only keys.
+            ...and full_display, display all data.
+            ...else display only keys.
+         */
+        bool full_display_on = ((full_display && lpm.size() > 1)
+                                || (!keys_only && 1 == lpm.size()));
+        for(leaf_proxy_map::iterator it = lpm.begin();
+            it != lpm.end();
+            ++it) {
+                it->second.print_key();
+                if(full_display_on)
+                        it->second.print_payload(grep);
+        }
+}
+
+
+
+static leaf_proxy_map get_leaf_proxy_map(root &root,
+                                         const vector_string match_key,
+                                         const vector_string match_payload,
+                                         const vector_string match_or,
+                                         const bool match_exact)
+{
+        leaf_proxy_map lpm = root.filter_keys(match_key);
+        if(match_payload.size())
+                lpm = lpm.filter_payloads(match_payload);
+        if(match_or.size())
+                lpm = lpm.filter_keys_or_payloads(match_or, match_or);
+        return lpm;
 }
 
 
