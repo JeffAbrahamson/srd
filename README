@@ -45,3 +45,35 @@ there, is that (1) I wanted something that lives nicely on the
 commandline, and (2) I wanted to understand the code so that I'm sure
 it's doing what I want.  Those could probably both have been satisfied
 more easily without writing code, but would have left me less happy.
+
+
+Here's the usage message:
+
+  Allowed options:
+
+  General options:
+    -h [ --help ]         Produce help message
+    -v [ --verbose ]      Emit debugging information
+
+  Actions (if none, then match):
+    -s [ --shell ]        Run interactive shell
+    -e [ --edit ]         Edit record
+    -p [ --passwd ]       Change password (no other options permitted)
+
+  Matching options:
+    -m [ --match-key ] arg         Restrict to records whose keys match
+    -D [ --match-data-or-key ] arg Consider key and data for match (i.e., logical
+				   or)
+    -d [ --match-data ] arg        Restrict to records whose data match
+    -E [ --exact-match ]           Exact match only (applies to all matching)
+
+  Display options:
+    -k [ --keys-only ]     Display keys only (default true if multiple matches, 
+			   false for single match)
+    -f [ --full-display ]  Display full data (default true for single match, 
+			   false for multiple matches)
+    -g [ --grep ] arg      Output filter for data
+
+  Test options (don't use outside regression tests):
+    -T [ --TEST ] arg     Test mode, use local data directory, specify password 
+			  on commandline
