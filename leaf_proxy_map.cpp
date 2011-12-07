@@ -34,6 +34,9 @@ using namespace std;
 */
 leaf_proxy_map leaf_proxy_map::filter_keys(srd::vector_string patterns)
 {
+        if(0 == patterns.size())
+                // Empty pattern set should pass everything rather than exclude everything.
+                return *this;
         leaf_proxy_map results = leaf_proxy_map();
         for(iterator it = begin(); it != end(); it++) {
                 leaf_proxy &proxy = (*it).second;
@@ -57,6 +60,9 @@ leaf_proxy_map leaf_proxy_map::filter_keys(srd::vector_string patterns)
 */
 leaf_proxy_map leaf_proxy_map::filter_payloads(vector_string patterns)
 {
+        if(0 == patterns.size())
+                // Empty pattern set should pass everything rather than exclude everything.
+                return *this;
         leaf_proxy_map results = leaf_proxy_map();
         for(iterator it = begin(); it != end(); it++) {
                 leaf_proxy &proxy = (*it).second;
@@ -120,6 +126,14 @@ leaf_proxy_map leaf_proxy_map::filter_keys_and_payloads(vector_string key_patter
 leaf_proxy_map leaf_proxy_map::filter_keys_or_payloads(vector_string key_patterns,
                                                        vector_string payload_patterns)
 {
+        if(0 == key_patterns.size() && 0 == payload_patterns.size())
+                // Empty pattern set should pass everything rather than exclude everything.
+                return *this;
+        if(0 == key_patterns.size())
+                return filter_keys(key_patterns);
+        if(0 == payload_patterns.size())
+                return filter_payloads(payload_patterns);
+        
         leaf_proxy_map results = leaf_proxy_map();
         for(iterator it = begin(); it != end(); it++) {
                 leaf_proxy &proxy = (*it).second;
