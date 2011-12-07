@@ -7,6 +7,19 @@ srd is being developed on an ubuntu linux system.  There's no real
 reason to suspect it wouldn't work elsewhere, but that hasn't been
 tested.
 
-At the moment, the code is incomplete.  GIT, after all, is meant for
-development.
+There's a library (pending issue #12) if you want to use the code in
+another context with minimal hacking.
 
+
+Want to use it?
+
+I believe the code works.  There are reasonably extensive regtests
+that convince me of this.  Issue #5 (script test) will be sorted
+shortly, though I've essentially been doing this by hand since the
+commandline interface became available.  Feel free to subscribe to
+that issue if it's the only thing blocking you.  Send me mail with
+feedback.
+
+A handful of minor but important features haven't been implemented
+yet.  A couple opportunities for better efficiency are identified,
+again, see issues for details.
