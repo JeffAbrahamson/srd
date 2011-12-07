@@ -82,44 +82,6 @@ leaf_proxy_map leaf_proxy_map::filter_payloads(vector_string patterns)
 
 
 /*
-  Return leaf proxies for all leaves whose key matches key_pattern and
-  whose payload matches payload_pattern.
-
-  NOTE:  This function is obsolete, no?  It's just filter_keys().filter_payloads().
-*/
-leaf_proxy_map leaf_proxy_map::filter_keys_and_payloads(vector_string key_patterns,
-                                                        vector_string payload_patterns)
-{
-        leaf_proxy_map results = leaf_proxy_map();
-        for(iterator it = begin(); it != end(); it++) {
-                leaf_proxy &proxy = (*it).second;
-                bool key_found_in_this_proxy = false;
-                for(vector_string::const_iterator pat_it = key_patterns.begin();
-                    !key_found_in_this_proxy && pat_it != key_patterns.end();
-                    pat_it++) {
-                        if(proxy.key().find(*pat_it) != string::npos) {
-                                key_found_in_this_proxy = true;
-                        }
-                }
-                if(key_found_in_this_proxy) {
-                        bool payload_found_in_this_proxy = false;
-                        for(vector_string::const_iterator pat_it = payload_patterns.begin();
-                            !payload_found_in_this_proxy && pat_it != payload_patterns.end();
-                            pat_it++) {
-                                if(proxy.payload().find(*pat_it) != string::npos) {
-                                        payload_found_in_this_proxy = true;
-                                        results[it->first] = proxy;
-                                }
-                        }
-                }
-                
-        }
-        return results;
-}
-
-
-
-/*
   Return leaf proxies for all leaves whose key matches key_pattern or
   whose payload matches payload_pattern.
 */
