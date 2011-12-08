@@ -49,7 +49,7 @@ using namespace std;
 
   The argument dir_name is only useful if the app supports pointing to
   an alternate directory.  Otherwise, it should be an empty string so
-  that the directory may be computed based on app (library) policy.
+  that the directory may be computed based on app (or library) policy.
 
   The name of the root node must be determinable solely by the password.
 */
@@ -91,9 +91,10 @@ root::root(const string pass, const string dir_name)
   we copy them to a vector and persist that instead.  Here we
   reinstantiate the map from the vector elements.
 */
-void root::instantiate_leaf_proxy(string proxy_key)
+void root::instantiate_leaf_proxy(leaf_proxy_persist proxy_info)
 {
-        (*this)[proxy_key] = leaf_proxy(password, proxy_key, "");
+        (*this)[proxy_info.proxy_name] = leaf_proxy(password, proxy_info.proxy_name, "");
+        (*this)[proxy_info.proxy_name].key_cache(proxy_info.cached_key);
 }
 
 
@@ -104,7 +105,10 @@ void root::instantiate_leaf_proxy(string proxy_key)
 */
 void root::populate_leaf_names(leaf_proxy_map::value_type val)
 {
-        leaf_names.push_back(val.first);
+        leaf_proxy_persist lpp;
+        lpp.proxy_name = val.first;
+        lpp.cached_key = val.second.key();
+        leaf_names.push_back(lpp);
 }
 
 

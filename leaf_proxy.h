@@ -60,7 +60,8 @@ namespace srd {
 
                 leaf_proxy(const leaf_proxy &);
                 leaf_proxy &operator=(const leaf_proxy &);
-                
+
+                void key_cache(const std::string in) { cached_key = in; validate(); }
                 void key(const std::string);
                 const std::string key();
                 void payload(const std::string);

@@ -54,6 +54,8 @@ leaf::leaf(const string pass,
         dirname(dir_name);      // If empty, will be computed for us
         if(!exists())
                 return;         // If never persisted, then ok to return empty leaf
+        if(mode(Verbose))
+                cout << "Loading leaf." << endl;
         string plain_text = decrypt(file_contents(), password);
         string big_text = decompression(plain_text);
         istringstream big_text_stream(big_text);

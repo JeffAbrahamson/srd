@@ -26,13 +26,14 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
 #include <string>
+#include <vector>
 
 #include "compress.h"
 #include "crypt.h"
 #include "file.h"
 #include "leaf_proxy.h"
 #include "leaf_proxy_map.h"
-#include "types.h"
+//#include "types.h"
 
 
 namespace srd {
@@ -71,15 +72,28 @@ namespace srd {
                 template<class Archive>
                         void serialize(Archive &ar, const unsigned int version);
 
-                void instantiate_leaf_proxy(std::string proxy_key);                
+                // Used for serialization only.  A kludge.
+                class leaf_proxy_persist {
+                public:
+                        std::string proxy_name;
+                        std::string cached_key;
+                private:
+                        friend class boost::serialization::access;
+                        template<class Archive>
+                                void serialize(Archive &ar, const unsigned int version)
+                                {
+                                        ar & proxy_name & cached_key;
+                                }
+                };
+                std::vector<leaf_proxy_persist> leaf_names;
+
+                void instantiate_leaf_proxy(leaf_proxy_persist proxy_info);
                 void populate_leaf_names(leaf_proxy_map::value_type val);
-                        
+                
                 // Data members
 
                 const std::string password;
                 bool modified;
-
-                srd::vector_string leaf_names; // Used for serialization only.  A kludge.
         };
 }
 
