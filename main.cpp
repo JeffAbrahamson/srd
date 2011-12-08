@@ -405,10 +405,12 @@ static bool user_edit(string &key, string &payload)
         int ret = system(scommand.str().c_str());
         if(ret) {
                 perror("Failure executing editor");
+                fdata.rm();
                 return false;
         }
 
         string new_data = fdata.file_contents();
+        fdata.rm();
         if(new_data == data)
                 return false;
         size_t pos = new_data.find_first_of('\n');

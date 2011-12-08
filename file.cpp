@@ -152,7 +152,9 @@ string file::file_contents()
 /*
   Remove the underlying file.
   It is not an error later to rewrite the file, and the object remains
-  valid after calling rm().
+  valid after calling rm().  Since we don't maintain a file descriptor
+  except when we need the file open, calling rm() and then rewriting
+  the file will leave a file lying about.
 */
 void file::rm()
 {
