@@ -83,7 +83,11 @@ namespace srd {
                 std::string base_name;
                 std::string dir_name;
                 bool valid;
-                
+
+                // We cache the_leaf.key in cached_key so that we don't need to
+                // load all leaves for what is likely the most common type of search.
+                // This means that the root must persist the cached key value.
+                std::string cached_key;
                 leaf *the_leaf;
         };
 

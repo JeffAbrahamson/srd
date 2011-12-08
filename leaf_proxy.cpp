@@ -77,6 +77,7 @@ leaf_proxy::leaf_proxy(const leaf_proxy &other)
           base_name(other.base_name),
           dir_name(other.dir_name),
           valid(other.valid),
+          cached_key(other.cached_key),
           the_leaf(NULL)
 {
         validate();
@@ -97,6 +98,7 @@ leaf_proxy &leaf_proxy::operator=(const leaf_proxy &other)
         base_name = other.base_name;
         dir_name = other.dir_name;
         valid = other.valid;
+        cached_key = other.cached_key;
         the_leaf = NULL;
 
         validate();
@@ -112,6 +114,7 @@ void leaf_proxy::key(const string in)
 {
         init_leaf();
         the_leaf->key(in);
+        cached_key = in;
         validate();
 }
 
@@ -122,9 +125,12 @@ void leaf_proxy::key(const string in)
 */
 const string leaf_proxy::key()
 {
-        init_leaf();
         validate();
-        return the_leaf->key();
+        if(cached_key.empty() && !the_leaf)
+                // An empty cached_key and an unloaded leaf says
+                // we ought not trust the cached_key.
+                init_leaf();
+        return cached_key;
 }
 
 
@@ -158,8 +164,8 @@ const string leaf_proxy::payload()
 */
 void leaf_proxy::print_key()
 {
-        init_leaf();
-        cout << "[" << key() << "]" << endl;
+        validate();
+        cout << "[" << cached_key << "]" << endl;
 }
 
 
@@ -170,6 +176,7 @@ void leaf_proxy::print_key()
 */
 void leaf_proxy::print_payload(const string pattern)
 {
+        validate();
         string prefix = "  ";           // Someday make this an option maybe
         char_separator<char> sep("\n"); // This will surely break on MacOS and Windows.
         tokenizer<char_separator<char> > lines(payload(), sep);
@@ -189,8 +196,7 @@ void leaf_proxy::print_payload(const string pattern)
 const string leaf_proxy::basename()
 {
         validate();
-        init_leaf();
-        return the_leaf->basename();
+        return base_name;
 }
 
 
@@ -225,6 +231,8 @@ void leaf_proxy::erase()
         the_leaf->erase();
         the_leaf = NULL;
         validate();
+        if(mode(Verbose))
+                cout << "leaf erased" << endl;
 }
 
 
@@ -237,12 +245,27 @@ void leaf_proxy::init_leaf()
         validate();
         if(!the_leaf)
                 the_leaf = new leaf(password, base_name, dir_name);
-        if(!base_name.empty())
+
+        // If we proxy for a new leaf (as opposed to loading an existing leaf),
+        // then base_name, dir_name, and cached_key may be empty.
+        if(base_name.empty()) {
+                assert(base_name.empty());
+                base_name = the_leaf->basename();
+        } else
                 assert(base_name == the_leaf->basename());
-        if(!dir_name.empty())
+
+        if(dir_name.empty()) {
+                assert(dir_name.empty());
+                dir_name = the_leaf->dirname();
+        } else
                 assert(dir_name == the_leaf->dirname());
-        base_name = the_leaf->basename();
-        dir_name = the_leaf->dirname();
+
+        if(cached_key.empty()) {
+                assert(cached_key.empty());
+                cached_key = the_leaf->key();
+        } else
+                assert(cached_key == the_leaf->key());
+
         validate();
 }
 
@@ -259,6 +282,9 @@ void leaf_proxy::validate() const
         assert((void *)the_leaf > (void *)0x1FF); // kludge, catch some bad pointers
         assert(base_name == the_leaf->basename());
         assert(dir_name == the_leaf->dirname());
+        // Is it worth making a password accessor in leaf just to check this?
+        //assert(password == the_leaf->password);
+        assert(cached_key == the_leaf->key());
         the_leaf->validate();
 }
 
