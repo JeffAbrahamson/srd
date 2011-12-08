@@ -45,10 +45,11 @@ namespace srd {
         */
         class leaf_proxy_map : public std::map<std::string, leaf_proxy> {
         public:
-                leaf_proxy_map filter_keys(srd::vector_string);
+                leaf_proxy_map filter_keys(srd::vector_string, bool);
                 leaf_proxy_map filter_payloads(srd::vector_string) ;
                 leaf_proxy_map filter_keys_or_payloads(srd::vector_string,
-                                                       srd::vector_string);
+                                                       srd::vector_string,
+                                                       bool);
         };
 }
 

@@ -185,7 +185,7 @@ static BPO::variables_map parse_options(int argc, char *argv[])
                 ("match-data,d", BPO::value<vector_string>(),
                  "Restrict to records whose data match")
                 ("exact-match,E",
-                 "Exact match only (applies to all matching)");
+                 "Exact key match");
 
         BPO::options_description display("Display options");
         display.add_options()
@@ -356,11 +356,11 @@ static leaf_proxy_map get_leaf_proxy_map(root &root,
                                          const vector_string match_or,
                                          const bool match_exact)
 {
-        leaf_proxy_map lpm = root.filter_keys(match_key);
+        leaf_proxy_map lpm = root.filter_keys(match_key, match_exact);
         if(match_payload.size())
                 lpm = lpm.filter_payloads(match_payload);
         if(match_or.size())
-                lpm = lpm.filter_keys_or_payloads(match_or, match_or);
+                lpm = lpm.filter_keys_or_payloads(match_or, match_or, match_exact);
         return lpm;
 }
 

@@ -31,8 +31,11 @@ using namespace std;
 
 /*
   Return leaf proxies for all leaves whose key matches pattern.
+  This is far more efficient than looking at payloads, as the leaf
+  proxy caches the key, avoiding the need to load the leaf.  So we
+  always begin by doing key search.
 */
-leaf_proxy_map leaf_proxy_map::filter_keys(srd::vector_string patterns)
+leaf_proxy_map leaf_proxy_map::filter_keys(srd::vector_string patterns, bool exact)
 {
         if(0 == patterns.size())
                 // Empty pattern set should pass everything rather than exclude everything.
@@ -44,7 +47,8 @@ leaf_proxy_map leaf_proxy_map::filter_keys(srd::vector_string patterns)
                 for(vector_string::const_iterator pat_it = patterns.begin();
                     !found_in_this_proxy && pat_it != patterns.end();
                     pat_it++) {
-                        if(proxy.key().find(*pat_it) != string::npos) {
+                        if((exact && *pat_it == proxy.key())
+                           || (!exact && proxy.key().find(*pat_it) != string::npos)) {
                                 found_in_this_proxy = true;
                                 results[it->first] = proxy;
                         }
@@ -86,13 +90,14 @@ leaf_proxy_map leaf_proxy_map::filter_payloads(vector_string patterns)
   whose payload matches payload_pattern.
 */
 leaf_proxy_map leaf_proxy_map::filter_keys_or_payloads(vector_string key_patterns,
-                                                       vector_string payload_patterns)
+                                                       vector_string payload_patterns,
+                                                       bool exact)
 {
         if(0 == key_patterns.size() && 0 == payload_patterns.size())
                 // Empty pattern set should pass everything rather than exclude everything.
                 return *this;
         if(0 == key_patterns.size())
-                return filter_keys(key_patterns);
+                return filter_keys(key_patterns, exact);
         if(0 == payload_patterns.size())
                 return filter_payloads(payload_patterns);
         
@@ -103,7 +108,8 @@ leaf_proxy_map leaf_proxy_map::filter_keys_or_payloads(vector_string key_pattern
                 for(vector_string::const_iterator pat_it = key_patterns.begin();
                     !found_in_this_proxy && pat_it != key_patterns.end();
                     pat_it++) {
-                        if(proxy.key().find(*pat_it) != string::npos) {
+                        if((exact && *pat_it == proxy.key())
+                           || (!exact && proxy.key().find(*pat_it) != string::npos)) {
                                 found_in_this_proxy = true;
                                 results[it->first] = proxy;
                         }

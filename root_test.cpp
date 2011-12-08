@@ -159,7 +159,7 @@ int confirm_once(root &root, pair<string, string> text)
         int ret = 0;
         vector_string key_pattern;
         key_pattern.push_back(text.first);
-        leaf_proxy_map key_results = root.filter_keys(key_pattern);
+        leaf_proxy_map key_results = root.filter_keys(key_pattern, false);
         if(key_results.size() != 1) {
                 cout << "Key \"" << text.first << ":  "
                      << "Found " << key_results.size() << " keys expected 1."
@@ -179,7 +179,7 @@ int confirm_once(root &root, pair<string, string> text)
 
         payload_pattern.clear();
         payload_pattern.push_back(text.second.substr(3,8));
-        payload_results = root.filter_keys(key_pattern).filter_payloads(payload_pattern);
+        payload_results = root.filter_keys(key_pattern, false).filter_payloads(payload_pattern);
         if(payload_results.size() != 1) {
                 cout << "Payload \"" << text.second << "(3,8)\":  "
                      << "Found " << payload_results.size() << " leaves, expected 1."

@@ -48,9 +48,9 @@ static leaf_proxy_map do_filter(const string password,
                                 const bool match_exact)
 {
         root root(password, "");
-        leaf_proxy_map lpm = root.filter_keys(match_key).filter_payloads(match_payload);
+        leaf_proxy_map lpm = root.filter_keys(match_key, match_exact).filter_payloads(match_payload);
         if(match_or.size())
-                lpm = lpm.filter_keys_or_payloads(match_or, match_or);
+                lpm = lpm.filter_keys_or_payloads(match_or, match_or, match_exact);
         return lpm;
 }
 
