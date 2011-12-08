@@ -62,7 +62,4 @@ TAGS : *cpp *h
 	etags *cpp *h
 
 
-# Personal to JMA...
-time :
-	awk -F: '{sum += $$2} END {print sum " minutes (" sum/60 " hours)"}' < time.txt
 
