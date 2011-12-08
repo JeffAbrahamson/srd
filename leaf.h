@@ -52,7 +52,8 @@ namespace srd {
                 leaf() { assert(0); };  // seemingly needed by serialize()
                 leaf(const std::string password,
                      const std::string base_name = std::string(),
-                     const std::string dir_name = std::string());
+                     const std::string dir_name = std::string(),
+                     const bool = true);
                 virtual ~leaf();
 
                 void commit();

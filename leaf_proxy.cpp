@@ -227,7 +227,9 @@ void leaf_proxy::commit()
 void leaf_proxy::erase()
 {
         validate();
-        init_leaf();
+        if(!the_leaf)
+                // Initialize without loading
+                the_leaf = new leaf(password, base_name, dir_name, false);
         the_leaf->erase();
         the_leaf = NULL;
         validate();

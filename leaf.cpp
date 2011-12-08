@@ -44,16 +44,26 @@ using namespace std;
   We don't have a concept of a leaf with persisted but unloaded data.
   That concept lives in the leaf_proxy class, which creates or destroys
   a leaf object as it sees fit.
+
+  If load == false, we don't actually load the leaf's contents.
+  Don't do this.  It's just a hook for removing leaves that we
+  haven't loaded.  The only usage should be leaf_proxy::erase().
 */
 leaf::leaf(const string pass,
            const string base_name,
-           const string dir_name)
+           const string dir_name,
+           const bool load)
         : password(pass), modified(false)
 {
         basename(base_name);    // If empty, will be computed for us
         dirname(dir_name);      // If empty, will be computed for us
         if(!exists())
                 return;         // If never persisted, then ok to return empty leaf
+        if(!load) {
+                if(mode(Verbose))
+                        cout << "Initializing leaf without load." << endl;
+                return;
+        }
         if(mode(Verbose))
                 cout << "Loading leaf." << endl;
         string plain_text = decrypt(file_contents(), password);
