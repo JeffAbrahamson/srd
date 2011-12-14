@@ -4,7 +4,6 @@ SRC = 			\
 	compress.cpp	\
 	crypt.cpp	\
 	file.cpp	\
-	interface.cpp	\
 	leaf.cpp	\
 	leaf_proxy.cpp	\
 	leaf_proxy_map.cpp \
@@ -15,7 +14,6 @@ HEADER =		\
 	compress.h  	\
 	crypt.h  	\
 	file.h		\
-	interface.h	\
 	leaf.h  	\
 	leaf_proxy.h	\
 	leaf_proxy_map.h \

@@ -31,7 +31,6 @@
 #include <unistd.h>
 
 
-#include "interface.h"
 #include "crypt.h"
 #include "leaf_proxy_map.h"
 #include "mode.h"
@@ -72,6 +71,10 @@ static void user_add(root &root);
 static bool user_edit(string &key, string &payload);
 
 
+
+/*
+  Do that thing that we do.
+*/
 int main(int argc, char *argv[])
 {
         BPO::variables_map options;
