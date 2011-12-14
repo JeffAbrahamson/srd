@@ -42,7 +42,17 @@ all : srd test TAGS
 srd : main.o $(HEADER) $(OBJECT) Makefile
 	$(GCC) -o srd main.o $(OBJECT) $(LIBS)
 
-test : compress_test crypt_test file_test leaf_test leaf_proxy_test mode_test root_test
+TESTS = 			\
+	compress_test		\
+	crypt_test 		\
+	file_test 		\
+	leaf_test 		\
+	leaf_proxy_test 	\
+	mode_test 		\
+	root_test 		\
+
+test : $(TESTS)
+	./test.sh
 
 %_test : %_test.o test_text.o mode.o $(OBJECT)
 	$(GCC) -o $@ $^ $(LIBS)
@@ -52,7 +62,7 @@ clean :
 	rm -f $(OBJECT) *.o *~ srd TAGS *_test
 
 clean-test :
-	rm -rf srd-test-*/
+	rm -rf srd-test-*/ test_[0-9]*\.[0-9]*
 
 snap : clean
 	-mkdir snapshot/$$(date +'%Y-%m-%d')

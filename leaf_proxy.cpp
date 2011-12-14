@@ -19,10 +19,9 @@
 
 
 #include <assert.h>
-#include <boost/foreach.hpp>
-#include <boost/tokenizer.hpp>
 #include <iostream>
 #include <functional>
+#include <sstream>
 #include <string>
 
 #include "leaf_proxy.h"
@@ -178,9 +177,9 @@ void leaf_proxy::print_payload(const string pattern)
 {
         validate();
         string prefix = "  ";           // Someday make this an option maybe
-        char_separator<char> sep("\n"); // This will surely break on MacOS and Windows.
-        tokenizer<char_separator<char> > lines(payload(), sep);
-        BOOST_FOREACH(string line, lines)
+        stringstream payload_ss(payload());
+        string line;
+        while(getline(payload_ss, line, '\n'))
                 if(0 == pattern.size() || string::npos != line.find(pattern))
                         cout << prefix << line << endl;
 }
