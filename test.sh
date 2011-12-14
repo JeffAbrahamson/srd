@@ -93,5 +93,24 @@ if [ "$results" != "$expected" ]; then
 fi
 
 
-# And clean up
+# Now test import on a new database
+pass=$(date +%s.%N)
+
+# Test import, first by saying no, then by saying yes.
+results=$(echo n | ./srd -T $pass --import test.d/import-test)
+expected=$(cat test.d/output/import-no)
+if [ "$results" != "$expected" ]; then
+    echo Import with negative response failed.
+    exit 1;
+fi
+
+results=$(echo y | ./srd -T $pass --import test.d/import-test)
+expected=$(cat test.d/output/import-yes)
+if [ "$results" != "$expected" ]; then
+    echo Import with positive response failed.
+    exit 1;
+fi
+
+# And clean up if all has gone well
 rm $tmp_file
+make clean-test

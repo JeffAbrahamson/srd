@@ -63,7 +63,8 @@ root::root(const string pass, const string dir_name)
         dirname(dir_name);      // If empty, will be computed for us
         if(!exists()) {
                 cout << "Root node does not exist, will create." << endl;
-                cout << "    [" << full_path() << "]" << endl;
+                if(mode(Verbose))
+                        cout << "    [" << full_path() << "]" << endl;
                 modified = true;
                 validate();
                 return;

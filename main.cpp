@@ -19,6 +19,7 @@
 
 
 #include <boost/program_options.hpp>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 //#include <crypto++/base64.h>
@@ -62,13 +63,7 @@ static void do_match(const string,
                      const bool keys_only,
                      const bool full_display,
                      const string grep);
-static leaf_proxy_map get_leaf_proxy_map(root &root,
-                                         const vector_string match_key,
-                                         const vector_string match_data,
-                                         const vector_string match_or,
-                                         const bool match_exact);
-static void user_add(root &root);
-static bool user_edit(string &key, string &payload);
+static bool do_import(const string password, const string filename);
 
 
 
@@ -112,7 +107,13 @@ int main(int argc, char *argv[])
                 change_password(passwd);
                 return 0;
         }
+        if(options.count("import")) {
+                string filename = options["import"].as<string>();
+                do_import(passwd, filename);
+                return 0;
+        }
 
+        
         // We need to match, either to edit a record or to display one.
         vector_string match_key, match_or, match_data;
         bool match_exact = false;
@@ -177,7 +178,9 @@ static BPO::variables_map parse_options(int argc, char *argv[])
                 ("edit,e",
                  "Edit record")
                 ("passwd,p",
-                 "Change password (no other options permitted)");
+                 "Change password (no other options permitted)")
+                ("import", BPO::value<string>(),
+                 "Import a text file");
 
         BPO::options_description matching("Matching options");
         matching.add_options()
@@ -216,6 +219,16 @@ static BPO::variables_map parse_options(int argc, char *argv[])
         BPO::notify(opt_map);
 
         if(opt_map.count("help")) {
+                cout << "srd <options> [key-match-pattern]" << endl << endl;
+                cout << "  Patterns for -m, -D, -d are comma-separated pattterns."
+                     << endl;
+                cout << "  Key-match-pattern, if present, is the same as specifying -m."
+                     << endl;
+                cout << "  Import assumes the same format as -f:" << endl;
+                cout << "     key-value enclosed in square brackets, and" << endl;
+                cout << "     payload indented by two spaces" << endl;
+                cout << endl;
+                
                 cout << options << endl;
                 throw help_exception();
         }
@@ -269,6 +282,20 @@ static void change_password(const string password)
         // ################
         cout << "change_password() not yet implemented." << endl;
 }
+
+
+/* **********************************************************************
+   Edit / new record.
+   **********************************************************************
+*/
+
+static leaf_proxy_map get_leaf_proxy_map(root &root,
+                                         const vector_string match_key,
+                                         const vector_string match_data,
+                                         const vector_string match_or,
+                                         const bool match_exact);
+static void user_add(root &root);
+static bool user_edit(string &key, string &payload);
 
 
 static void do_edit(const string password,
@@ -435,5 +462,107 @@ static bool user_edit(string &key, string &payload)
         key = first_line;
         payload = remainder;
         return true;
+}
+
+
+
+/* **********************************************************************
+   File import.
+   **********************************************************************
+*/
+static vector<pair<string, string> > import_read_file(const string filename);
+
+
+/*
+  Import new records from a text file.
+  Query the user to confirm correct parsing.
+  Commit the change on user confirmation.
+*/
+static bool do_import(const string password, const string filename)
+{
+        vector<pair<string, string> > incoming = import_read_file(filename);
+        if(0 == incoming.size()) {
+                cout << "Import abandonned." << endl;
+                return false;
+        }
+        cout << "Found " << incoming.size() << " keys:" << endl;
+        for(vector<pair<string, string> >::const_iterator it = incoming.begin();
+            it != incoming.end();
+            ++it) {
+                cout << "\t" << it->first << endl;
+                //cout << "payload:" << endl << it->second << endl;
+        }
+        cout << "Import?  (yes/no)  ";
+        string response;
+        cin >> response;
+        if("y" != response && "Y" != response &&
+           "yes" != response && "YES" != response && "Yes" != response) {
+                cout << "OK, import abandonned." << endl;
+                return false;
+        }
+
+        root root(password, "");
+        for(vector<pair<string, string> >::const_iterator it = incoming.begin();
+            it != incoming.end();
+            ++it)
+                root.add_leaf(it->first, it->second);
+        return true;
+}
+
+
+
+/*
+  Read and parse the import file.
+
+  Return a vector of (key, payload) pairs.
+  On error (or empty file), return an empty vector.
+*/
+static vector<pair<string, string> > import_read_file(const string filename)
+{
+        vector<pair<string, string> > incoming = vector<pair<string, string> >();
+        ifstream fs(filename.c_str(), ios::in | ios::binary | ios::ate);
+        if(!fs.is_open()) {
+                cerr << "Failed to open \"" << filename << "\" for reading." << endl;
+                return vector<pair<string, string> >();
+        }
+        size_t size = fs.tellg();
+        if(0 == size) {
+                cout << "File is empty." << endl;
+                return vector<pair<string, string> >();
+        }
+        fs.seekg(0, ios::beg);
+        
+        string line;
+        string key;
+        ostringstream payload;
+        string prefix("  ");
+        long line_num = 0;
+        while(getline(fs, line)) {
+                ++line_num;
+                int len = line.size();
+                if('[' == line[0] && ']' == line[len - 1]) {
+                        if(payload.str().size() > 0) {
+                                incoming.push_back(pair<string, string>(key, payload.str()));
+                                key = "";
+                                payload.clear();
+                        }
+                        key = line.substr(1, len - 2);
+                } else {
+                        if(line[0] != ' ' || line[1] != ' ') {
+                                cerr << "Error at line " << line_num
+                                     << ": expected two space indent."
+                                     << endl;
+                                return vector<pair<string, string> >();
+                        }
+                        payload << line.substr(2, len - 1) << endl;
+                }
+        }
+        // Urgh, don't repeat this
+        if(payload.str().size() > 0) {
+                incoming.push_back(pair<string, string>(key, payload.str()));
+                key = "";
+                payload.clear();
+        }
+        return incoming;
 }
 
