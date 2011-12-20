@@ -61,6 +61,44 @@ namespace srd {
                 leaf_proxy(const leaf_proxy &);
                 leaf_proxy &operator=(const leaf_proxy &);
 
+                /*
+                  All this const messiness is sad, but hard to fix today.
+                  It's because calling key() can load the leaf itself, which
+                  means this isn't const.
+
+                  We probably only need operator<() for the compare in
+                  leaf_proxy_map.  Provide them all to avoid some
+                  subtle bug some day.
+                */
+                bool operator<=(const leaf_proxy& rhs_in) const
+                {
+                        leaf_proxy *lhs_ptr = const_cast<leaf_proxy *>(this);
+                        leaf_proxy &rhs = const_cast<leaf_proxy &>(rhs_in);
+                        return lhs_ptr->key() <= rhs.key();
+                }
+
+                bool operator<(const leaf_proxy& rhs_in) const
+                {
+                        leaf_proxy *lhs_ptr = const_cast<leaf_proxy *>(this);
+                        leaf_proxy &rhs = const_cast<leaf_proxy &>(rhs_in);
+                        return lhs_ptr->key() < rhs.key();
+                }
+        
+                bool operator>=(const leaf_proxy& rhs_in) const
+                { 
+                        leaf_proxy *lhs_ptr = const_cast<leaf_proxy *>(this);
+                        leaf_proxy &rhs = const_cast<leaf_proxy &>(rhs_in);
+                        return lhs_ptr->key() >= rhs.key();
+                }
+
+                bool operator>(const leaf_proxy& rhs_in) const
+                {
+                        leaf_proxy *lhs_ptr = const_cast<leaf_proxy *>(this);
+                        leaf_proxy &rhs = const_cast<leaf_proxy &>(rhs_in);
+                        return lhs_ptr->key() > rhs.key();
+                }
+
+
                 void key_cache(const std::string in) { cached_key = in; validate(); }
                 void key(const std::string);
                 const std::string key();
@@ -114,6 +152,7 @@ namespace srd {
                 srd::vector_string payload;
                 bool conjunction;
         };
+
 }
 
 #endif  /* __LEAF_PROXY_H__*/

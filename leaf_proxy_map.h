@@ -22,8 +22,11 @@
 #ifndef __LEAF_PROXY_MAP_H__
 #define __LEAF_PROXY_MAP_H__ 1
 
+#include <algorithm>
 #include <map>
+#include <set>
 
+#include "leaf_proxy.h"
 #include "types.h"
 
 
@@ -50,7 +53,11 @@ namespace srd {
                 leaf_proxy_map filter_keys_or_payloads(srd::vector_string,
                                                        srd::vector_string,
                                                        bool);
+
+                typedef std::set<leaf_proxy, std::less<leaf_proxy> > LPM_Set;
+                LPM_Set as_set();
         };
+        
 }
 
 #endif  /* __LEAF_PROXY_MAP_H__*/

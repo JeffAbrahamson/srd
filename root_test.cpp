@@ -36,11 +36,206 @@ using namespace srd;
 using namespace std;
 
 
+namespace {
 
-static int test_root_basic(string password);
-static int test_root_singles();
-//static void add_pair(root &root, pair<string, string> couple);
-int confirm_once(root &root, pair<string, string> text);
+        int test_root_basic(string password);
+        int test_root_singles();
+        int test_ordering();
+        bool confirm_ordering(root &root);
+        //void add_pair(root &root, pair<string, string> couple);
+        int confirm_once(root &root, pair<string, string> text);
+
+
+        /*
+          Message key is hash of message.
+          Password is hash of key.
+          Persist the root node, then reconstitute it.
+          Confirm that we get back what we expect.
+        */
+        int test_root_basic(string password)
+        {
+                int error_count = 0;
+                vector_string messages = test_text();
+
+                {
+                        root root(password, "");
+
+                        for(vector_string::iterator it = messages.begin();
+                            it != messages.end();
+                            it++) {
+                                ostringstream ss;
+                                ss << it->size();
+                                string key(ss.str());
+                                string foo = *it;
+                                string payload(*it);
+                                root.add_leaf(key, payload);
+                        }
+                }
+        
+                cout << "Re-instantiating root." << endl;
+                {
+                        root root(password, "");
+                        for(vector_string::iterator it = messages.begin();
+                            it != messages.end();
+                            it++) {
+                                // For each message, confirm that we can find it.
+                                ostringstream ss;
+                                ss << it->size();
+                                string key(ss.str());
+                                string foo = *it;
+                                string payload(*it);
+                                // So we are expecting (key, payload)
+                                vector_string payloads_to_find;
+                                payloads_to_find.push_back(*it);
+                                leaf_proxy_map results = root.filter_payloads(payloads_to_find);
+                                if(0 == results.size())
+                                        error_count++;
+                        }
+                }
+                return error_count;
+        }
+
+
+
+        /*
+          Exercise root with distinct keys and known messages.
+        */
+        int test_root_singles()
+        {
+                int error_count = 0;
+                map<string, string> text = orderly_text();
+                // A new password to guarantee a new root.
+                // But mode(Testing) is still true, so we'll nonetheless
+                // use the testing directory.  It will just have an additional
+                // root (and leaves) stored in it.
+                string password = pseudo_random_string(15);
+                {
+                        // Instantiate and add (key,value) pairs
+                        root root(password, "");
+                        // Using a std::for_each and boost::bind here would add to a
+                        // temporary object, so iterate by hand.  Is there a better way?
+                        for(map<string, string>::const_iterator it = text.begin();
+                            it != text.end();
+                            it++) {
+                                root.add_leaf(it->first, it->second);
+                        }
+                        // Read-only, but that's fine.  Probably making an unnecessary copy.
+                        int errors = count_if(text.begin(),
+                                              text.end(),
+                                              boost::bind(&confirm_once, root, _1));
+                        error_count += errors;
+                }
+        
+                return error_count;
+        }
+
+
+
+        /*
+          Check that each (key, value) pair in text appears precisely once in root.
+          Return the number of errors found, so 0 assuming all is well.
+        */
+        int confirm_once(root &root, pair<string, string> text)
+        {
+                int ret = 0;
+                vector_string key_pattern;
+                key_pattern.push_back(text.first);
+                leaf_proxy_map key_results = root.filter_keys(key_pattern, false);
+                if(key_results.size() != 1) {
+                        cout << "Key \"" << text.first << ":  "
+                             << "Found " << key_results.size() << " keys expected 1."
+                             << endl;
+                        ret++;
+                }
+
+                vector_string payload_pattern;
+                payload_pattern.push_back(text.second);
+                leaf_proxy_map payload_results = root.filter_payloads(payload_pattern);
+                if(payload_results.size() != 1) {
+                        cout << "Payload \"" << text.second << "\":  "
+                             << "Found " << payload_results.size() << " leaves, expected 1."
+                             << endl;
+                        ret++;
+                }
+
+                payload_pattern.clear();
+                payload_pattern.push_back(text.second.substr(3,8));
+                payload_results = root.filter_keys(key_pattern, false).filter_payloads(payload_pattern);
+                if(payload_results.size() != 1) {
+                        cout << "Payload \"" << text.second << "(3,8)\":  "
+                             << "Found " << payload_results.size() << " leaves, expected 1."
+                             << endl;
+                        ret++;
+                }
+        
+                return ret;
+        }
+
+
+
+        /*
+          Add random data to the root.
+          Confirm that the ordering is correct (based on key).
+          Persist the root, reload, and confirm again.
+        */
+        int test_ordering()
+        {
+                //int N = 10000;
+                //int N = 1000;
+                int N = 10;
+                string password = pseudo_random_string(15);
+                {
+                        cout << "Creating " << N << " leaves." << endl;
+                        root root(password, "");
+                        for(int i = 0; i < N; i++) {
+                                string key = message_digest(pseudo_random_string(30));
+                                string payload = message_digest(pseudo_random_string(100));
+                                root.add_leaf(key, payload);
+                        }
+                        if(!confirm_ordering(root)) {
+                                cout << "Root order test failed before persist." << endl;
+                                return 1;
+                        }
+                }
+                {
+                        cout << "Verifying " << N << " leaves." << endl;
+                        root root(password, "");
+                        confirm_ordering(root);
+                        if(!confirm_ordering(root)) {
+                                cout << "Root order test failed after persist." << endl;
+                                return 1;
+                        }
+                }
+                return 0;
+        }
+
+
+
+        /*
+          Return true if leaves are ordered.
+          Return false if not.
+        */
+        bool confirm_ordering(root &root)
+        {
+                int errors = 0;
+                string last_key;        // any key is >= ""
+                leaf_proxy_map::LPM_Set leaves = root.as_set();
+                assert(leaves.size() == root.size());
+                for(leaf_proxy_map::LPM_Set::iterator it = leaves.begin();
+                    it != leaves.end();
+                    it++) {
+                        // std::set iterators are const, since we can't modify
+                        // set elements.
+                        const string key(const_cast<leaf_proxy&>(*it).key());
+                        if(key < last_key)
+                                errors++;
+                        last_key = key;
+                }
+                if(errors > 0)
+                        cout << "Found " << errors << " ordering errors." << endl;
+                return 0 == errors;
+        }
+}
 
 
 
@@ -55,6 +250,7 @@ int main(int argc, char *argv[])
         int err_count = test_root_basic(password);
         err_count += test_root_basic(password);
         err_count += test_root_singles();
+        err_count += test_ordering();
         
         if(err_count)
                 cout << "Errors (" << err_count << ") in test!!" << endl;
@@ -64,129 +260,4 @@ int main(int argc, char *argv[])
 }
 
 
-
-/*
-  Message key is hash of message.
-  Password is hash of key.
-  Persist the root node, then reconstitute it.
-  Confirm that we get back what we expect.
-*/
-static int test_root_basic(string password)
-{
-        int error_count = 0;
-        vector_string messages = test_text();
-
-        {
-                root root(password, "");
-
-                for(vector_string::iterator it = messages.begin();
-                    it != messages.end();
-                    it++) {
-                        ostringstream ss;
-                        ss << it->size();
-                        string key(ss.str());
-                        string foo = *it;
-                        string payload(*it);
-                        root.add_leaf(key, payload);
-                }
-        }
-        
-        cout << "Re-instantiating root." << endl;
-        {
-                root root(password, "");
-                for(vector_string::iterator it = messages.begin();
-                    it != messages.end();
-                    it++) {
-                        // For each message, confirm that we can find it.
-                        ostringstream ss;
-                        ss << it->size();
-                        string key(ss.str());
-                        string foo = *it;
-                        string payload(*it);
-                        // So we are expecting (key, payload)
-                        vector_string payloads_to_find;
-                        payloads_to_find.push_back(*it);
-                        leaf_proxy_map results = root.filter_payloads(payloads_to_find);
-                        if(0 == results.size())
-                                error_count++;
-                }
-        }
-        return error_count;
-}
-
-
-
-/*
-  Exercise root with distinct keys and known messages.
-*/
-static int test_root_singles()
-{
-        int error_count = 0;
-        map<string, string> text = orderly_text();
-        // A new password to guarantee a new root.
-        // But mode(Testing) is still true, so we'll nonetheless
-        // use the testing directory.  It will just have an additional
-        // root (and leaves) stored in it.
-        string password = pseudo_random_string(15);
-        {
-                // Instantiate and add (key,value) pairs
-                root root(password, "");
-                // Using a std::for_each and boost::bind here would add to a
-                // temporary object, so iterate by hand.  Is there a better way?
-                for(map<string, string>::const_iterator it = text.begin();
-                    it != text.end();
-                    it++) {
-                        root.add_leaf(it->first, it->second);
-                }
-                // Read-only, but that's fine.  Probably making an unnecessary copy.
-                int errors = count_if(text.begin(),
-                                      text.end(),
-                                      boost::bind(&confirm_once, root, _1));
-                error_count += errors;
-        }
-        
-        return error_count;
-}
-
-
-
-/*
-  Check that each (key, value) pair in text appears precisely once in root.
-  Return the number of errors found, so 0 assuming all is well.
-*/
-int confirm_once(root &root, pair<string, string> text)
-{
-        int ret = 0;
-        vector_string key_pattern;
-        key_pattern.push_back(text.first);
-        leaf_proxy_map key_results = root.filter_keys(key_pattern, false);
-        if(key_results.size() != 1) {
-                cout << "Key \"" << text.first << ":  "
-                     << "Found " << key_results.size() << " keys expected 1."
-                     << endl;
-                ret++;
-        }
-
-        vector_string payload_pattern;
-        payload_pattern.push_back(text.second);
-        leaf_proxy_map payload_results = root.filter_payloads(payload_pattern);
-        if(payload_results.size() != 1) {
-                cout << "Payload \"" << text.second << "\":  "
-                     << "Found " << payload_results.size() << " leaves, expected 1."
-                     << endl;
-                ret++;
-        }
-
-        payload_pattern.clear();
-        payload_pattern.push_back(text.second.substr(3,8));
-        payload_results = root.filter_keys(key_pattern, false).filter_payloads(payload_pattern);
-        if(payload_results.size() != 1) {
-                cout << "Payload \"" << text.second << "(3,8)\":  "
-                     << "Found " << payload_results.size() << " leaves, expected 1."
-                     << endl;
-                ret++;
-        }
-        
-        return ret;
-}
 

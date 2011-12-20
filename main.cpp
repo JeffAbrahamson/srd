@@ -369,12 +369,13 @@ static void do_match(const string password,
          */
         bool full_display_on = ((full_display && lpm.size() > 1)
                                 || (!keys_only && 1 == lpm.size()));
-        for(leaf_proxy_map::iterator it = lpm.begin();
-            it != lpm.end();
+        leaf_proxy_map::LPM_Set leaves = lpm.as_set();
+        for(leaf_proxy_map::LPM_Set::iterator it = leaves.begin();
+            it != leaves.end();
             ++it) {
-                it->second.print_key();
+                const_cast<leaf_proxy&>(*it).print_key();
                 if(full_display_on)
-                        it->second.print_payload(grep);
+                        const_cast<leaf_proxy&>(*it).print_payload(grep);
         }
 }
 

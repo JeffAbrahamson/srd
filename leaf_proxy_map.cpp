@@ -129,3 +129,15 @@ leaf_proxy_map leaf_proxy_map::filter_keys_or_payloads(vector_string key_pattern
 
 
 
+leaf_proxy_map::LPM_Set leaf_proxy_map::as_set()
+{
+        set<leaf_proxy, less<leaf_proxy> > s;
+        for(leaf_proxy_map::iterator it = begin();
+            it != end();
+            it++) {
+                leaf_proxy lp = it->second;
+                s.insert(it->second);
+        }
+        return s;
+}
+

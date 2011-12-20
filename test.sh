@@ -6,12 +6,12 @@ echo setting pass=$pass
 export EDITOR=./test_editor.sh
 poems=test.d/poems/*
 
-# Stage database
+echo Stage database
 for f in $poems; do
     ./srd -T $pass -e < $f
 done
 
-# Test key matching
+echo Test key matching
 for f in $poems; do
     key=$(head -1 $f | perl -pwe 's/^\[//; s/\]$//;')
     ./srd -T $pass "$key" | perl -pwe 's/^  //;' > $tmp_file
@@ -22,7 +22,7 @@ for f in $poems; do
     fi
 done
 
-# Test exact key matching
+echo Test exact key matching
 for f in $poems; do
     key=$(head -1 $f | perl -pwe 's/^\[//; s/\]$//;')
     ./srd -T $pass "$key" -E | perl -pwe 's/^  //;' > $tmp_file
@@ -33,7 +33,7 @@ for f in $poems; do
     fi
 done
 
-# Test partial key matching
+echo Test partial key matching
 for f in $poems; do
     key=$(head -1 $f | perl -pwe 's/^\[//; s/.\]$//;')
     ./srd -T $pass "$key" | perl -pwe 's/^  //;' > $tmp_file
@@ -44,7 +44,7 @@ for f in $poems; do
     fi
 done
 
-# Test partial key matching (negative)
+echo 'Test partial key matching (negative)'
 for f in $poems; do
     key=$(head -1 $f | perl -pwe 's/^\[//; s/.\]$//;')
     ./srd -T $pass "$key" -E | perl -pwe 's/^  //;' > $tmp_file
@@ -55,7 +55,7 @@ for f in $poems; do
     fi
 done
 
-# Test payload matching
+echo Test payload matching
 f=test.d/poems/A
 payload_word="fired the shot"
 ./srd -T $pass -d "$payload_word" | perl -pwe 's/^  //;' > $tmp_file
@@ -65,16 +65,16 @@ if [ 0 != $? ]; then
     exit 1;
 fi
 
-# Test payload matching with multiple hits
-results="$(./srd -T $pass -d By | sort)"
-expected='[Concord Hymn]
-[The Raven]'
+echo Test payload matching with multiple hits
+#./srd -T $pass -d By > test.d/output/multi-hit-keys
+results="$(./srd -T $pass -d By)"
+expected="$(cat test.d/output/multi-hit-keys)"
 if [ "$results" != "$expected" ]; then
     echo Multi-hit partial match test failed.
     exit 1;
 fi
 
-# Test payload matching with multiple hits and full display
+echo Test payload matching with multiple hits and full display
 #./srd -T $pass -d By -f > test.d/output/multi-hit-full
 results="$(./srd -T $pass -d By -f)"
 expected=$(cat test.d/output/multi-hit-full);
@@ -83,7 +83,7 @@ if [ "$results" != "$expected" ]; then
     exit 1;
 fi
 
-# Test payload matching with multiple hits and filtered full display
+echo Test payload matching with multiple hits and filtered full display
 #./srd -T $pass -d By -f -g here > test.d/output/multi-hit-filtered
 results="$(./srd -T $pass -d By -f -g here)"
 expected=$(cat test.d/output/multi-hit-filtered);
@@ -93,10 +93,10 @@ if [ "$results" != "$expected" ]; then
 fi
 
 
-# Now test import on a new database
+echo Now test import on a new database
 pass=$(date +%s.%N)
 
-# Test import, first by saying no, then by saying yes.
+echo Test import, first by saying no, then by saying yes.
 results=$(echo n | ./srd -T $pass --import test.d/import-test)
 expected=$(cat test.d/output/import-no)
 if [ "$results" != "$expected" ]; then
@@ -111,6 +111,6 @@ if [ "$results" != "$expected" ]; then
     exit 1;
 fi
 
-# And clean up if all has gone well
+echo And clean up if all has gone well
 rm $tmp_file
 make clean-test
