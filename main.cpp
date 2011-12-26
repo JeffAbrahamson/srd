@@ -64,6 +64,7 @@ static void do_match(const string,
                      const bool full_display,
                      const string grep);
 static bool do_import(const string password, const string filename);
+static bool do_create(const string password);
 
 
 
@@ -87,17 +88,22 @@ int main(int argc, char *argv[])
                 return 1;
         }
 
+        const bool verbose = options.count("verbose") > 0;
+        mode(Verbose, verbose);
+
         bool is_test = options.count("TEST") > 0;
-        string passwd;
         mode(Testing, is_test);
+
+        string passwd;
         if(is_test)
                 passwd = options["TEST"].as<string>();
         else
                 passwd = get_password();
         
         // do something
-        const bool verbose = options.count("verbose") > 0;
-        mode(Verbose, verbose);
+        if(options.count("create") > 0)
+                if(do_create(passwd))
+                        return 1; // password mismatch
 
         if(options.count("shell")) {
                 do_shell(passwd);
@@ -179,6 +185,8 @@ static BPO::variables_map parse_options(int argc, char *argv[])
                  "Edit record")
                 ("passwd,p",
                  "Change password (no other options permitted)")
+                ("create",
+                 "Create database.  Otherwise a mistyped password would be an error.")
                 ("import", BPO::value<string>(),
                  "Import a text file");
 
@@ -260,7 +268,7 @@ static string get_password()
         // Iterate hash (arbitrarily) 50 times.  Motivated by gpg's behavior.
         string digest(pass_phrase);
         for(int i = 0; i < 50; i++)
-                string digest = message_digest(digest, false);
+                digest = message_digest(digest, false);
         
         // Clear original pass phrase to minimize risk of seeing it in a swap or core image
         bzero(pass_phrase, sizeof(pass_len));
@@ -566,3 +574,34 @@ static vector<pair<string, string> > import_read_file(const string filename)
         return incoming;
 }
 
+
+
+/*
+  Create a new root.
+  
+  Return 0 on success.
+  Return 1 on failure.
+*/
+static bool do_create(const string password)
+{
+        if(!mode(Testing)) {
+                // When testing, password is in the clear on the commandline
+                // and we surely don't want to ask again.
+                cout << "Please retype your password.  ";
+                string passwd2 = get_password();
+                if(password != passwd2) {
+                        cout << "Passwords don't match." << endl;
+                        return 1;
+                }
+        }
+        try {
+                root(password, "", true); // Simply cause creation.  Will fail if root already exists.
+        }
+        catch(runtime_error e) {
+                cerr << "Failed to create new database:  a database identified by this password already exists." << endl;
+                if(mode(Verbose))
+                        cerr << "  ==> " << e.what() << endl;
+                return 1;
+        }
+        return 0;
+}

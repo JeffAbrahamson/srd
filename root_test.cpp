@@ -51,7 +51,8 @@ int main(int argc, char *argv[])
         mode(Verbose, false);
         mode(Testing, true);
         string password = pseudo_random_string(20);
-        
+
+        { root(password, "", true); } // Create this root
         int err_count = test_root_basic(password);
         err_count += test_root_basic(password);
         err_count += test_root_singles();
@@ -130,7 +131,7 @@ static int test_root_singles()
         string password = pseudo_random_string(15);
         {
                 // Instantiate and add (key,value) pairs
-                root root(password, "");
+                root root(password, "", true);
                 // Using a std::for_each and boost::bind here would add to a
                 // temporary object, so iterate by hand.  Is there a better way?
                 for(map<string, string>::const_iterator it = text.begin();

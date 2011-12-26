@@ -53,7 +53,7 @@ using namespace std;
 
   The name of the root node must be determinable solely by the password.
 */
-root::root(const string pass, const string dir_name)
+root::root(const string pass, const string dir_name, const bool create)
         : password(pass), modified(false)
 {
         string base_name(pass);
@@ -61,6 +61,12 @@ root::root(const string pass, const string dir_name)
                 base_name = message_digest(base_name, true);
         basename(base_name);    // Must be reproducible from password alone
         dirname(dir_name);      // If empty, will be computed for us
+        if(exists() == create) {
+                // i.e., if exists() != !create
+                if(create)
+                        throw(runtime_error("Can't create existing root."));
+                throw(runtime_error("Root doesn't exist.  (Incorrect password?)"));
+        }
         if(!exists()) {
                 cout << "Root node does not exist, will create." << endl;
                 if(mode(Verbose))

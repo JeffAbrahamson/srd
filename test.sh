@@ -6,9 +6,11 @@ echo setting pass=$pass
 export EDITOR=./test_editor.sh
 poems=test.d/poems/*
 
+create=" --create "
 # Stage database
 for f in $poems; do
-    ./srd -T $pass -e < $f
+    ./srd -T $pass $create -e < $f
+    create=
 done
 
 # Test key matching
@@ -97,7 +99,7 @@ fi
 pass=$(date +%s.%N)
 
 # Test import, first by saying no, then by saying yes.
-results=$(echo n | ./srd -T $pass --import test.d/import-test)
+results=$(echo n | ./srd -T $pass --create --import test.d/import-test)
 expected=$(cat test.d/output/import-no)
 if [ "$results" != "$expected" ]; then
     echo Import with negative response failed.
@@ -108,6 +110,14 @@ results=$(echo y | ./srd -T $pass --import test.d/import-test)
 expected=$(cat test.d/output/import-yes)
 if [ "$results" != "$expected" ]; then
     echo Import with positive response failed.
+    exit 1;
+fi
+
+#./srd -T $pass --create > test.d/output/create-again 2>&1
+results=$(./srd -T $pass --create 2>&1)
+expected=$(cat test.d/output/create-again)
+if [ "$results" != "$expected" ]; then
+    echo Re-creation test failed.
     exit 1;
 fi
 
