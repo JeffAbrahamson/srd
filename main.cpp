@@ -47,9 +47,9 @@ class help_exception : public exception {};
 
 
 static BPO::variables_map parse_options(int, char *[]);
-static string get_password();
+static string get_password(const string prompt = "Password:  ");
 static void do_shell(const string);
-static void change_password(const string);
+static bool change_password(const string);
 static void do_edit(const string,
                     const vector_string,
                     const vector_string,
@@ -246,9 +246,9 @@ static BPO::variables_map parse_options(int argc, char *argv[])
 
 
 
-static string get_password()
+static string get_password(const string prompt)
 {
-        cout << "Password: ";
+        cout << prompt;
         
         // Get pass phrase without echoing it
         termios before, after;
@@ -285,10 +285,45 @@ static void do_shell(const string password)
 }
 
 
-static void change_password(const string password)
+/*
+  Change password.
+
+  If successful, remove old database (root and its leaves).
+
+  Return 0 on success.
+  Return 1 on failure.
+*/
+static bool change_password(const string password)
 {
-        // ################
-        cout << "change_password() not yet implemented." << endl;
+        root old_root(password, "");
+
+        string passwd;
+        if(mode(Testing)) {
+                // When testing, password is in the clear on the commandline
+                // and we surely don't want to ask again.
+                passwd = password + "2"; // If this line changs, will need to change pass2 in test-passwd.sh
+        } else {
+                passwd = get_password("Enter new password:  ");
+                if(passwd == password) {
+                        cout << "New and old passwords are identical." << endl;
+                        return 1;
+                }
+                string passwd2 = get_password("Please retype new password:  ");
+                if(passwd != passwd2) {
+                        cout << "Passwords don't match." << endl;
+                        return 1;
+                }
+        }
+        try {
+                root new_root = old_root.change_password(passwd);
+        }
+        catch(runtime_error e) {
+                cerr << "Failed to create new database:  a database identified by this password already exists." << endl;
+                if(mode(Verbose))
+                        cerr << "  ==> " << e.what() << endl;
+                return 1;
+        }
+        return 0;
 }
 
 
@@ -587,8 +622,7 @@ static bool do_create(const string password)
         if(!mode(Testing)) {
                 // When testing, password is in the clear on the commandline
                 // and we surely don't want to ask again.
-                cout << "Please retype your password.  ";
-                string passwd2 = get_password();
+                string passwd2 = get_password("Please retype your password:  ");
                 if(password != passwd2) {
                         cout << "Passwords don't match." << endl;
                         return 1;

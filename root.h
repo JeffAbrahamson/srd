@@ -66,7 +66,7 @@ namespace srd {
                               const std::string payload);
                 void rm_leaf(const std::string proxy_key);
 
-                // void change_password(const std::string new_password);
+                root change_password(const std::string new_password);
                 void commit();
                 void validate();
 
@@ -98,6 +98,7 @@ namespace srd {
 
                 const std::string password;
                 bool modified;
+                bool valid;     // if false, all operations except deletion should fail
         };
 }
 

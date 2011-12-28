@@ -39,6 +39,7 @@ using namespace std;
 
 static int test_root_basic(string password);
 static int test_root_singles();
+static int test_root_change_password();
 //static void add_pair(root &root, pair<string, string> couple);
 int confirm_once(root &root, pair<string, string> text);
 
@@ -56,6 +57,7 @@ int main(int argc, char *argv[])
         int err_count = test_root_basic(password);
         err_count += test_root_basic(password);
         err_count += test_root_singles();
+        err_count += test_root_change_password();
         
         if(err_count)
                 cout << "Errors (" << err_count << ") in test!!" << endl;
@@ -189,5 +191,58 @@ int confirm_once(root &root, pair<string, string> text)
         }
         
         return ret;
+}
+
+
+/*
+  Instantiate a root, add some leaves, change the password, and see if
+  we get the same data back.
+*/
+static int test_root_change_password()
+{
+        int error_count = 0;
+        vector_string messages = test_text();
+        string password = pseudo_random_string(20);
+        string password2 = pseudo_random_string(20);
+
+        {
+                root root(password, "", true);
+
+                for(vector_string::iterator it = messages.begin();
+                    it != messages.end();
+                    it++) {
+                        ostringstream ss;
+                        ss << it->size();
+                        string key(ss.str());
+                        string foo = *it;
+                        string payload(*it);
+                        root.add_leaf(key, payload);
+                }
+        }
+
+        cout << "Re-instantiating root and changing password." << endl;
+        {
+                root old_root(password, "");
+                root new_root = old_root.change_password(password2);
+
+                cout << "Checking the new root." << endl;
+                for(vector_string::iterator it = messages.begin();
+                    it != messages.end();
+                    it++) {
+                        // For each message, confirm that we can find it.
+                        ostringstream ss;
+                        ss << it->size();
+                        string key(ss.str());
+                        string foo = *it;
+                        string payload(*it);
+                        // So we are expecting (key, payload)
+                        vector_string payloads_to_find;
+                        payloads_to_find.push_back(*it);
+                        leaf_proxy_map results = new_root.filter_payloads(payloads_to_find);
+                        if(0 == results.size())
+                                error_count++;
+                }
+        }
+        return error_count;
 }
 
