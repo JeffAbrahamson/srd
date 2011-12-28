@@ -72,8 +72,7 @@ static int test_leaf_proxy(const string message)
         string base_name, dir_name, full_path;
         {
                 leaf_proxy first_leaf_proxy(password, "", "");
-                first_leaf_proxy.key(key);
-                first_leaf_proxy.payload(message);
+                first_leaf_proxy.set(key, message);
                 base_name = first_leaf_proxy.basename();
                 first_leaf_proxy.commit();
         }

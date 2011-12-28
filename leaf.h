@@ -63,13 +63,13 @@ namespace srd {
                         node_key = key_in;
                         modified = true;
                 };
-                const std::string key() { return node_key; };
+                const std::string key() const { return node_key; };
                 void payload(const std::string &payload_in)
                 {
                         node_payload = payload_in;
                         modified = true;
                 };
-                const std::string payload() { return node_payload; };
+                const std::string payload() const { return node_payload; };
 
                 void validate();
                                 

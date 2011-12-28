@@ -105,6 +105,7 @@ const string file::basename()
 }
 
 
+
 /*
   Set the contents of the file.
   The file need not yet exist.

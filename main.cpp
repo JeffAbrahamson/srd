@@ -408,8 +408,8 @@ static leaf_proxy_map get_leaf_proxy_map(root &root,
 */
 static void user_add(root &root)
 {
-        string key("");
-        string payload("");
+        string key;
+        string payload;
         user_edit(key, payload);
         root.add_leaf(key, payload);
 }

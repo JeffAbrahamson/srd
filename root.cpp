@@ -141,9 +141,7 @@ void root::add_leaf(const string key, const string payload)
 {
         validate();
         leaf_proxy proxy(password, "", dirname());
-        proxy.key(key);
-        proxy.payload(payload);
-        proxy.commit();
+        proxy.set(key, payload);
         (*this)[proxy.basename()] = proxy;
         modified = true;        // Adding a leaf requires persisting the root.
         validate();
@@ -173,9 +171,7 @@ void root::set_leaf(const string proxy_key,
         if(end() == it)
                 throw(runtime_error("Key not found."));
         leaf_proxy &proxy = it->second;
-        proxy.key(key);
-        proxy.payload(payload);
-        proxy.commit();
+        proxy.set(key, payload);
 }
 
 
