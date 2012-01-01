@@ -165,23 +165,27 @@ typedef byte crypto_key_type[CryptoPP::CIPHER::DEFAULT_KEYLENGTH];
 typedef byte crypto_iv_type[CryptoPP::CIPHER::BLOCKSIZE];
 
 
-/*
-  Initialize the key and iv given the password.
-*/
-static void init_key_iv(const string password, crypto_key_type &key, crypto_iv_type &iv)
-{
-        // Key and IV setup.
-        // IV is just hash of key
-        bzero(key, CryptoPP::CIPHER::DEFAULT_KEYLENGTH);
-        size_t key_len = min(static_cast<size_t>(CryptoPP::CIPHER::DEFAULT_KEYLENGTH),
-                             password.size());
-        memcpy(key, password.c_str(), key_len);
+
+namespace {
+
+        /*
+          Initialize the key and iv given the password.
+        */
+        void init_key_iv(const string password, crypto_key_type &key, crypto_iv_type &iv)
+        {
+                // Key and IV setup.
+                // IV is just hash of key
+                bzero(key, CryptoPP::CIPHER::DEFAULT_KEYLENGTH);
+                size_t key_len = min(static_cast<size_t>(CryptoPP::CIPHER::DEFAULT_KEYLENGTH),
+                                     password.size());
+                memcpy(key, password.c_str(), key_len);
                 
-        bzero(iv, CryptoPP::CIPHER::BLOCKSIZE);
-        string iv_string = message_digest(password);
-        size_t iv_len = min(static_cast<size_t>(CryptoPP::CIPHER::DEFAULT_KEYLENGTH),
-                            iv_string.size());
-        memcpy(iv, iv_string.c_str(), iv_len);
+                bzero(iv, CryptoPP::CIPHER::BLOCKSIZE);
+                string iv_string = message_digest(password);
+                size_t iv_len = min(static_cast<size_t>(CryptoPP::CIPHER::DEFAULT_KEYLENGTH),
+                                    iv_string.size());
+                memcpy(iv, iv_string.c_str(), iv_len);
+        }
 }
 
 

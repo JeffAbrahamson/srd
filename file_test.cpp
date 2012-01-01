@@ -38,8 +38,64 @@ using namespace std;
 
 
 
-static int test_exists(const char *dir, const char *base, bool expect_exists);
-static int test_file(string message);
+namespace {
+
+        int test_exists(const char *dir, const char *base, bool expect_exists);
+        int test_file(string message);
+
+
+        int test_exists(const char *dir, const char *base, bool expect_exists)
+        {
+                file my_file(base, dir);
+                try {
+                        if(expect_exists == my_file.exists())
+                                return 0;
+                        return 1;
+                }
+                catch(exception e) {
+                        cerr << dir << "/" << base << ":  " << e.what() << endl;
+                        return 1;
+                }
+                cerr << dir << "/" << base << " (existence check failed)" << endl;
+                return 1;
+        }
+
+
+
+        int test_file(string message)
+        {
+                int ret = 0;
+                string filename;   // Remember so we can clean up no matter what
+                try {
+                        file my_file;
+                        filename = my_file.full_path();
+                        my_file.file_contents(message);
+                        string dup_message(my_file.file_contents());
+
+                        if(message != dup_message) {
+                                cout << "File write + read not identity!" << endl;
+                                ret++;
+                        }
+                }
+                catch(runtime_error e) {
+                        cerr << e.what() << endl;
+                        ret++;
+                }
+                catch(...) {
+                        cerr << "Something unexpected went wrong." << endl;
+                        ret++;
+                }
+                int rm_ret = unlink(filename.c_str());
+                if(rm_ret) {
+                        cerr << "  Error removing test file:  " << strerror(errno) << endl;
+                        cerr << "    (File=" << filename << ")" << endl;
+                        ret++;
+                }
+        
+                return ret;
+        }
+}
+
 
 
 int main(int argc, char *argv[])
@@ -67,54 +123,3 @@ int main(int argc, char *argv[])
 }
 
 
-
-static int test_exists(const char *dir, const char *base, bool expect_exists)
-{
-        file my_file(base, dir);
-        try {
-                if(expect_exists == my_file.exists())
-                        return 0;
-                return 1;
-        }
-        catch(exception e) {
-                cerr << dir << "/" << base << ":  " << e.what() << endl;
-                return 1;
-        }
-        cerr << dir << "/" << base << " (existence check failed)" << endl;
-        return 1;
-}
-
-
-
-static int test_file(string message)
-{
-        int ret = 0;
-        string filename;   // Remember so we can clean up no matter what
-        try {
-                file my_file;
-                filename = my_file.full_path();
-                my_file.file_contents(message);
-                string dup_message(my_file.file_contents());
-
-                if(message != dup_message) {
-                        cout << "File write + read not identity!" << endl;
-                        ret++;
-                }
-        }
-        catch(runtime_error e) {
-                cerr << e.what() << endl;
-                ret++;
-        }
-        catch(...) {
-                cerr << "Something unexpected went wrong." << endl;
-                ret++;
-        }
-        int rm_ret = unlink(filename.c_str());
-        if(rm_ret) {
-                cerr << "  Error removing test file:  " << strerror(errno) << endl;
-                cerr << "    (File=" << filename << ")" << endl;
-                ret++;
-        }
-        
-        return ret;
-}

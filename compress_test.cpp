@@ -34,8 +34,38 @@ using namespace srd;
 using namespace std;
 
 
-static int test_compress(string message);
+namespace {
+        
+        int test_compress(string message);
 
+        /*
+          Return number of errors that occur.
+        */
+        int test_compress(const string message)
+        {
+                int ret = 0;
+                compress compressor;
+                string compressed = compressor.compression(message);
+                string decompressed = compressor.decompression(compressed);
+                if(compressed == message) {
+                        cout << "Compress did not change the message!" << endl;
+                        ret++;
+                }
+                if(decompressed != message) {
+                        cout << "Decompression failed to restore the message!" << endl;
+                        ret++;
+                }                
+                if(message.size() > 100 && compressed.size() > message.size()) {
+                        // Ignore the cases where small messages expand
+                        cout << "Message size change: " << message.size()
+                             << " <= " << compressed.size() << endl;
+                        ret++;
+                }
+                return ret;
+        }
+
+
+}
 
 
 int main(int argc, char *argv[])
@@ -54,34 +84,6 @@ int main(int argc, char *argv[])
         else
                 cout << "All tests passed!" << endl;
         return 0 != err_count;
-}
-
-
-
-/*
-  Return number of errors that occur.
-*/
-static int test_compress(const string message)
-{
-        int ret = 0;
-        compress compressor;
-        string compressed = compressor.compression(message);
-        string decompressed = compressor.decompression(compressed);
-        if(compressed == message) {
-                cout << "Compress did not change the message!" << endl;
-                ret++;
-        }
-        if(decompressed != message) {
-                cout << "Decompression failed to restore the message!" << endl;
-                ret++;
-        }                
-        if(message.size() > 100 && compressed.size() > message.size()) {
-                // Ignore the cases where small messages expand
-                cout << "Message size change: " << message.size()
-                     << " <= " << compressed.size() << endl;
-                ret++;
-        }
-        return ret;
 }
 
 
