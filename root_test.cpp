@@ -23,6 +23,7 @@
 #include <string>
 #include <string.h>
 #include <sstream>
+#include <time.h>
 #include <unistd.h>
 
 #include "crypt.h"
@@ -40,6 +41,7 @@ namespace {
 
         int test_root_basic(string password);
         int test_root_singles();
+        int test_root_change_password();
         int test_ordering();
         bool confirm_ordering(root &root);
         //void add_pair(root &root, pair<string, string> couple);
@@ -111,7 +113,7 @@ namespace {
                 string password = pseudo_random_string(15);
                 {
                         // Instantiate and add (key,value) pairs
-                        root root(password, "");
+                        root root(password, "", true);
                         // Using a std::for_each and boost::bind here would add to a
                         // temporary object, so iterate by hand.  Is there a better way?
                         for(map<string, string>::const_iterator it = text.begin();
@@ -180,13 +182,13 @@ namespace {
         */
         int test_ordering()
         {
-                //int N = 10000;
-                //int N = 1000;
-                int N = 10;
+                int N = 5000;
                 string password = pseudo_random_string(15);
                 {
-                        cout << "Creating " << N << " leaves." << endl;
-                        root root(password, "");
+                        cout << "Creating " << N << " leaves..." << endl;
+                        root root(password, "", true);
+                        time_t start_time = time(0);
+                        assert(start_time > 0);
                         for(int i = 0; i < N; i++) {
                                 string key = message_digest(pseudo_random_string(30));
                                 string payload = message_digest(pseudo_random_string(100));
@@ -196,15 +198,23 @@ namespace {
                                 cout << "Root order test failed before persist." << endl;
                                 return 1;
                         }
+                        time_t end_time = time(0);
+                        assert(end_time > 0);
+                        cout << "  ...done in " << end_time - start_time << " seconds." << endl;
                 }
                 {
                         cout << "Verifying " << N << " leaves." << endl;
                         root root(password, "");
+                        time_t start_time = time(0);
+                        assert(start_time > 0);
                         confirm_ordering(root);
                         if(!confirm_ordering(root)) {
                                 cout << "Root order test failed after persist." << endl;
                                 return 1;
                         }
+                        time_t end_time = time(0);
+                        assert(end_time > 0);
+                        cout << "  ...done in " << end_time - start_time << " seconds." << endl;
                 }
                 return 0;
         }
@@ -226,7 +236,7 @@ namespace {
                     it++) {
                         // std::set iterators are const, since we can't modify
                         // set elements.
-                        const string key(const_cast<leaf_proxy&>(*it).key());
+                        const string key((*it).key());
                         if(key < last_key)
                                 errors++;
                         last_key = key;
@@ -234,6 +244,60 @@ namespace {
                 if(errors > 0)
                         cout << "Found " << errors << " ordering errors." << endl;
                 return 0 == errors;
+        }
+
+
+
+        /*
+          Instantiate a root, add some leaves, change the password, and see if
+          we get the same data back.
+        */
+        int test_root_change_password()
+        {
+                int error_count = 0;
+                vector_string messages = test_text();
+                string password = pseudo_random_string(20);
+                string password2 = pseudo_random_string(20);
+
+                {
+                        root root(password, "", true);
+
+                        for(vector_string::iterator it = messages.begin();
+                            it != messages.end();
+                            it++) {
+                                ostringstream ss;
+                                ss << it->size();
+                                string key(ss.str());
+                                string foo = *it;
+                                string payload(*it);
+                                root.add_leaf(key, payload);
+                        }
+                }
+
+                cout << "Re-instantiating root and changing password." << endl;
+                {
+                        root old_root(password, "");
+                        root new_root = old_root.change_password(password2);
+
+                        cout << "Checking the new root." << endl;
+                        for(vector_string::iterator it = messages.begin();
+                            it != messages.end();
+                            it++) {
+                                // For each message, confirm that we can find it.
+                                ostringstream ss;
+                                ss << it->size();
+                                string key(ss.str());
+                                string foo = *it;
+                                string payload(*it);
+                                // So we are expecting (key, payload)
+                                vector_string payloads_to_find;
+                                payloads_to_find.push_back(*it);
+                                leaf_proxy_map results = new_root.filter_payloads(payloads_to_find);
+                                if(0 == results.size())
+                                        error_count++;
+                        }
+                }
+                return error_count;
         }
 }
 
@@ -246,10 +310,12 @@ int main(int argc, char *argv[])
         mode(Verbose, false);
         mode(Testing, true);
         string password = pseudo_random_string(20);
-        
+
+        { root(password, "", true); } // Create this root
         int err_count = test_root_basic(password);
         err_count += test_root_basic(password);
         err_count += test_root_singles();
+        err_count += test_root_change_password();
         err_count += test_ordering();
         
         if(err_count)
@@ -258,6 +324,5 @@ int main(int argc, char *argv[])
                 cout << "All tests passed!" << endl;
         return 0 != err_count;
 }
-
 
 

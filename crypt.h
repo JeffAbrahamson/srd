@@ -29,8 +29,8 @@
 namespace srd {
 
         // Compute a hash (message digest).
-        const std::string message_digest(const std::string &message,
-                                         const bool filesystem_safe = false);
+        std::string message_digest(const std::string &message,
+                                   const bool filesystem_safe = false);
 
         // Return a (not necessarily human readable) string of random bits.
         std::string pseudo_random_string(int length);
@@ -44,10 +44,10 @@ namespace srd {
         */
         class crypt {
         public:
-                const std::string encrypt(const std::string plain_message,
-                                          const std::string password);
-                const std::string decrypt(const std::string cipher_message,
-                                          const std::string password);
+                std::string encrypt(const std::string plain_message,
+                                    const std::string password);
+                std::string decrypt(const std::string cipher_message,
+                                    const std::string password);
         };
 }
 

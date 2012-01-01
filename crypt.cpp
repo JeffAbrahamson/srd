@@ -120,7 +120,7 @@ using namespace std;
   We also use this to generate pseudorandom filenames, in which case
   the filesystem_safe flag avoids embedded '/'.
 */
-const string srd::message_digest(const string &message, bool filesystem_safe)
+string srd::message_digest(const string &message, bool filesystem_safe)
 {
         string digest;
         CryptoPP::SHA256 hash;
@@ -151,12 +151,12 @@ const string srd::message_digest(const string &message, bool filesystem_safe)
 */
 string srd::pseudo_random_string(int length)
 {
-        ostringstream sname;
         CryptoPP::AutoSeededRandomPool rng;
         byte random_bytes[length];
         rng.GenerateBlock(random_bytes, length);
-        sname << random_bytes;
-        return sname.str();
+        string rand_str;
+        copy(random_bytes, random_bytes + length, back_inserter(rand_str));
+        return rand_str;
 }
 
 
@@ -188,7 +188,7 @@ static void init_key_iv(const string password, crypto_key_type &key, crypto_iv_t
 /*
   Encrypt and return cipher text.
 */
-const string crypt::encrypt(const string plain_text, const string password)
+string crypt::encrypt(const string plain_text, const string password)
 {
         try {
                 crypto_key_type key;
@@ -226,7 +226,7 @@ const string crypt::encrypt(const string plain_text, const string password)
 /*
   Decrypt and return plain text.
 */
-const string crypt::decrypt(const string cipher_text, const string password)
+string crypt::decrypt(const string cipher_text, const string password)
 {
         try {
                 crypto_key_type key;

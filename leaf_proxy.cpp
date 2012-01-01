@@ -56,7 +56,7 @@ leaf_proxy::leaf_proxy()
 leaf_proxy::leaf_proxy(const string pass,
                        const string base,
                        const string dir)
-        : password(pass), base_name(base), dir_name(dir)
+        : password(pass), input_base_name(base), input_dir_name(dir)
 {
         assert(!password.empty());
         the_leaf = NULL;
@@ -73,8 +73,8 @@ leaf_proxy::leaf_proxy(const string pass,
 */
 leaf_proxy::leaf_proxy(const leaf_proxy &other)
         : password(other.password),
-          base_name(other.base_name),
-          dir_name(other.dir_name),
+          input_base_name(other.input_base_name),
+          input_dir_name(other.input_dir_name),
           valid(other.valid),
           cached_key(other.cached_key),
           the_leaf(NULL)
@@ -94,8 +94,17 @@ leaf_proxy::leaf_proxy(const leaf_proxy &other)
 leaf_proxy &leaf_proxy::operator=(const leaf_proxy &other)
 {
         password = other.password;
-        base_name = other.base_name;
-        dir_name = other.dir_name;
+        if(other.the_leaf) {
+                // If we've loaded the leaf, use its location
+                // information, since it may have been computed at
+                // instantiation time.
+                input_base_name = other.the_leaf->basename();
+                input_dir_name = other.the_leaf->dirname();
+        } else {
+                // Otherwise, what we have will surely work.
+                input_base_name = other.input_base_name;
+                input_dir_name = other.input_dir_name;
+        }
         valid = other.valid;
         cached_key = other.cached_key;
         the_leaf = NULL;
@@ -107,13 +116,36 @@ leaf_proxy &leaf_proxy::operator=(const leaf_proxy &other)
 
 
 /*
+  Set the key and payload.
+
+  This is more efficient than subsequent calls to key(string) and
+  payload(string), since it does a single commit on the leaf.
+*/
+void leaf_proxy::set(const string in_key, const string in_payload)
+{
+        init_leaf();
+        the_leaf->key(in_key);
+        the_leaf->payload(in_payload);
+        cached_key = in_key;
+        commit();
+        validate();
+}
+
+
+
+/*
   Set the leaf's key.
+
+  If setting the payload at the same time, using set() is more efficient,
+  since it only does one commit on the underlying leaf.
 */
 void leaf_proxy::key(const string in)
 {
+        validate();
         init_leaf();
         the_leaf->key(in);
         cached_key = in;
+        commit();
         validate();
 }
 
@@ -122,13 +154,14 @@ void leaf_proxy::key(const string in)
 /*
   Return the leaf's key.
 */
-const string leaf_proxy::key()
+string leaf_proxy::key() const
 {
         validate();
-        if(cached_key.empty() && !the_leaf)
-                // An empty cached_key and an unloaded leaf says
-                // we ought not trust the cached_key.
+        if(cached_key.empty()) {
+                // Trust not an empty cached_key
                 init_leaf();
+                return the_leaf->key();
+        }
         return cached_key;
 }
 
@@ -136,11 +169,16 @@ const string leaf_proxy::key()
 
 /*
   Set the leaf's payload.
+
+  If setting the key at the same time, using set() is more efficient,
+  since it only does one commit on the underlying leaf.
 */
 void leaf_proxy::payload(const string in)
 {
+        validate();
         init_leaf();
         the_leaf->payload(in);
+        commit();
         validate();
 }
 
@@ -149,8 +187,9 @@ void leaf_proxy::payload(const string in)
 /*
   Return the leaf's payload.
 */
-const string leaf_proxy::payload()
+string leaf_proxy::payload() const
 {
+        validate();
         init_leaf();
         validate();
         return the_leaf->payload();
@@ -161,10 +200,10 @@ const string leaf_proxy::payload()
 /*
   Print the leaf's key.
 */
-void leaf_proxy::print_key()
+void leaf_proxy::print_key() const
 {
         validate();
-        cout << "[" << cached_key << "]" << endl;
+        cout << "[" << key() << "]" << endl;
 }
 
 
@@ -173,7 +212,7 @@ void leaf_proxy::print_key()
   Print the leaf's payload.
   Optionally filter the output for lines matching pattern.
 */
-void leaf_proxy::print_payload(const string pattern)
+void leaf_proxy::print_payload(const string pattern) const
 {
         validate();
         string prefix = "  ";           // Someday make this an option maybe
@@ -192,10 +231,11 @@ void leaf_proxy::print_payload(const string pattern)
   The only real reason for this is that the root will need a name
   by which to instantiate leaves.
 */
-const string leaf_proxy::basename()
+string leaf_proxy::basename() const
 {
         validate();
-        return base_name;
+        init_leaf();
+        return the_leaf->basename();
 }
 
 
@@ -228,7 +268,7 @@ void leaf_proxy::erase()
         validate();
         if(!the_leaf)
                 // Initialize without loading
-                the_leaf = new leaf(password, base_name, dir_name, false);
+                the_leaf = new leaf(password, input_base_name, input_dir_name, false);
         the_leaf->erase();
         the_leaf = NULL;
         validate();
@@ -241,35 +281,13 @@ void leaf_proxy::erase()
 /*
   Load the leaf if its file exists.  Otherwise just initialize the leaf.
 */
-void leaf_proxy::init_leaf()
+void leaf_proxy::init_leaf() const
 {
         validate();
         if(!the_leaf)
-                the_leaf = new leaf(password, base_name, dir_name);
-
-        // If we proxy for a new leaf (as opposed to loading an existing leaf),
-        // then base_name, dir_name, and cached_key may be empty.
-        if(base_name.empty()) {
-                assert(base_name.empty());
-                base_name = the_leaf->basename();
-        } else
-                assert(base_name == the_leaf->basename());
-
-        if(dir_name.empty()) {
-                assert(dir_name.empty());
-                dir_name = the_leaf->dirname();
-        } else
-                assert(dir_name == the_leaf->dirname());
-
-        if(cached_key.empty()) {
-                assert(cached_key.empty());
-                cached_key = the_leaf->key();
-        } else
-                assert(cached_key == the_leaf->key());
-
+                the_leaf = new leaf(password, input_base_name, input_dir_name);
         validate();
 }
-
 
 
 /*
@@ -281,11 +299,9 @@ void leaf_proxy::validate() const
                 return;
         assert(valid);
         assert((void *)the_leaf > (void *)0x1FF); // kludge, catch some bad pointers
-        assert(base_name == the_leaf->basename());
-        assert(dir_name == the_leaf->dirname());
         // Is it worth making a password accessor in leaf just to check this?
         //assert(password == the_leaf->password);
-        assert(cached_key == the_leaf->key());
+        assert("" == cached_key || cached_key == the_leaf->key());
         the_leaf->validate();
 }
 

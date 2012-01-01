@@ -51,6 +51,7 @@ TESTS = 			\
 
 test : $(TESTS)
 	./test.sh
+	./test-passwd.sh
 
 %_test : %_test.o test_text.o mode.o $(OBJECT)
 	$(GCC) -o $@ $^ $(LIBS)

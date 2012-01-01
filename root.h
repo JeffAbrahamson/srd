@@ -45,11 +45,15 @@ namespace srd {
 
           The root node supports filter operations on the leaf proxies (and
           so on the leaf objects themselves).
+
+          If create is false, the root's underlying file must already exist.
+          If it is true, the root file must not exist and is created.
         */
         class root : public file, public compress, public crypt, public leaf_proxy_map {
         public:
                 root(const std::string password,
-                     const std::string path = std::string());
+                     const std::string path = std::string(),
+                     const bool create = false);
                 virtual ~root();
 
                 // A leaf (or leaf proxy) contains a key and payload.
@@ -62,7 +66,7 @@ namespace srd {
                               const std::string payload);
                 void rm_leaf(const std::string proxy_key);
 
-                // void change_password(const std::string new_password);
+                root change_password(const std::string new_password);
                 void commit();
                 void validate();
 
@@ -94,6 +98,7 @@ namespace srd {
 
                 const std::string password;
                 bool modified;
+                bool valid;     // if false, all operations except deletion should fail
         };
 }
 

@@ -19,6 +19,7 @@
 
 
 #include <algorithm>
+#include <assert.h>
 #include <iostream>
 #include <pstreams/pstream.h>
 #include <string>
@@ -36,20 +37,22 @@ using namespace std;
 
 static int test_message_digest(const string message);
 static int test_encryption(const string message);
+static int test_lengths();
 
 
 
 int main(int argc, char *argv[])
 {
         cout << "Testing crypt.cpp" << endl;
-        
+
         mode(Verbose, false);
         mode(Testing, true);
-        
+
         int err_count = 0;
         vector_string messages = test_text();
         err_count = count_if(messages.begin(), messages.end(), test_message_digest);
         err_count += count_if(messages.begin(), messages.end(), test_encryption);
+        err_count += test_lengths();
 
         if(err_count)
                 cout << "Errors (" << err_count << ") in test!!" << endl;
@@ -109,5 +112,47 @@ static int test_encryption(const string message)
 }
 
 
+
+/*
+  Check that message_digest() and pseudo_random_string() return
+  reasonable values.
+*/
+static int test_lengths()
+{
+        const int N = 5000;
+        int prs_error_count = 0;
+        int md_error_count = 0;
+        int mdfs_error_count = 0;
+        srand((int)time(0));
+        unsigned int n;
+        cout << "  [begin length test]" << endl;
+        time_t start_time = time(0);
+        assert(start_time > 0);
+        for(int i = 0; i < N; i++) {
+                n = rand() & 0xFFFF; // Else we take too long
+                string s(pseudo_random_string(n));
+                if(s.size() != n)
+                        prs_error_count++;
+                string md(message_digest(s));
+                if(md.size() != 44)
+                        md_error_count++;
+                string mdfs(message_digest(s, true));
+                if(mdfs.size() != 44)
+                        mdfs_error_count++;
+                if(mdfs.find('/') != string::npos)
+                        mdfs_error_count++;
+        }
+        time_t end_time = time(0);
+        assert(end_time > 0);
+        cout << "  ...done in " << end_time - start_time << " seconds." << endl;
+
+        if(prs_error_count)
+                cout << prs_error_count << " errors from pseudo_random_string()." << endl;
+        if(md_error_count)
+                cout << md_error_count << " errors from message_digest(,false)." << endl;
+        if(mdfs_error_count)
+                cout << mdfs_error_count << " errors from message_digest(,true)." << endl;
+        return prs_error_count = md_error_count + mdfs_error_count;
+}
 
 

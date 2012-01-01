@@ -53,14 +53,20 @@ using namespace std;
 
   The name of the root node must be determinable solely by the password.
 */
-root::root(const string pass, const string dir_name)
-        : password(pass), modified(false)
+root::root(const string pass, const string dir_name, const bool create)
+        : password(pass), modified(false), valid(true)
 {
         string base_name(pass);
         for(int i = 0; i < 30; i++)
                 base_name = message_digest(base_name, true);
         basename(base_name);    // Must be reproducible from password alone
         dirname(dir_name);      // If empty, will be computed for us
+        if(exists() == create) {
+                // i.e., if exists() != !create
+                if(create)
+                        throw(runtime_error("Can't create existing root."));
+                throw(runtime_error("Root doesn't exist.  (Incorrect password?)"));
+        }
         if(!exists()) {
                 cout << "Root node does not exist, will create." << endl;
                 if(mode(Verbose))
@@ -121,8 +127,10 @@ void root::populate_leaf_names(leaf_proxy_map::value_type val)
 */
 root::~root()
 {
-        validate();
-        commit();
+        if(valid) {
+                validate();
+                commit();
+        }
 }
 
 
@@ -135,9 +143,7 @@ void root::add_leaf(const string key, const string payload)
 {
         validate();
         leaf_proxy proxy(password, "", dirname());
-        proxy.key(key);
-        proxy.payload(payload);
-        proxy.commit();
+        proxy.set(key, payload);
         (*this)[proxy.basename()] = proxy;
         modified = true;        // Adding a leaf requires persisting the root.
         validate();
@@ -151,6 +157,7 @@ void root::add_leaf(const string key, const string payload)
 */
 leaf_proxy root::get_leaf(const string proxy_key)
 {
+        validate();
         iterator it = find(proxy_key);
         if(end() == it)
                 throw(runtime_error("Key not found."));
@@ -163,24 +170,59 @@ void root::set_leaf(const string proxy_key,
                     const string key,
                     const string payload)
 {
+        validate();
         iterator it = find(proxy_key);
         if(end() == it)
                 throw(runtime_error("Key not found."));
         leaf_proxy &proxy = it->second;
-        proxy.key(key);
-        proxy.payload(payload);
-        proxy.commit();
+        proxy.set(key, payload);
+        validate();
 }
 
 
 
 void root::rm_leaf(const string proxy_key)
 {
+        validate();
         iterator it = find(proxy_key);
         if(end() == it)
                 throw(runtime_error("Key not found."));
         it->second.erase();
         erase(it);
+        validate();
+}
+
+
+
+/*
+  Change the password associated with this root and all its leaves.
+
+  First make a new root and, for each leaf in the old root, add it to
+  the new root.  Once the new root is complete and persisted, walk the
+  old root and remove its leaves (and so the underlying files).
+  Finally, remove the old root and mark it invalid so that any further
+  operations on it will fail.
+
+  Return the new root.  Will throw runtime_error if the new password
+  generates an existing root object.
+*/
+root root::change_password(const std::string new_password)
+{
+        validate();
+        root new_root(new_password, dirname(), true);
+        for(const_iterator it = begin();
+            it != end();
+            it++)
+                new_root.add_leaf((*it).second.key(), (*it).second.payload());
+        while(!empty()) {
+                iterator it = begin();
+                (*it).second.erase();
+                erase(it);
+        }
+        validate();
+        valid = false;
+        new_root.validate();
+        return new_root;
 }
 
 
@@ -220,6 +262,7 @@ void root::commit()
 */
 void root::validate()
 {
+        assert(valid);
         assert(password.size() > 0);
         // Validate each of the leaf proxies.  Note that this won't cause them to load.
         for(iterator it = begin(); it != end(); it++) {

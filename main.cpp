@@ -47,9 +47,9 @@ class help_exception : public exception {};
 
 
 static BPO::variables_map parse_options(int, char *[]);
-static string get_password();
+static string get_password(const string prompt = "Password:  ");
 static void do_shell(const string);
-static void change_password(const string);
+static bool change_password(const string);
 static void do_edit(const string,
                     const vector_string,
                     const vector_string,
@@ -64,6 +64,7 @@ static void do_match(const string,
                      const bool full_display,
                      const string grep);
 static bool do_import(const string password, const string filename);
+static bool do_create(const string password);
 
 
 
@@ -87,17 +88,22 @@ int main(int argc, char *argv[])
                 return 1;
         }
 
+        const bool verbose = options.count("verbose") > 0;
+        mode(Verbose, verbose);
+
         bool is_test = options.count("TEST") > 0;
-        string passwd;
         mode(Testing, is_test);
+
+        string passwd;
         if(is_test)
                 passwd = options["TEST"].as<string>();
         else
                 passwd = get_password();
         
         // do something
-        const bool verbose = options.count("verbose") > 0;
-        mode(Verbose, verbose);
+        if(options.count("create") > 0)
+                if(do_create(passwd))
+                        return 1; // password mismatch
 
         if(options.count("shell")) {
                 do_shell(passwd);
@@ -179,6 +185,8 @@ static BPO::variables_map parse_options(int argc, char *argv[])
                  "Edit record")
                 ("passwd,p",
                  "Change password (no other options permitted)")
+                ("create",
+                 "Create database.  Otherwise a mistyped password would be an error.")
                 ("import", BPO::value<string>(),
                  "Import a text file");
 
@@ -238,9 +246,9 @@ static BPO::variables_map parse_options(int argc, char *argv[])
 
 
 
-static string get_password()
+static string get_password(const string prompt)
 {
-        cout << "Password: ";
+        cout << prompt;
         
         // Get pass phrase without echoing it
         termios before, after;
@@ -260,7 +268,7 @@ static string get_password()
         // Iterate hash (arbitrarily) 50 times.  Motivated by gpg's behavior.
         string digest(pass_phrase);
         for(int i = 0; i < 50; i++)
-                string digest = message_digest(digest, false);
+                digest = message_digest(digest, false);
         
         // Clear original pass phrase to minimize risk of seeing it in a swap or core image
         bzero(pass_phrase, sizeof(pass_len));
@@ -277,10 +285,45 @@ static void do_shell(const string password)
 }
 
 
-static void change_password(const string password)
+/*
+  Change password.
+
+  If successful, remove old database (root and its leaves).
+
+  Return 0 on success.
+  Return 1 on failure.
+*/
+static bool change_password(const string password)
 {
-        // ################
-        cout << "change_password() not yet implemented." << endl;
+        root old_root(password, "");
+
+        string passwd;
+        if(mode(Testing)) {
+                // When testing, password is in the clear on the commandline
+                // and we surely don't want to ask again.
+                passwd = password + "2"; // If this line changs, will need to change pass2 in test-passwd.sh
+        } else {
+                passwd = get_password("Enter new password:  ");
+                if(passwd == password) {
+                        cout << "New and old passwords are identical." << endl;
+                        return 1;
+                }
+                string passwd2 = get_password("Please retype new password:  ");
+                if(passwd != passwd2) {
+                        cout << "Passwords don't match." << endl;
+                        return 1;
+                }
+        }
+        try {
+                root new_root = old_root.change_password(passwd);
+        }
+        catch(runtime_error e) {
+                cerr << "Failed to create new database:  a database identified by this password already exists." << endl;
+                if(mode(Verbose))
+                        cerr << "  ==> " << e.what() << endl;
+                return 1;
+        }
+        return 0;
 }
 
 
@@ -373,9 +416,9 @@ static void do_match(const string password,
         for(leaf_proxy_map::LPM_Set::iterator it = leaves.begin();
             it != leaves.end();
             ++it) {
-                const_cast<leaf_proxy&>(*it).print_key();
+                (*it).print_key();
                 if(full_display_on)
-                        const_cast<leaf_proxy&>(*it).print_payload(grep);
+                        (*it).print_payload(grep);
         }
 }
 
@@ -401,8 +444,8 @@ static leaf_proxy_map get_leaf_proxy_map(root &root,
 */
 static void user_add(root &root)
 {
-        string key("");
-        string payload("");
+        string key;
+        string payload;
         user_edit(key, payload);
         root.add_leaf(key, payload);
 }
@@ -567,3 +610,33 @@ static vector<pair<string, string> > import_read_file(const string filename)
         return incoming;
 }
 
+
+
+/*
+  Create a new root.
+
+  Return 0 on success.
+  Return 1 on failure.
+*/
+static bool do_create(const string password)
+{
+        if(!mode(Testing)) {
+                // When testing, password is in the clear on the commandline
+                // and we surely don't want to ask again.
+                string passwd2 = get_password("Please retype your password:  ");
+                if(password != passwd2) {
+                        cout << "Passwords don't match." << endl;
+                        return 1;
+                }
+        }
+        try {
+                root(password, "", true); // Simply cause creation.  Will fail if root already exists.
+        }
+        catch(runtime_error e) {
+                cerr << "Failed to create new database:  a database identified by this password already exists." << endl;
+                if(mode(Verbose))
+                        cerr << "  ==> " << e.what() << endl;
+                return 1;
+        }
+        return 0;
+}

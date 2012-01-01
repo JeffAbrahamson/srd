@@ -55,6 +55,9 @@ namespace srd {
                   It's perfectly reasonable to have multiple
                   leaf_proxy's for the same leaf as long as no more
                   than one is considered writeable.
+
+                  The copy constructor and assignment operators
+                  support this by not copying the_leaf pointer.
                 */
                 ~leaf_proxy() { if(the_leaf) delete the_leaf; the_leaf = NULL; };
 
@@ -70,45 +73,38 @@ namespace srd {
                   leaf_proxy_map.  Provide them all to avoid some
                   subtle bug some day.
                 */
-                bool operator<=(const leaf_proxy& rhs_in) const
+                bool operator<=(const leaf_proxy& rhs) const
                 {
-                        leaf_proxy *lhs_ptr = const_cast<leaf_proxy *>(this);
-                        leaf_proxy &rhs = const_cast<leaf_proxy &>(rhs_in);
-                        return lhs_ptr->key() <= rhs.key();
+                        return key() <= rhs.key();
                 }
 
-                bool operator<(const leaf_proxy& rhs_in) const
+                bool operator<(const leaf_proxy& rhs) const
                 {
-                        leaf_proxy *lhs_ptr = const_cast<leaf_proxy *>(this);
-                        leaf_proxy &rhs = const_cast<leaf_proxy &>(rhs_in);
-                        return lhs_ptr->key() < rhs.key();
+                        return key() < rhs.key();
                 }
         
-                bool operator>=(const leaf_proxy& rhs_in) const
+                bool operator>=(const leaf_proxy& rhs) const
                 { 
-                        leaf_proxy *lhs_ptr = const_cast<leaf_proxy *>(this);
-                        leaf_proxy &rhs = const_cast<leaf_proxy &>(rhs_in);
-                        return lhs_ptr->key() >= rhs.key();
+                        return key() >= rhs.key();
                 }
 
-                bool operator>(const leaf_proxy& rhs_in) const
+                bool operator>(const leaf_proxy& rhs) const
                 {
-                        leaf_proxy *lhs_ptr = const_cast<leaf_proxy *>(this);
-                        leaf_proxy &rhs = const_cast<leaf_proxy &>(rhs_in);
-                        return lhs_ptr->key() > rhs.key();
+                        return key() > rhs.key();
                 }
 
+                void set(const std::string in_key, const std::string in_payload);
 
                 void key_cache(const std::string in) { cached_key = in; validate(); }
                 void key(const std::string);
-                const std::string key();
+                std::string key() const;
                 void payload(const std::string);
-                const std::string payload();
+                std::string payload() const;
 
-                void print_key();
-                void print_payload(const std::string payload);
+                void print_key() const;
+                void print_payload(const std::string pattern) const;
 
-                const std::string basename();
+                std::string basename() const;
                 void commit();
                 void erase();
 
@@ -116,18 +112,22 @@ namespace srd {
 
         private:
 
-                void init_leaf();
-                
+                void init_leaf() const;
+
                 std::string password; // should be const but for operator=()
-                std::string base_name;
-                std::string dir_name;
+
+                // input_base_name and input_dir_name exist to create
+                // the leaf, but we consult the leaf for actual
+                // values.
+                std::string input_base_name;
+                std::string input_dir_name;
                 bool valid;
 
                 // We cache the_leaf.key in cached_key so that we don't need to
                 // load all leaves for what is likely the most common type of search.
                 // This means that the root must persist the cached key value.
                 std::string cached_key;
-                leaf *the_leaf;
+                mutable leaf *the_leaf;
         };
 
 
