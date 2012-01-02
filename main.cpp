@@ -348,8 +348,8 @@ namespace {
         {
                 string key;
                 string payload;
-                user_edit(key, payload);
-                root.add_leaf(key, payload);
+                if(user_edit(key, payload))
+                        root.add_leaf(key, payload);
         }
 
 
