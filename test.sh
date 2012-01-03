@@ -121,6 +121,25 @@ if [ "$results" != "$expected" ]; then
     exit 1;
 fi
 
+# Compare sorted output, guarantees we have all the right lines at least
+output=srd-import-test-output
+output_sorted=srd-import-test-output-sorted
+template=srd-import-test-template
+./srd -T $pass '' -f > $output
+sort < $output > $output_sorted
+sort < test.d/import-test > $template
+if ! cmp --silent $output_sorted $template; then
+    echo Import test sorted output test failed.
+    exit 1
+fi
+# This next is a repeat of the previous, but the previous confirms
+# that we have the output template correct.
+if ! cmp $output test.d/output/import; then
+    echo Import output test failed.
+    exit 1
+fi
+rm $output $output_sorted $template
+
 # And clean up if all has gone well
 rm $tmp_file
 make clean-test
