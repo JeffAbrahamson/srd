@@ -55,7 +55,7 @@ namespace srd {
                                                        bool);
 
                 typedef std::set<leaf_proxy, std::less<leaf_proxy> > LPM_Set;
-                LPM_Set as_set();
+                LPM_Set as_set() const;
         };
         
 }

@@ -57,14 +57,13 @@ namespace {
                      const vector_string,
                      const vector_string,
                      bool);
-        void do_match(const string,
+        class leaf_visitor;
+        void do_match(root &root,
                       const vector_string,
                       const vector_string,
                       const vector_string,
                       bool,
-                      const bool keys_only,
-                      const bool full_display,
-                      const string grep);
+                      leaf_visitor *);
         bool do_import(const string password, const string filename);
         bool do_create(const string password);
 
@@ -81,16 +80,29 @@ namespace {
 
                 BPO::options_description actions("Actions (if none, then match)");
                 actions.add_options()
-                        ("shell,s",
-                         "Run interactive shell")
+                        /*("shell,s",
+                          "Run interactive shell")*/
                         ("edit,e",
                          "Edit record")
+                        ("delete,x",
+                         "Delete the results of an (exact) key match.  "
+                         "Conceptually -E -m arg, can be used with -mDd.")
+                        ("delete-all,X",
+                         "Delete all matches.  "
+                         "Conceptually equivalent to -m arg, can be used with -mDd.  "
+                         "If more than one match, will request confirmation.")
                         ("passwd,p",
                          "Change password (no other options permitted)")
                         ("create",
-                         "Create database.  Otherwise a mistyped password would be an error.")
+                         "Create database.  The database is identified by a hash of the "
+                         "password, so --create distinguishes between creating a new "
+                         "database and mistyping the password.")
                         ("import", BPO::value<string>(),
-                         "Import a text file");
+                         "Import a text file.  The format is the same as that output "
+                         "by -f:  each line must either be \"[KEY]\" "
+                         "for key KEY or else begin with two spaces of indent (which are "
+                         "disgarded during the input) for data (payload) portion associated "
+                         "with the most recent key line.");
 
                 BPO::options_description matching("Matching options");
                 matching.add_options()
@@ -134,9 +146,6 @@ namespace {
                              << endl;
                         cout << "  Key-match-pattern, if present, is the same as specifying -m."
                              << endl;
-                        cout << "  Import assumes the same format as -f:" << endl;
-                        cout << "     key-value enclosed in square brackets, and" << endl;
-                        cout << "     payload indented by two spaces" << endl;
                         cout << endl;
                 
                         cout << options << endl;
@@ -243,6 +252,83 @@ namespace {
         bool user_edit(string &key, string &payload);
 
 
+        class leaf_visitor {
+
+        public:
+                virtual ~leaf_visitor() {};
+                virtual void operator()(const leaf_proxy_map &lpm) const = 0;
+        };
+        
+        
+        
+        /*
+          A visitor that prints the results of a search.
+        */
+        class leaf_print_visitor : public leaf_visitor {
+
+        public:
+                leaf_print_visitor(const bool in_keys_only,
+                                   const bool in_full_display,
+                                   const string in_grep)
+                        : keys_only(in_keys_only),
+                          full_display(in_full_display),
+                          grep(in_grep) {};
+
+                void operator()(const leaf_proxy_map &lpm) const {
+                        /*
+                          If one hit
+                          ...and key_display, display only key.
+                          ...and full_display, display all data.
+                          ...else display full data.
+
+                          If multiple hits
+                          ...and key_display, display only keys.
+                          ...and full_display, display all data.
+                          ...else display only keys.
+                        */
+                        bool full_display_on = ((full_display && lpm.size() > 1)
+                                                || (!keys_only && 1 == lpm.size()));
+                        leaf_proxy_map::LPM_Set leaves = lpm.as_set();
+                        for(leaf_proxy_map::LPM_Set::iterator it = leaves.begin();
+                            it != leaves.end();
+                            ++it) {
+                                (*it).print_key();
+                                if(full_display_on)
+                                        (*it).print_payload(grep);
+                        }
+
+                }
+                
+        private:
+                const bool keys_only;
+                const bool full_display;
+                const string grep;
+        };
+
+
+        /*
+          A visitor that deletes the results of a search.
+          
+          If the set has more than one element, request verification
+          before deleting.
+        */
+        class leaf_delete_visitor : public leaf_visitor {
+
+        public:
+                leaf_delete_visitor(root &in_root) : the_root(in_root) {};
+                
+                void operator()(const leaf_proxy_map &lpm) const {
+                        for(leaf_proxy_map::const_iterator it = lpm.begin();
+                            it != lpm.end();
+                            ++it)
+                                the_root.rm_leaf(it->first);
+                }
+                        
+        private:
+                root &the_root;
+        };
+        
+
         void do_edit(const string password,
                             const vector_string match_key,
                             const vector_string match_payload,
@@ -282,16 +368,13 @@ namespace {
 
 
 
-        void do_match(const string password,
-                             const vector_string match_key,
-                             const vector_string match_payload,
-                             const vector_string match_or,
-                             const bool match_exact,
-                             const bool keys_only,
-                             const bool full_display,
-                             const string grep)
+        void do_match(root &root,
+                      const vector_string match_key,
+                      const vector_string match_payload,
+                      const vector_string match_or,
+                      const bool match_exact,
+                      leaf_visitor *visitor)
         {
-                root root(password, "");
                 if(0 == match_key.size() && 0 == match_payload.size() && 0 == match_or.size()) {
                         // Edit request with no search criteria means create new
                         cerr << "No match criteria provided." << endl;
@@ -300,28 +383,8 @@ namespace {
                 }
                 leaf_proxy_map lpm = get_leaf_proxy_map(root, match_key, match_payload,
                                                         match_or, match_exact);
-        
-                /*
-                  If one hit
-                  ...and key_display, display only key.
-                  ...and full_display, display all data.
-                  ...else display full data.
 
-                  If multiple hits
-                  ...and key_display, display only keys.
-                  ...and full_display, display all data.
-                  ...else display only keys.
-                */
-                bool full_display_on = ((full_display && lpm.size() > 1)
-                                        || (!keys_only && 1 == lpm.size()));
-                leaf_proxy_map::LPM_Set leaves = lpm.as_set();
-                for(leaf_proxy_map::LPM_Set::iterator it = leaves.begin();
-                    it != leaves.end();
-                    ++it) {
-                        (*it).print_key();
-                        if(full_display_on)
-                                (*it).print_payload(grep);
-                }
+                (*visitor)(lpm);
         }
 
 
@@ -490,6 +553,7 @@ namespace {
                                 if(payload.str().size() > 0) {
                                         incoming.push_back(pair<string, string>(key, payload.str()));
                                         key = "";
+                                        payload.str("");
                                         payload.clear();
                                 }
                                 key = line.substr(1, len - 2);
@@ -507,6 +571,7 @@ namespace {
                 if(payload.str().size() > 0) {
                         incoming.push_back(pair<string, string>(key, payload.str()));
                         key = "";
+                        payload.str("");
                         payload.clear();
                 }
                 return incoming;
@@ -598,7 +663,8 @@ int main(int argc, char *argv[])
         }
 
         
-        // We need to match, either to edit a record or to display one.
+        // We need to match, either to edit a record or else to
+        // display or delete records.
         vector_string match_key, match_or, match_data;
         bool match_exact = false;
         if(options.count("match-key")) {
@@ -625,7 +691,7 @@ int main(int argc, char *argv[])
                         cout << endl;
                 }
         }
-        match_exact = options.count("exact-match") > 0;
+        match_exact = (options.count("exact-match") > 0) || (options.count("delete") > 0);
         if(verbose)
                 cout << "match-exact=" << match_exact << endl;
         
@@ -634,12 +700,21 @@ int main(int argc, char *argv[])
                 return 0;
         }
 
-        string grep_pattern;
-        if(options.count("grep") > 0)
-                grep_pattern = options["grep"].as<string>();
-        do_match(passwd, match_key, match_data, match_or, match_exact,
-                 options.count("keys-only") > 0,
-                 options.count("full-display") > 0,
-                 grep_pattern);
+        leaf_visitor *lv;
+
+        root root(passwd, "");
+        if(options.count("delete")) {
+                match_exact = true;
+                lv = new leaf_delete_visitor(root);
+        } else if(options.count("delete-arg")) {
+                lv = new leaf_delete_visitor(root);
+        } else {
+                lv = new leaf_print_visitor(options.count("keys-only") > 0,
+                                             options.count("full-display") > 0,
+                                             (options.count("grep") > 0) ?
+                                             options["grep"].as<string>() : string());
+        }
+        do_match(root, match_key, match_data, match_or, match_exact, lv);
+        delete lv;
         return 0;
 }
