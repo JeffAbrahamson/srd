@@ -14,21 +14,7 @@ another context with minimal hacking.
 Want to use it?
 
 I believe the code works.  There are reasonably extensive regtests
-that convince me of this.  Issue #5 (script test) will be sorted
-shortly, though I've essentially been doing this by hand since the
-commandline interface became available.  Feel free to subscribe to
-that issue if it's the only thing blocking you.  Send me mail with
-feedback.
-
-A handful of minor but important features haven't been implemented
-yet.  A couple opportunities for better efficiency are identified,
-again, see issues for details.
-
-There's also some code cleanup that's clearly called for.  You're
-looking at code during development. ;-)
-
-All this should happen over the next week or two, as I have a bit of
-time for doing such things.
+that convince me of this.  Send me mail with feedback.
 
 
 Why did I write this?
@@ -49,6 +35,11 @@ more easily without writing code, but would have left me less happy.
 
 Here's the usage message:
 
+  srd <options> [key-match-pattern]
+
+    Patterns for -m, -D, -d are comma-separated pattterns.
+    Key-match-pattern, if present, is the same as specifying -m.
+
   Allowed options:
 
   General options:
@@ -56,16 +47,28 @@ Here's the usage message:
     -v [ --verbose ]      Emit debugging information
 
   Actions (if none, then match):
-    -s [ --shell ]        Run interactive shell
     -e [ --edit ]         Edit record
+    -x [ --delete ]       Delete the results of an (exact) key match.  
+			  Conceptually -E -m arg, can be used with -mDd.
+    -X [ --delete-all ]   Delete all matches.  Conceptually equivalent to -m arg,
+			  can be used with -mDd.  If more than one match, will 
+			  request confirmation.
     -p [ --passwd ]       Change password (no other options permitted)
+    --create              Create database.  The database is identified by a hash 
+			  of the password, so --create distinguishes between 
+			  creating a new database and mistyping the password.
+    --import arg          Import a text file.  The format is the same as that 
+			  output by -f:  each line must either be "[KEY]" for key
+			  KEY or else begin with two spaces of indent (which are 
+			  disgarded during the input) for data (payload) portion 
+			  associated with the most recent key line.
 
   Matching options:
     -m [ --match-key ] arg         Restrict to records whose keys match
     -D [ --match-data-or-key ] arg Consider key and data for match (i.e., logical
 				   or)
     -d [ --match-data ] arg        Restrict to records whose data match
-    -E [ --exact-match ]           Exact match only (applies to all matching)
+    -E [ --exact-match ]           Exact key match
 
   Display options:
     -k [ --keys-only ]     Display keys only (default true if multiple matches, 
