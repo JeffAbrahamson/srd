@@ -167,6 +167,10 @@ leaf_proxy root::get_leaf(const string proxy_key)
 
 
 
+/*
+  Set the contents of an existing leaf.
+  To create a new leaf, use add_leaf().
+*/
 void root::set_leaf(const string proxy_key,
                     const string key,
                     const string payload)
@@ -182,6 +186,10 @@ void root::set_leaf(const string proxy_key,
 
 
 
+/*
+  Remove a leaf_proxy from the root, deleting the underlying leaf
+  file.
+*/
 void root::rm_leaf(const string proxy_key)
 {
         validate();

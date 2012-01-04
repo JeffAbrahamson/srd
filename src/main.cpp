@@ -318,6 +318,20 @@ namespace {
                 leaf_delete_visitor(root &in_root) : the_root(in_root) {};
                 
                 void operator()(const leaf_proxy_map &lpm) const {
+                        if(0 == lpm.size()) {
+                                cout << "Nothing to delete." << endl;
+                                return;
+                        }
+                        if(lpm.size() > 1) {
+                                cout << "Delete " << lpm.size() << " items?  (yes/no)  ";
+                                string response;
+                                cin >> response;
+                                if("y" != response && "Y" != response &&
+                                   "yes" != response && "YES" != response && "Yes" != response) {
+                                        cout << "OK, nothing deleted." << endl;
+                                        return;
+                                }
+                        }
                         for(leaf_proxy_map::const_iterator it = lpm.begin();
                             it != lpm.end();
                             ++it)
@@ -706,7 +720,7 @@ int main(int argc, char *argv[])
         if(options.count("delete")) {
                 match_exact = true;
                 lv = new leaf_delete_visitor(root);
-        } else if(options.count("delete-arg")) {
+        } else if(options.count("delete-all")) {
                 lv = new leaf_delete_visitor(root);
         } else {
                 lv = new leaf_print_visitor(options.count("keys-only") > 0,
