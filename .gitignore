@@ -1,6 +1,10 @@
 *.o
+*.a
+*.so*
 *_test
 srd
+srd-from-archive
+srd-from-so
 *~
 srd-test-*
 TAGS
