@@ -80,3 +80,15 @@ Here's the usage message:
   Test options (don't use outside regression tests):
     -T [ --TEST ] arg     Test mode, use local data directory, specify password 
 			  on commandline
+
+Known issues / bugs
+
+The code is not thread-safe.  Indeed, it assumes a single event
+stream, where it is impossible, say, to edit two leaves at the same
+time.  (The conflict here is at the level of the root, since each
+editor risks re-persisting the root differently.)
+
+These things are not hard to change, and probably should be, but they
+don't matter much in the context of a simple commandline tool.  Until,
+of course, the day when someone runs two instances of srd together.
+Cf. issues #26, #27.
