@@ -35,7 +35,7 @@ the name and the note as key and payload.
 <h2>Implementation Overview</h2>
 
 <p>
-From an implementation viewpoint, the principle is an index (called
+The implementation principle is an index (called
 the root) and a bunch of files (called leaves).  The root is a file
 that maps user-readable names (which can be changed by the user) to
 permanent names (numbers) to file names for text fragments (which text
@@ -47,40 +47,40 @@ a reasonable password.
 <h2>File Overview</h2>
 
 <p>
-<b>main.cpp</b> is the principle entry point for the program.  In other
-words, it contains <tt>main()</tt>.  It handles option parsing.  It then talks
-to <b>interface.cpp</b>.
+The principle entry point for the program is <b>main.cpp</b>.  In other
+words, it contains <tt>main()</tt>.  It handles option parsing.
+Everything else is (at least conceptually) library.
 </p>
 
 <p>
-The main entry point for the library (.so) version of the code is
-<b>interface.cpp</b>.  It serves merely to enforce abstraction between the
-commandline (or, eventually, other) interface and the functionality.
-</p>
-
-<p>
-<b>root.cpp</b> is the index object.  It is tested by <b>root_test.cpp</b>.
+The index object is <b>root.cpp</b>.  It is tested by <b>root_test.cpp</b>.
 </p>
 
 <p>
 The root's main data structure is a leaf_proxy_map (implemented in
 <b>leaf_proxy_map.cpp</b>, tested by <b>leaf_proxy_test.cpp</b>).  The
 leaf_proxy_map is also the abstraction by which we return search
-results, facilitating searching on existing results.
+results, facilitating searching on existing results.  Said differently
+the root is a leaf_proxy_map with persistence.
 </p>
 
 <p> A leaf proxy (<b>leaf_proxy.cpp</b>) represents a leaf without
 loading the data.  Once we load the file, the leaf proxy contains a
 pointer to the leaf (<b>leaf.cpp</b>, tested in <b>leaf_test.cpp</b>).
+<i>(I need to remember the name for this design pattern and mention it
+here.  I realized recently that I use design patterns quite
+extensively, but I somehow managed not to remember most of their names.)</i>
 </p>
 
 
-<p> <b>compress.cpp</b> (tested by <b>compress_test.cpp</b>) and
+<p> The file <b>compress.cpp</b> (tested by <b>compress_test.cpp</b>) and
 <b>crypt.cpp</b> (tested by <b>crypt_test.cpp</b>) are mixins that
 handle compression/decompression and encryption/decryption
 respectively.
 File operations are abstracted in the mixin class <b>file.cpp</b> (tested by
-<b>file_test.cpp</b>).
+<b>file_test.cpp</b>).  <b>mode.cpp</b> (tested in
+<b>mode_test.cpp</b>) isolates a bit of global state: verbose mode and
+test mode.
 </p>
 
 <p>
