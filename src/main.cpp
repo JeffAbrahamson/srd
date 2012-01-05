@@ -528,7 +528,7 @@ namespace {
                 for(vector<pair<string, string> >::const_iterator it = incoming.begin();
                     it != incoming.end();
                     ++it)
-                        root.add_leaf(it->first, it->second);
+                        root.add_leaf(it->first, it->second, false); // commit at end of scope
                 return true;
         }
 

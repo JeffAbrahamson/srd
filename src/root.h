@@ -59,7 +59,8 @@ namespace srd {
                 // A leaf (or leaf proxy) contains a key and payload.
                 // But the root node contains proxy keys, which serve to identify
                 // the actual leaf, in which we have stored the real key.
-                void add_leaf(const std::string key, const std::string payload);
+                void add_leaf(const std::string key, const std::string payload,
+                              const bool do_commit = true);
                 LeafProxy get_leaf(const std::string proxy_key);
                 void set_leaf(const std::string proxy_key,
                               const std::string key,

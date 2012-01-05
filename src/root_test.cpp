@@ -69,7 +69,7 @@ namespace {
                                 string key(ss.str());
                                 string foo = *it;
                                 string payload(*it);
-                                root.add_leaf(key, payload);
+                                root.add_leaf(key, payload, false); // commit at end of scope
                         }
                 }
         
@@ -118,8 +118,9 @@ namespace {
                         for(map<string, string>::const_iterator it = text.begin();
                             it != text.end();
                             it++) {
-                                root.add_leaf(it->first, it->second);
+                                root.add_leaf(it->first, it->second, false);
                         }
+                        root.commit();
                         // Read-only, but that's fine.  Probably making an unnecessary copy.
                         int errors = count_if(text.begin(),
                                               text.end(),
@@ -191,8 +192,9 @@ namespace {
                         for(int i = 0; i < N; i++) {
                                 string key = message_digest(pseudo_random_string(30));
                                 string payload = message_digest(pseudo_random_string(100));
-                                root.add_leaf(key, payload);
+                                root.add_leaf(key, payload, false);
                         }
+                        root.commit();
                         if(!confirm_ordering(root)) {
                                 cout << "Root order test failed before persist." << endl;
                                 return 1;
@@ -269,8 +271,9 @@ namespace {
                                 string key(ss.str());
                                 string foo = *it;
                                 string payload(*it);
-                                root.add_leaf(key, payload);
+                                root.add_leaf(key, payload, false);
                         }
+                        root.commit();
                 }
 
                 cout << "Re-instantiating root and changing password." << endl;

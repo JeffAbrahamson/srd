@@ -139,14 +139,21 @@ Root::~Root()
   Add a leaf with key and payload.
   Insert the proxy key and leaf_proxy into the root.
 */
-void Root::add_leaf(const string key, const string payload)
+void Root::add_leaf(const string key, const string payload, const bool do_commit)
 {
         validate();
         LeafProxy proxy(password, "", dirname());
         proxy.set(key, payload);
         (*this)[proxy.basename()] = proxy;
         modified = true;        // Adding a leaf requires persisting the root.
-        commit();
+        if(do_commit)
+                // Best practice is to commit, and so do_commit
+                // defaults to true.  If the client knows that it will
+                // add quite a few things in short order, it might
+                // take the shortcut of delaying commit (and so
+                // explicitly calling commit()).  The root will in any
+                // case be committed if necessary at destruction.
+                commit();
         validate();
 }
 
@@ -224,7 +231,8 @@ Root Root::change_password(const std::string new_password)
         for(const_iterator it = begin();
             it != end();
             it++)
-                new_root.add_leaf((*it).second.key(), (*it).second.payload());
+                new_root.add_leaf((*it).second.key(), (*it).second.payload(), false);
+        new_root.commit();
         while(!empty()) {
                 iterator it = begin();
                 (*it).second.erase();
