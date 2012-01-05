@@ -56,7 +56,7 @@ namespace {
 
                 string base_name, dir_name, full_path;
                 {
-                        leaf first_leaf(password, "", "");
+                        Leaf first_leaf(password, "", "");
                         first_leaf.key(key);
                         first_leaf.payload(message);
                         base_name = first_leaf.basename();
@@ -65,7 +65,7 @@ namespace {
                         // and on destruction here, it will be persisted.
                 }
         
-                leaf second_leaf(password, base_name, dir_name);
+                Leaf second_leaf(password, base_name, dir_name);
                 int ret = 0;
                 if(second_leaf.key() != key) {
                         cout << "Key mismatch" << endl;
@@ -82,7 +82,7 @@ namespace {
                 }
 
                 second_leaf.erase();
-                leaf third_leaf(password, base_name, dir_name);
+                Leaf third_leaf(password, base_name, dir_name);
                 if(third_leaf.key() != "" || third_leaf.payload() != "") {
                         cout << "Failed to remove leaf." << endl;
                         ret++;

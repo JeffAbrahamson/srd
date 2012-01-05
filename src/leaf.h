@@ -47,14 +47,14 @@ namespace srd {
           On the other hand, it's not the human-readable pass phrase
           at least.
         */
-        class leaf : public file, public compress, public crypt {
+        class Leaf : public File, public Compress, public Crypt {
         public:
-                leaf() { assert(0); };  // seemingly needed by serialize()
-                leaf(const std::string password,
+                Leaf() { assert(0); };  // seemingly needed by serialize()
+                Leaf(const std::string password,
                      const std::string base_name = std::string(),
                      const std::string dir_name = std::string(),
                      const bool = true);
-                virtual ~leaf();
+                virtual ~Leaf();
 
                 void commit();
                 void erase();

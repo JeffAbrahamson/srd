@@ -42,7 +42,7 @@ namespace srd {
         /*
           This is a simple mixin class that provides encryption and decryption.
         */
-        class crypt {
+        class Crypt {
         public:
                 std::string encrypt(const std::string plain_message,
                                     const std::string password);

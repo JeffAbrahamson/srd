@@ -53,7 +53,7 @@ using namespace std;
 
   The name of the root node must be determinable solely by the password.
 */
-root::root(const string pass, const string dir_name, const bool create)
+Root::Root(const string pass, const string dir_name, const bool create)
         : password(pass), modified(false), valid(true)
 {
         string base_name(pass);
@@ -85,7 +85,7 @@ root::root(const string pass, const string dir_name, const bool create)
 
         for_each(leaf_names.begin(),
                  leaf_names.end(),
-                 boost::bind(&root::instantiate_leaf_proxy, this, _1));
+                 boost::bind(&Root::instantiate_leaf_proxy, this, _1));
         assert(size() == leaf_names.size());
         leaf_names.clear();
         validate();
@@ -98,9 +98,9 @@ root::root(const string pass, const string dir_name, const bool create)
   we copy them to a vector and persist that instead.  Here we
   reinstantiate the map from the vector elements.
 */
-void root::instantiate_leaf_proxy(leaf_proxy_persist proxy_info)
+void Root::instantiate_leaf_proxy(LeafProxyPersist proxy_info)
 {
-        (*this)[proxy_info.proxy_name] = leaf_proxy(password, proxy_info.proxy_name, "");
+        (*this)[proxy_info.proxy_name] = LeafProxy(password, proxy_info.proxy_name, "");
         (*this)[proxy_info.proxy_name].key_cache(proxy_info.cached_key);
 }
 
@@ -110,9 +110,9 @@ void root::instantiate_leaf_proxy(leaf_proxy_persist proxy_info)
   Kludge.  In order to persist the keys of the leaf_proxy_map leaves,
   we copy them to a vector and persist that instead.
 */
-void root::populate_leaf_names(leaf_proxy_map::value_type val)
+void Root::populate_leaf_names(LeafProxyMap::value_type val)
 {
-        leaf_proxy_persist lpp;
+        LeafProxyPersist lpp;
         lpp.proxy_name = val.first;
         lpp.cached_key = val.second.key();
         leaf_names.push_back(lpp);
@@ -125,7 +125,7 @@ void root::populate_leaf_names(leaf_proxy_map::value_type val)
 /*
   Serialize and persist the node before destruction.
 */
-root::~root()
+Root::~Root()
 {
         if(valid) {
                 validate();
@@ -139,10 +139,10 @@ root::~root()
   Add a leaf with key and payload.
   Insert the proxy key and leaf_proxy into the root.
 */
-void root::add_leaf(const string key, const string payload)
+void Root::add_leaf(const string key, const string payload)
 {
         validate();
-        leaf_proxy proxy(password, "", dirname());
+        LeafProxy proxy(password, "", dirname());
         proxy.set(key, payload);
         (*this)[proxy.basename()] = proxy;
         modified = true;        // Adding a leaf requires persisting the root.
@@ -156,7 +156,7 @@ void root::add_leaf(const string key, const string payload)
   Return the leaf_proxy object with the given proxy key.
   It is an error for the object not to exist.
 */
-leaf_proxy root::get_leaf(const string proxy_key)
+LeafProxy Root::get_leaf(const string proxy_key)
 {
         validate();
         iterator it = find(proxy_key);
@@ -171,7 +171,7 @@ leaf_proxy root::get_leaf(const string proxy_key)
   Set the contents of an existing leaf.
   To create a new leaf, use add_leaf().
 */
-void root::set_leaf(const string proxy_key,
+void Root::set_leaf(const string proxy_key,
                     const string key,
                     const string payload)
 {
@@ -179,7 +179,7 @@ void root::set_leaf(const string proxy_key,
         iterator it = find(proxy_key);
         if(end() == it)
                 throw(runtime_error("Key not found."));
-        leaf_proxy &proxy = it->second;
+        LeafProxy &proxy = it->second;
         proxy.set(key, payload);
         validate();
 }
@@ -190,7 +190,7 @@ void root::set_leaf(const string proxy_key,
   Remove a leaf_proxy from the root, deleting the underlying leaf
   file.
 */
-void root::rm_leaf(const string proxy_key)
+void Root::rm_leaf(const string proxy_key)
 {
         validate();
         iterator it = find(proxy_key);
@@ -217,10 +217,10 @@ void root::rm_leaf(const string proxy_key)
   Return the new root.  Will throw runtime_error if the new password
   generates an existing root object.
 */
-root root::change_password(const std::string new_password)
+Root Root::change_password(const std::string new_password)
 {
         validate();
-        root new_root(new_password, dirname(), true);
+        Root new_root(new_password, dirname(), true);
         for(const_iterator it = begin();
             it != end();
             it++)
@@ -241,14 +241,14 @@ root root::change_password(const std::string new_password)
 /*
   If we have been modified, persist to our underlying file.
 */
-void root::commit()
+void Root::commit()
 {
         validate();
         if(!modified)
                 return;
         for_each(begin(),
                  end(),
-                 boost::bind(&root::populate_leaf_names, this, _1));
+                 boost::bind(&Root::populate_leaf_names, this, _1));
         assert(size() == leaf_names.size());
 
         ostringstream big_text_stream;
@@ -271,7 +271,7 @@ void root::commit()
   Confirm that all is well.
   It is an error if all is not, and we will die.
 */
-void root::validate()
+void Root::validate()
 {
         assert(valid);
         assert(password.size() > 0);
@@ -286,7 +286,7 @@ void root::validate()
 
 
 template<class Archive>
-void root::serialize(Archive &ar, const unsigned int version)
+void Root::serialize(Archive &ar, const unsigned int version)
 {
         ar & leaf_names;
 }

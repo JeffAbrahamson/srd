@@ -52,13 +52,13 @@ namespace {
 
                 string base_name, dir_name, full_path;
                 {
-                        leaf_proxy first_leaf_proxy(password, "", "");
+                        LeafProxy first_leaf_proxy(password, "", "");
                         first_leaf_proxy.set(key, message);
                         base_name = first_leaf_proxy.basename();
                         first_leaf_proxy.commit();
                 }
         
-                leaf_proxy second_leaf_proxy(password, base_name, "");
+                LeafProxy second_leaf_proxy(password, base_name, "");
                 int ret = 0;
                 if(second_leaf_proxy.basename().size() == 0) {
                         cout << "Proxy has empty basename." << endl;
@@ -74,7 +74,7 @@ namespace {
                 }
                 second_leaf_proxy.erase();
 
-                leaf_proxy third_leaf_proxy(password, base_name, "");
+                LeafProxy third_leaf_proxy(password, base_name, "");
                 if(third_leaf_proxy.basename().size() == 0) {
                         cout << "Proxy has empty basename." << endl;
                         ret++;

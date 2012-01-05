@@ -30,7 +30,7 @@
 
 namespace srd {
 
-        class leaf_proxy;
+        class LeafProxy;
         
         typedef std::vector<std::string> vector_string;
 

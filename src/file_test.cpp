@@ -46,7 +46,7 @@ namespace {
 
         int test_exists(const char *dir, const char *base, bool expect_exists)
         {
-                file my_file(base, dir);
+                File my_file(base, dir);
                 try {
                         if(expect_exists == my_file.exists())
                                 return 0;
@@ -67,7 +67,7 @@ namespace {
                 int ret = 0;
                 string filename;   // Remember so we can clean up no matter what
                 try {
-                        file my_file;
+                        File my_file;
                         filename = my_file.full_path();
                         my_file.file_contents(message);
                         string dup_message(my_file.file_contents());

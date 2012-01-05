@@ -46,15 +46,15 @@ namespace srd {
 
           This is a separate class so that we can filter on search results.
         */
-        class leaf_proxy_map : public std::map<std::string, leaf_proxy> {
+        class LeafProxyMap : public std::map<std::string, LeafProxy> {
         public:
-                leaf_proxy_map filter_keys(srd::vector_string, bool);
-                leaf_proxy_map filter_payloads(srd::vector_string) ;
-                leaf_proxy_map filter_keys_or_payloads(srd::vector_string,
-                                                       srd::vector_string,
-                                                       bool);
+                LeafProxyMap filter_keys(srd::vector_string, bool);
+                LeafProxyMap filter_payloads(srd::vector_string) ;
+                LeafProxyMap filter_keys_or_payloads(srd::vector_string,
+                                                     srd::vector_string,
+                                                     bool);
 
-                typedef std::set<leaf_proxy, std::less<leaf_proxy> > LPM_Set;
+                typedef std::set<LeafProxy, std::less<LeafProxy> > LPM_Set;
                 LPM_Set as_set() const;
         };
         

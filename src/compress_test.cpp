@@ -44,7 +44,7 @@ namespace {
         int test_compress(const string message)
         {
                 int ret = 0;
-                compress compressor;
+                Compress compressor;
                 string compressed = compressor.compression(message);
                 string decompressed = compressor.decompression(compressed);
                 if(compressed == message) {

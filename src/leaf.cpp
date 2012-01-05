@@ -49,7 +49,7 @@ using namespace std;
   Don't do this.  It's just a hook for removing leaves that we
   haven't loaded.  The only usage should be leaf_proxy::erase().
 */
-leaf::leaf(const string pass,
+Leaf::Leaf(const string pass,
            const string base_name,
            const string dir_name,
            const bool load)
@@ -81,7 +81,7 @@ leaf::leaf(const string pass,
   Serialize, compress, encrypt, and persist to the file whose name we know
   from construction time.
 */
-leaf::~leaf()
+Leaf::~Leaf()
 {
         commit();
 }
@@ -91,7 +91,7 @@ leaf::~leaf()
 /*
   If we've been modified, then write to our file.
 */
-void leaf::commit()
+void Leaf::commit()
 {
         validate();
         if(!modified)
@@ -115,7 +115,7 @@ void leaf::commit()
   Remove the underlying file.  We mark as unmodified so that we won't
   try to repersist at destruction time.
 */
-void leaf::erase()
+void Leaf::erase()
 {
         validate();
         rm();
@@ -129,7 +129,7 @@ void leaf::erase()
   Check that all is in order.  If not, assert and die.
   All should be in order!
 */
-void leaf::validate()
+void Leaf::validate()
 {
         assert(password.size() > 0);
         assert(basename().size() > 0);
@@ -142,7 +142,7 @@ void leaf::validate()
   Serialize or deserialize according to context.
 */
 template<class Archive>
-void leaf::serialize(Archive &ar, const unsigned int version)
+void Leaf::serialize(Archive &ar, const unsigned int version)
 {
         ar & node_key;
         ar & node_payload;

@@ -58,7 +58,7 @@ namespace {
                      const vector_string,
                      bool);
         class leaf_visitor;
-        void do_match(root &root,
+        void do_match(Root &root,
                       const vector_string,
                       const vector_string,
                       const vector_string,
@@ -206,7 +206,7 @@ namespace {
         */
         bool change_password(const string password)
         {
-                root old_root(password, "");
+                Root old_root(password, "");
 
                 string passwd;
                 if(mode(Testing)) {
@@ -226,7 +226,7 @@ namespace {
                         }
                 }
                 try {
-                        root new_root = old_root.change_password(passwd);
+                        Root new_root = old_root.change_password(passwd);
                 }
                 catch(runtime_error e) {
                         cerr << "Failed to create new database:  a database identified by this password already exists." << endl;
@@ -243,20 +243,20 @@ namespace {
            **********************************************************************
            */
 
-        leaf_proxy_map get_leaf_proxy_map(root &root,
-                                          const vector_string match_key,
-                                          const vector_string match_data,
-                                          const vector_string match_or,
-                                          const bool match_exact);
-        void user_add(root &root);
+        LeafProxyMap get_leaf_proxy_map(Root &root,
+                                        const vector_string match_key,
+                                        const vector_string match_data,
+                                        const vector_string match_or,
+                                        const bool match_exact);
+        void user_add(Root &root);
         bool user_edit(string &key, string &payload);
 
 
-        class leaf_visitor {
+        class LeafVisitor {
 
         public:
-                virtual ~leaf_visitor() {};
-                virtual void operator()(const leaf_proxy_map &lpm) const = 0;
+                virtual ~LeafVisitor() {};
+                virtual void operator()(const LeafProxyMap &lpm) const = 0;
         };
         
         
@@ -264,17 +264,17 @@ namespace {
         /*
           A visitor that prints the results of a search.
         */
-        class leaf_print_visitor : public leaf_visitor {
+        class LeafPrintVisitor : public LeafVisitor {
 
         public:
-                leaf_print_visitor(const bool in_keys_only,
-                                   const bool in_full_display,
-                                   const string in_grep)
+                LeafPrintVisitor(const bool in_keys_only,
+                                 const bool in_full_display,
+                                 const string in_grep)
                         : keys_only(in_keys_only),
                           full_display(in_full_display),
                           grep(in_grep) {};
 
-                void operator()(const leaf_proxy_map &lpm) const {
+                void operator()(const LeafProxyMap &lpm) const {
                         /*
                           If one hit
                           ...and key_display, display only key.
@@ -288,8 +288,8 @@ namespace {
                         */
                         bool full_display_on = ((full_display && lpm.size() > 1)
                                                 || (!keys_only && 1 == lpm.size()));
-                        leaf_proxy_map::LPM_Set leaves = lpm.as_set();
-                        for(leaf_proxy_map::LPM_Set::iterator it = leaves.begin();
+                        LeafProxyMap::LPM_Set leaves = lpm.as_set();
+                        for(LeafProxyMap::LPM_Set::iterator it = leaves.begin();
                             it != leaves.end();
                             ++it) {
                                 (*it).print_key();
@@ -312,12 +312,12 @@ namespace {
           If the set has more than one element, request verification
           before deleting.
         */
-        class leaf_delete_visitor : public leaf_visitor {
+        class LeafDeleteVisitor : public LeafVisitor {
 
         public:
-                leaf_delete_visitor(root &in_root) : the_root(in_root) {};
+                LeafDeleteVisitor(Root &in_root) : the_root(in_root) {};
                 
-                void operator()(const leaf_proxy_map &lpm) const {
+                void operator()(const LeafProxyMap &lpm) const {
                         if(0 == lpm.size()) {
                                 cout << "Nothing to delete." << endl;
                                 return;
@@ -332,14 +332,14 @@ namespace {
                                         return;
                                 }
                         }
-                        for(leaf_proxy_map::const_iterator it = lpm.begin();
+                        for(LeafProxyMap::const_iterator it = lpm.begin();
                             it != lpm.end();
                             ++it)
                                 the_root.rm_leaf(it->first);
                 }
                         
         private:
-                root &the_root;
+                Root &the_root;
         };
         
 
@@ -349,21 +349,21 @@ namespace {
                             const vector_string match_or,
                             const bool match_exact)
         {
-                root root(password, "");
+                Root root(password, "");
                 if(0 == match_key.size() && 0 == match_payload.size() && 0 == match_or.size()) {
                         // Edit request with no search criteria means create new
                         user_add(root);
                         return;
                 }
-                leaf_proxy_map lpm = get_leaf_proxy_map(root, match_key, match_payload,
-                                                        match_or, match_exact);
+                LeafProxyMap lpm = get_leaf_proxy_map(root, match_key, match_payload,
+                                                      match_or, match_exact);
                 if(0 == lpm.size()) {
                         cout << "No record matches." << endl;
                         return;
                 }
                 if(1 == lpm.size()) {
                         string proxy_key = lpm.begin()->first;
-                        leaf_proxy lp = lpm.begin()->second;
+                        LeafProxy lp = lpm.begin()->second;
                         string key = lp.key();
                         string payload = lp.payload();
                         if(!user_edit(key, payload))
@@ -372,7 +372,7 @@ namespace {
                         return;
                 }
         
-                for(leaf_proxy_map::iterator it = lpm.begin();
+                for(LeafProxyMap::iterator it = lpm.begin();
                     it != lpm.end();
                     ++it)
                         it->second.print_key();
@@ -382,12 +382,12 @@ namespace {
 
 
 
-        void do_match(root &root,
+        void do_match(Root &root,
                       const vector_string match_key,
                       const vector_string match_payload,
                       const vector_string match_or,
                       const bool match_exact,
-                      leaf_visitor *visitor)
+                      LeafVisitor *visitor)
         {
                 if(0 == match_key.size() && 0 == match_payload.size() && 0 == match_or.size()) {
                         // Edit request with no search criteria means create new
@@ -395,21 +395,21 @@ namespace {
                         cerr << "To match all records, use an empty key (\"\")." << endl;
                         return;
                 }
-                leaf_proxy_map lpm = get_leaf_proxy_map(root, match_key, match_payload,
-                                                        match_or, match_exact);
+                LeafProxyMap lpm = get_leaf_proxy_map(root, match_key, match_payload,
+                                                      match_or, match_exact);
 
                 (*visitor)(lpm);
         }
 
 
 
-        leaf_proxy_map get_leaf_proxy_map(root &root,
-                                                 const vector_string match_key,
-                                                 const vector_string match_payload,
-                                                 const vector_string match_or,
-                                                 const bool match_exact)
+        LeafProxyMap get_leaf_proxy_map(Root &root,
+                                        const vector_string match_key,
+                                        const vector_string match_payload,
+                                        const vector_string match_or,
+                                        const bool match_exact)
         {
-                leaf_proxy_map lpm = root.filter_keys(match_key, match_exact);
+                LeafProxyMap lpm = root.filter_keys(match_key, match_exact);
                 if(match_payload.size())
                         lpm = lpm.filter_payloads(match_payload);
                 if(match_or.size())
@@ -421,7 +421,7 @@ namespace {
         /*
           User interaction to add a new leaf to the root.
         */
-        void user_add(root &root)
+        void user_add(Root &root)
         {
                 string key;
                 string payload;
@@ -444,7 +444,7 @@ namespace {
                 ostringstream sfilename;
                 sfilename << "srd-temp-" << getenv("LOGNAME") << "-" << getpid() << "-";
                 sfilename << message_digest(key, true);
-                file fdata(sfilename.str(), "/tmp");
+                File fdata(sfilename.str(), "/tmp");
                 fdata.file_contents(data);
 
                 // Probably should fork and exec to avoid shell layer in system()
@@ -524,7 +524,7 @@ namespace {
                         return false;
                 }
 
-                root root(password, "");
+                Root root(password, "");
                 for(vector<pair<string, string> >::const_iterator it = incoming.begin();
                     it != incoming.end();
                     ++it)
@@ -611,7 +611,8 @@ namespace {
                         }
                 }
                 try {
-                        root(password, "", true); // Simply cause creation.  Will fail if root already exists.
+                        // Simply cause creation.  Will fail if root already exists.
+                        Root(password, "", true);
                 }
                 catch(runtime_error e) {
                         cerr << "Failed to create new database:  a database identified by this password already exists." << endl;
@@ -714,19 +715,19 @@ int main(int argc, char *argv[])
                 return 0;
         }
 
-        leaf_visitor *lv;
+        LeafVisitor *lv;
 
-        root root(passwd, "");
+        Root root(passwd, "");
         if(options.count("delete")) {
                 match_exact = true;
-                lv = new leaf_delete_visitor(root);
+                lv = new LeafDeleteVisitor(root);
         } else if(options.count("delete-all")) {
-                lv = new leaf_delete_visitor(root);
+                lv = new LeafDeleteVisitor(root);
         } else {
-                lv = new leaf_print_visitor(options.count("keys-only") > 0,
-                                             options.count("full-display") > 0,
-                                             (options.count("grep") > 0) ?
-                                             options["grep"].as<string>() : string());
+                lv = new LeafPrintVisitor(options.count("keys-only") > 0,
+                                          options.count("full-display") > 0,
+                                          (options.count("grep") > 0) ?
+                                          options["grep"].as<string>() : string());
         }
         do_match(root, match_key, match_data, match_or, match_exact, lv);
         delete lv;

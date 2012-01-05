@@ -39,13 +39,13 @@ namespace srd {
           delete the leaf object and null the pointer when we don't
           have it loaded.
         */
-        class leaf_proxy {
+        class LeafProxy {
 
         public:
-                leaf_proxy();   // needed by std::map::operator[]()
-                leaf_proxy(const std::string password,
-                           const std::string base_name = std::string(),
-                           const std::string dir_name = std::string());
+                LeafProxy();   // needed by std::map::operator[]()
+                LeafProxy(const std::string password,
+                          const std::string base_name = std::string(),
+                          const std::string dir_name = std::string());
                 /*
                   Deleting the leaf pointer will cause the leaf to
                   persist if appropriate.  It would be perverse to
@@ -59,10 +59,10 @@ namespace srd {
                   The copy constructor and assignment operators
                   support this by not copying the_leaf pointer.
                 */
-                ~leaf_proxy() { if(the_leaf) delete the_leaf; the_leaf = NULL; };
+                ~LeafProxy() { if(the_leaf) delete the_leaf; the_leaf = NULL; };
 
-                leaf_proxy(const leaf_proxy &);
-                leaf_proxy &operator=(const leaf_proxy &);
+                LeafProxy(const LeafProxy &);
+                LeafProxy &operator=(const LeafProxy &);
 
                 /*
                   All this const messiness is sad, but hard to fix today.
@@ -70,25 +70,25 @@ namespace srd {
                   means this isn't const.
 
                   We probably only need operator<() for the compare in
-                  leaf_proxy_map.  Provide them all to avoid some
-                  subtle bug some day.
+                  LeafProxyMap.  Provide them all to avoid some subtle
+                  bug some day.
                 */
-                bool operator<=(const leaf_proxy& rhs) const
+                bool operator<=(const LeafProxy& rhs) const
                 {
                         return key() <= rhs.key();
                 }
 
-                bool operator<(const leaf_proxy& rhs) const
+                bool operator<(const LeafProxy& rhs) const
                 {
                         return key() < rhs.key();
                 }
         
-                bool operator>=(const leaf_proxy& rhs) const
+                bool operator>=(const LeafProxy& rhs) const
                 { 
                         return key() >= rhs.key();
                 }
 
-                bool operator>(const leaf_proxy& rhs) const
+                bool operator>(const LeafProxy& rhs) const
                 {
                         return key() > rhs.key();
                 }
@@ -127,25 +127,25 @@ namespace srd {
                 // load all leaves for what is likely the most common type of search.
                 // This means that the root must persist the cached key value.
                 std::string cached_key;
-                mutable leaf *the_leaf;
+                mutable Leaf *the_leaf;
         };
 
 
         /*
-          A helper object for finding leaves (via leaf_proxy's) that
+          A helper object for finding leaves (via LeafProxy's) that
           match given criteria.
 
           We are relatively simple, supporting only conjunction
           against key and/or conjunction against payload.
          */
-        class leaf_matcher {
+        class LeafMatcher {
 
         public:
-                leaf_matcher(const srd::vector_string,
-                             const srd::vector_string,
-                             bool conj);
+                LeafMatcher(const srd::vector_string,
+                            const srd::vector_string,
+                            bool conj);
                 
-                bool operator()(leaf_proxy &);
+                bool operator()(LeafProxy &);
 
         private:
                 srd::vector_string key;

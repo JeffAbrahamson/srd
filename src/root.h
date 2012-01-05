@@ -49,24 +49,24 @@ namespace srd {
           If create is false, the root's underlying file must already exist.
           If it is true, the root file must not exist and is created.
         */
-        class root : public file, public compress, public crypt, public leaf_proxy_map {
+        class Root : public File, public Compress, public Crypt, public LeafProxyMap {
         public:
-                root(const std::string password,
+                Root(const std::string password,
                      const std::string path = std::string(),
                      const bool create = false);
-                virtual ~root();
+                virtual ~Root();
 
                 // A leaf (or leaf proxy) contains a key and payload.
                 // But the root node contains proxy keys, which serve to identify
                 // the actual leaf, in which we have stored the real key.
                 void add_leaf(const std::string key, const std::string payload);
-                leaf_proxy get_leaf(const std::string proxy_key);
+                LeafProxy get_leaf(const std::string proxy_key);
                 void set_leaf(const std::string proxy_key,
                               const std::string key,
                               const std::string payload);
                 void rm_leaf(const std::string proxy_key);
 
-                root change_password(const std::string new_password);
+                Root change_password(const std::string new_password);
                 void commit();
                 void validate();
 
@@ -77,7 +77,7 @@ namespace srd {
                         void serialize(Archive &ar, const unsigned int version);
 
                 // Used for serialization only.  A kludge.
-                class leaf_proxy_persist {
+                class LeafProxyPersist {
                 public:
                         std::string proxy_name;
                         std::string cached_key;
@@ -89,10 +89,10 @@ namespace srd {
                                         ar & proxy_name & cached_key;
                                 }
                 };
-                std::vector<leaf_proxy_persist> leaf_names;
+                std::vector<LeafProxyPersist> leaf_names;
 
-                void instantiate_leaf_proxy(leaf_proxy_persist proxy_info);
-                void populate_leaf_names(leaf_proxy_map::value_type val);
+                void instantiate_leaf_proxy(LeafProxyPersist proxy_info);
+                void populate_leaf_names(LeafProxyMap::value_type val);
                 
                 // Data members
 

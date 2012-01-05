@@ -40,7 +40,7 @@ using namespace std;
   So allow the object to be created, but flag it as invalid, which
   only a proper assignment or copy will cure.
 */
-leaf_proxy::leaf_proxy()
+LeafProxy::LeafProxy()
 {
         the_leaf = NULL;
         valid = false;          // check that we've followed on with an assignment or copy
@@ -53,7 +53,7 @@ leaf_proxy::leaf_proxy()
   The filename (base) and directory (dir) may be empty and will be
   created if needed.
 */
-leaf_proxy::leaf_proxy(const string pass,
+LeafProxy::LeafProxy(const string pass,
                        const string base,
                        const string dir)
         : password(pass), input_base_name(base), input_dir_name(dir)
@@ -71,7 +71,7 @@ leaf_proxy::leaf_proxy(const string pass,
   the information to be able to proxy it.  See the comment in
   operator=() about why.
 */
-leaf_proxy::leaf_proxy(const leaf_proxy &other)
+LeafProxy::LeafProxy(const LeafProxy &other)
         : password(other.password),
           input_base_name(other.input_base_name),
           input_dir_name(other.input_dir_name),
@@ -91,7 +91,7 @@ leaf_proxy::leaf_proxy(const leaf_proxy &other)
   pending, then one is canceled or has erase() called on it and the
   other gets destroyed and so writes itself.
 */
-leaf_proxy &leaf_proxy::operator=(const leaf_proxy &other)
+LeafProxy &LeafProxy::operator=(const LeafProxy &other)
 {
         password = other.password;
         if(other.the_leaf) {
@@ -121,7 +121,7 @@ leaf_proxy &leaf_proxy::operator=(const leaf_proxy &other)
   This is more efficient than subsequent calls to key(string) and
   payload(string), since it does a single commit on the leaf.
 */
-void leaf_proxy::set(const string in_key, const string in_payload)
+void LeafProxy::set(const string in_key, const string in_payload)
 {
         init_leaf();
         the_leaf->key(in_key);
@@ -139,7 +139,7 @@ void leaf_proxy::set(const string in_key, const string in_payload)
   If setting the payload at the same time, using set() is more efficient,
   since it only does one commit on the underlying leaf.
 */
-void leaf_proxy::key(const string in)
+void LeafProxy::key(const string in)
 {
         validate();
         init_leaf();
@@ -154,7 +154,7 @@ void leaf_proxy::key(const string in)
 /*
   Return the leaf's key.
 */
-string leaf_proxy::key() const
+string LeafProxy::key() const
 {
         validate();
         if(cached_key.empty()) {
@@ -173,7 +173,7 @@ string leaf_proxy::key() const
   If setting the key at the same time, using set() is more efficient,
   since it only does one commit on the underlying leaf.
 */
-void leaf_proxy::payload(const string in)
+void LeafProxy::payload(const string in)
 {
         validate();
         init_leaf();
@@ -187,7 +187,7 @@ void leaf_proxy::payload(const string in)
 /*
   Return the leaf's payload.
 */
-string leaf_proxy::payload() const
+string LeafProxy::payload() const
 {
         validate();
         init_leaf();
@@ -200,7 +200,7 @@ string leaf_proxy::payload() const
 /*
   Print the leaf's key.
 */
-void leaf_proxy::print_key() const
+void LeafProxy::print_key() const
 {
         validate();
         cout << "[" << key() << "]" << endl;
@@ -212,7 +212,7 @@ void leaf_proxy::print_key() const
   Print the leaf's payload.
   Optionally filter the output for lines matching pattern.
 */
-void leaf_proxy::print_payload(const string pattern) const
+void LeafProxy::print_payload(const string pattern) const
 {
         validate();
         string prefix = "  ";           // Someday make this an option maybe
@@ -231,7 +231,7 @@ void leaf_proxy::print_payload(const string pattern) const
   The only real reason for this is that the root will need a name
   by which to instantiate leaves.
 */
-string leaf_proxy::basename() const
+string LeafProxy::basename() const
 {
         validate();
         init_leaf();
@@ -244,7 +244,7 @@ string leaf_proxy::basename() const
   Commit any changes to the leaf.
   If we haven't loaded a leaf, just return without doing anything.
 */
-void leaf_proxy::commit()
+void LeafProxy::commit()
 {
         validate();
         if(the_leaf) {
@@ -263,12 +263,12 @@ void leaf_proxy::commit()
   the leaf, we'll get an error, but writing will succeed (and will
   recreate the leaf).
 */
-void leaf_proxy::erase()
+void LeafProxy::erase()
 {
         validate();
         if(!the_leaf)
                 // Initialize without loading
-                the_leaf = new leaf(password, input_base_name, input_dir_name, false);
+                the_leaf = new Leaf(password, input_base_name, input_dir_name, false);
         the_leaf->erase();
         the_leaf = NULL;
         validate();
@@ -281,11 +281,11 @@ void leaf_proxy::erase()
 /*
   Load the leaf if its file exists.  Otherwise just initialize the leaf.
 */
-void leaf_proxy::init_leaf() const
+void LeafProxy::init_leaf() const
 {
         validate();
         if(!the_leaf)
-                the_leaf = new leaf(password, input_base_name, input_dir_name);
+                the_leaf = new Leaf(password, input_base_name, input_dir_name);
         validate();
 }
 
@@ -293,7 +293,7 @@ void leaf_proxy::init_leaf() const
 /*
   Confirm that all is well.
 */
-void leaf_proxy::validate() const
+void LeafProxy::validate() const
 {
         if(!the_leaf)
                 return;
@@ -314,9 +314,9 @@ void leaf_proxy::validate() const
 ////////////////////////////////////////////////////////////////////////////////
 
 
-leaf_matcher::leaf_matcher(const vector_string in_key,
-                           const vector_string in_payload,
-                           bool conj)
+LeafMatcher::LeafMatcher(const vector_string in_key,
+                         const vector_string in_payload,
+                         bool conj)
         : key(in_key), payload(in_payload), conjunction(conj)
 {
 }
@@ -328,9 +328,9 @@ leaf_matcher::leaf_matcher(const vector_string in_key,
   mem_fun(&string::find)
   to work for me today.
 */
-class find_in_string {
+class FindInString {
 public:
-        find_in_string(string s) : str(s) {};
+        FindInString(string s) : str(s) {};
         bool operator()(string s) { return str.find(s) != string::npos; };
 private:
         string str;
@@ -339,20 +339,20 @@ private:
 
 
 /*
-  Return true if the leaf_proxy matches our criteria.
+  Return true if the LeafProxy matches our criteria.
 
   A successful match has all key patterns matching the key
   and/or (depending on whether conjunction is true/false)
   all payload patterns matching the payload.
 */
-bool leaf_matcher::operator()(leaf_proxy &proxy)
+bool LeafMatcher::operator()(LeafProxy &proxy)
 {
         if(key.size() == 0 && payload.size() == 0)
                 return true;
         string the_key = proxy.key();
         unsigned int key_match_count = count_if(key.begin(),
                                                 key.end(),
-                                                find_in_string(the_key));
+                                                FindInString(the_key));
         bool all_keys_found = (key_match_count == key.size());
         if(all_keys_found && conjunction == false)
                 return true;
@@ -362,7 +362,7 @@ bool leaf_matcher::operator()(leaf_proxy &proxy)
         string the_payload = proxy.payload();
         unsigned int payload_match_count = count_if(payload.begin(),
                                                     payload.end(),
-                                                    find_in_string(the_payload));
+                                                    FindInString(the_payload));
         bool all_payloads_found = (payload_match_count == payload.size());
         return all_payloads_found;
 }

@@ -38,21 +38,21 @@ namespace srd {
           (base_name) for the file.  Otherwise, these are determined following
           policy for the srd application.  
         */
-        class file {
+        class File {
                 
         public:
-                file();
-                file(const std::string base_name,
+                File();
+                File(const std::string base_name,
                      const std::string dir_name = std::string());
-                ~file() {};
+                ~File() {};
 
-                const std::string dirname();
+                std::string dirname();
                 void dirname(const std::string in) { m_dir_name = in; }
                 
-                const std::string basename();
+                std::string basename();
                 void basename(const std::string in) { m_base_name = in; }
                 
-                const std::string full_path() { return dirname() + "/" + basename(); }
+                std::string full_path() { return dirname() + "/" + basename(); }
                 
                 void file_contents(std::string);
                 std::string file_contents();

@@ -82,7 +82,7 @@ namespace {
         {
                 int ret = 0;
                 string password(message_digest(message, false));
-                srd::crypt cryptor;
+                Crypt cryptor;
                 string cipher_text = cryptor.encrypt(message, password);
                 string plain_text = cryptor.decrypt(cipher_text, password);
                 if(cipher_text == message) {

@@ -43,9 +43,8 @@ namespace {
         int test_root_singles();
         int test_root_change_password();
         int test_ordering();
-        bool confirm_ordering(root &root);
-        //void add_pair(root &root, pair<string, string> couple);
-        int confirm_once(root &root, pair<string, string> text);
+        bool confirm_ordering(Root &root);
+        int confirm_once(Root &root, pair<string, string> text);
 
 
         /*
@@ -60,7 +59,7 @@ namespace {
                 vector_string messages = test_text();
 
                 {
-                        root root(password, "");
+                        Root root(password, "");
 
                         for(vector_string::iterator it = messages.begin();
                             it != messages.end();
@@ -76,7 +75,7 @@ namespace {
         
                 cout << "Re-instantiating root." << endl;
                 {
-                        root root(password, "");
+                        Root root(password, "");
                         for(vector_string::iterator it = messages.begin();
                             it != messages.end();
                             it++) {
@@ -89,7 +88,7 @@ namespace {
                                 // So we are expecting (key, payload)
                                 vector_string payloads_to_find;
                                 payloads_to_find.push_back(*it);
-                                leaf_proxy_map results = root.filter_payloads(payloads_to_find);
+                                LeafProxyMap results = root.filter_payloads(payloads_to_find);
                                 if(0 == results.size())
                                         error_count++;
                         }
@@ -113,7 +112,7 @@ namespace {
                 string password = pseudo_random_string(15);
                 {
                         // Instantiate and add (key,value) pairs
-                        root root(password, "", true);
+                        Root root(password, "", true);
                         // Using a std::for_each and boost::bind here would add to a
                         // temporary object, so iterate by hand.  Is there a better way?
                         for(map<string, string>::const_iterator it = text.begin();
@@ -137,12 +136,12 @@ namespace {
           Check that each (key, value) pair in text appears precisely once in root.
           Return the number of errors found, so 0 assuming all is well.
         */
-        int confirm_once(root &root, pair<string, string> text)
+        int confirm_once(Root &root, pair<string, string> text)
         {
                 int ret = 0;
                 vector_string key_pattern;
                 key_pattern.push_back(text.first);
-                leaf_proxy_map key_results = root.filter_keys(key_pattern, false);
+                LeafProxyMap key_results = root.filter_keys(key_pattern, false);
                 if(key_results.size() != 1) {
                         cout << "Key \"" << text.first << ":  "
                              << "Found " << key_results.size() << " keys expected 1."
@@ -152,7 +151,7 @@ namespace {
 
                 vector_string payload_pattern;
                 payload_pattern.push_back(text.second);
-                leaf_proxy_map payload_results = root.filter_payloads(payload_pattern);
+                LeafProxyMap payload_results = root.filter_payloads(payload_pattern);
                 if(payload_results.size() != 1) {
                         cout << "Payload \"" << text.second << "\":  "
                              << "Found " << payload_results.size() << " leaves, expected 1."
@@ -186,7 +185,7 @@ namespace {
                 string password = pseudo_random_string(15);
                 {
                         cout << "Creating " << N << " leaves..." << endl;
-                        root root(password, "", true);
+                        Root root(password, "", true);
                         time_t start_time = time(0);
                         assert(start_time > 0);
                         for(int i = 0; i < N; i++) {
@@ -204,7 +203,7 @@ namespace {
                 }
                 {
                         cout << "Verifying " << N << " leaves." << endl;
-                        root root(password, "");
+                        Root root(password, "");
                         time_t start_time = time(0);
                         assert(start_time > 0);
                         confirm_ordering(root);
@@ -225,13 +224,13 @@ namespace {
           Return true if leaves are ordered.
           Return false if not.
         */
-        bool confirm_ordering(root &root)
+        bool confirm_ordering(Root &root)
         {
                 int errors = 0;
                 string last_key;        // any key is >= ""
-                leaf_proxy_map::LPM_Set leaves = root.as_set();
+                LeafProxyMap::LPM_Set leaves = root.as_set();
                 assert(leaves.size() == root.size());
-                for(leaf_proxy_map::LPM_Set::iterator it = leaves.begin();
+                for(LeafProxyMap::LPM_Set::iterator it = leaves.begin();
                     it != leaves.end();
                     it++) {
                         // std::set iterators are const, since we can't modify
@@ -260,7 +259,7 @@ namespace {
                 string password2 = pseudo_random_string(20);
 
                 {
-                        root root(password, "", true);
+                        Root root(password, "", true);
 
                         for(vector_string::iterator it = messages.begin();
                             it != messages.end();
@@ -276,8 +275,8 @@ namespace {
 
                 cout << "Re-instantiating root and changing password." << endl;
                 {
-                        root old_root(password, "");
-                        root new_root = old_root.change_password(password2);
+                        Root old_root(password, "");
+                        Root new_root = old_root.change_password(password2);
 
                         cout << "Checking the new root." << endl;
                         for(vector_string::iterator it = messages.begin();
@@ -292,7 +291,7 @@ namespace {
                                 // So we are expecting (key, payload)
                                 vector_string payloads_to_find;
                                 payloads_to_find.push_back(*it);
-                                leaf_proxy_map results = new_root.filter_payloads(payloads_to_find);
+                                LeafProxyMap results = new_root.filter_payloads(payloads_to_find);
                                 if(0 == results.size())
                                         error_count++;
                         }
@@ -311,7 +310,7 @@ int main(int argc, char *argv[])
         mode(Testing, true);
         string password = pseudo_random_string(20);
 
-        { root(password, "", true); } // Create this root
+        { Root(password, "", true); } // Create this root
         int err_count = test_root_basic(password);
         err_count += test_root_basic(password);
         err_count += test_root_singles();

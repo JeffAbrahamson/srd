@@ -44,7 +44,7 @@ using namespace std;
 /*
   Create a file if we know something about what to call it.
 */
-file::file(const string base_name,
+File::File(const string base_name,
            const string dir_name)
         : m_dir_name(dir_name), m_base_name(base_name), m_dir_verified(false)
 {
@@ -55,7 +55,7 @@ file::file(const string base_name,
 /*
   Create a file if we don't know anything about what to call it.
 */
-file::file()
+File::File()
         : m_dir_verified(false)
 {
 }
@@ -66,7 +66,7 @@ file::file()
   Return the name of the directory in which the file lives or will live.
   Compute the name if needed.  Create the directory if needed.
 */
-const string file::dirname()
+string File::dirname()
 {
         if("" == m_dir_name) {
                 // Test mode only affects what directory we generate, if asked.
@@ -92,7 +92,7 @@ const string file::dirname()
   Return the name by which we will know the file.
   Compute the name if needed.
 */
-const string file::basename()
+string File::basename()
 {
         //if("" == m_base_name) {
         if(m_base_name == "") {
@@ -110,7 +110,7 @@ const string file::basename()
   Set the contents of the file.
   The file need not yet exist.
 */
-void file::file_contents(string data)
+void File::file_contents(string data)
 {
         ofstream fs(full_path().c_str(), ios::out | ios::binary);
         if(!fs.is_open()) {
@@ -129,7 +129,7 @@ void file::file_contents(string data)
   Return the contents of the file.
   It is an error for the file not to exist.
 */
-string file::file_contents()
+string File::file_contents()
 {
         ifstream fs(full_path().c_str(), ios::in | ios::binary | ios::ate);
         if(!fs.is_open()) {
@@ -157,7 +157,7 @@ string file::file_contents()
   except when we need the file open, calling rm() and then rewriting
   the file will leave a file lying about.
 */
-void file::rm()
+void File::rm()
 {
         int rm_ret = unlink(full_path().c_str());
         if(rm_ret) {
@@ -171,7 +171,7 @@ void file::rm()
 /*
   Return true if the file already exists, false otherwise.
 */
-bool file::exists()
+bool File::exists()
 {
         struct stat buf;
         if(stat(full_path().c_str(), &buf)) {
