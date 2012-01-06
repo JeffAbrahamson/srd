@@ -23,6 +23,7 @@
 #define __FILE_H__ 1
 
 
+#include <boost/interprocess/sync/file_lock.hpp>
 #include <string>
 
 
@@ -41,10 +42,9 @@ namespace srd {
         class File {
                 
         public:
-                File();
-                File(const std::string base_name,
+                File(const std::string base_name = std::string(),
                      const std::string dir_name = std::string());
-                ~File() {};
+                ~File() { if(m_lock) delete m_lock; };
 
                 std::string dirname();
                 void dirname(const std::string in) { m_dir_name = in; }
@@ -57,22 +57,34 @@ namespace srd {
                 void file_contents(std::string);
                 std::string file_contents();
 
+                time_t modtime(const bool silent = true);
+                bool underlying_is_modified();
+                void lock();
+                void unlock();
+                
                 void rm();
                 bool exists();
 
                 
         protected:
 
+                time_t m_time(const bool silent = true);
                 
 
         private:
 
                 std::string m_dir_name;
                 std::string m_base_name;
+                
                 // Once true, we no longer check to see if the directory exists.
                 // If false, we'll check and create if needed.
                 bool m_dir_verified;
-                
+
+                // When first we read the file, check it's mod time.
+                // If that changes. we'll know to reread.
+                time_t m_modtime;
+
+                boost::interprocess::file_lock *m_lock;
         };
 }
 

@@ -19,11 +19,13 @@
 
 
 #include <algorithm>
+#include <boost/interprocess/sync/file_lock.hpp>
 #include <errno.h>
 #include <iostream>
 #include <stdexcept>
 #include <string>
 #include <string.h>
+#include <unistd.h>
 #include <vector>
 
 #include "crypt.h"
@@ -40,11 +42,12 @@ using namespace std;
 
 namespace {
 
-        int test_exists(const char *dir, const char *base, bool expect_exists);
+        int test_exists(const string dir, const string base, bool expect_exists);
         int test_file(string message);
+        int test_modified();
+        
 
-
-        int test_exists(const char *dir, const char *base, bool expect_exists)
+        int test_exists(const string dir, const string base, bool expect_exists)
         {
                 File my_file(base, dir);
                 try {
@@ -94,6 +97,34 @@ namespace {
         
                 return ret;
         }
+
+
+        /*
+          Check that we can tell if a file has been modified.
+        */
+        int test_modified()
+        {
+                int err_count = 0;
+                File f1;
+                File f2(f1.basename(), f1.dirname());
+
+                f1.file_contents("This is a test.");
+
+                string f2_contents = f2.file_contents();
+                err_count += (f2.underlying_is_modified() ? 1 : 0); // Nope, hasn't been
+                if(err_count)
+                        cout << "Unmodified file looks modified in test_modified()." << endl;
+
+                sleep(2);  // stat doesn't offer sub-second mod time everywhere
+                f1.file_contents("This is a test.");
+                int err2 = (f2.underlying_is_modified() ? 0 : 1); // Now it has been modified
+                err_count += err2;
+                if(err2)
+                        cout << "Modified file looks unmodified in test_modified()." << endl;
+
+                //f1.rm();
+                return err_count;
+        }
 }
 
 
@@ -106,14 +137,20 @@ int main(int argc, char *argv[])
         mode(Testing, true);
         
         int err_count = 0;
-        err_count += test_exists("/", "tmp", true);
-        err_count += test_exists("/", "TMP", false);
+        File f_tmp("", "/tmp/");
+        f_tmp.file_contents("");
+        err_count += test_exists(f_tmp.dirname(), f_tmp.basename(), true);
+        f_tmp.rm();
+        err_count += test_exists(f_tmp.dirname(), f_tmp.basename(), false);
+
         //  /bin/echo always exists on linux systems, right?
         err_count += test_exists("/bin", "echo", true);
         err_count += test_exists("/bin", "echo-not", false);        
 
         vector_string messages = test_text();
         err_count += count_if(messages.begin(), messages.end(), test_file);
+
+        err_count += test_modified();
 
         if(err_count)
                 cout << "Errors (" << err_count << ") in test!!" << endl;

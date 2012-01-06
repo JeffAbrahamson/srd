@@ -18,7 +18,9 @@
 */
 
 
-
+#include <assert.h>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/interprocess/sync/file_lock.hpp>
 #include <errno.h>
 #include <fstream>
 #include <iostream>
@@ -37,6 +39,8 @@
 #include "mode.h"
 
 
+using namespace boost::interprocess;
+using namespace boost::posix_time;
 using namespace srd;
 using namespace std;
 
@@ -46,18 +50,20 @@ using namespace std;
 */
 File::File(const string base_name,
            const string dir_name)
-        : m_dir_name(dir_name), m_base_name(base_name), m_dir_verified(false)
+        : m_dir_name(dir_name), m_base_name(base_name), m_dir_verified(false), m_lock(0)
 {
-}
-
-
-
-/*
-  Create a file if we don't know anything about what to call it.
-*/
-File::File()
-        : m_dir_verified(false)
-{
+        if(exists())
+                // This will likely fail for all but regular files.
+                // It will also fail if we can't write the file.
+                try {
+                        m_lock = new file_lock(full_path().c_str());
+                }
+                catch(interprocess_exception &e) {
+                        // It should be ok run against a read-only filesystem
+                        const char *what = e.what();
+                        if(strcmp(what, "Permission denied") == 0) {}
+                        else(throw e);
+                }
 }
 
 
@@ -112,6 +118,7 @@ string File::basename()
 */
 void File::file_contents(string data)
 {
+        // #### Do safe write with mv (#27) ####
         ofstream fs(full_path().c_str(), ios::out | ios::binary);
         if(!fs.is_open()) {
                 char *err_str = strerror(errno);
@@ -131,6 +138,11 @@ void File::file_contents(string data)
 */
 string File::file_contents()
 {
+        // There is a race condition here, someone could modify the
+        // file between our stat and our read.  The result would be a
+        // reread later (if we ever need it).
+        m_modtime = modtime(false);
+
         ifstream fs(full_path().c_str(), ios::in | ios::binary | ios::ate);
         if(!fs.is_open()) {
                 ostringstream oss(string("Failed to open file \""));
@@ -151,6 +163,75 @@ string File::file_contents()
 
 
 /*
+  Get the modification time of the file.
+  If silent is false, complain if the file looks odd,
+  notably if it is not a regular file.
+*/
+time_t File::modtime(const bool silent)
+{
+        struct stat stat_buf;
+        int ret = stat(full_path().c_str(), &stat_buf);
+        if(ret) {
+                cerr << "Failed to stat " << full_path() << ":" << endl;
+                cerr << "  " << strerror(errno) << endl;
+                throw(runtime_error("File::file_contents() failed to stat file"));
+        }
+        if(S_ISLNK(stat_buf.st_mode))
+                // At issue is that the view from different hosts
+                // could be different, depending on whether the link
+                // always exists and whether it points to the same
+                // place all the time.  If the underlying directory is
+                // a symlink, all should be well.
+                cout << full_path() << " is a symbolic link, odd things could happen." << endl;
+        else if(!S_ISREG(stat_buf.st_mode))
+                cout << full_path() << " is not a regular file, odd things could happen." << endl;
+        return stat_buf.st_mtime;
+}
+
+
+
+/*
+  Return true if file is modified since last we read it, false
+  otherwise.
+*/
+bool File::underlying_is_modified()
+{
+        time_t mt = modtime();
+        if(mt > m_modtime)
+                return true;
+        return false;
+}
+
+
+/*
+  Lock the file.
+*/
+void File::lock()
+{
+        if(!m_lock)
+                m_lock = new file_lock(full_path().c_str());
+        ptime timeout = from_time_t(time(0) + 1); // one second in the future
+        while(!m_lock->timed_lock(timeout)) {
+                cout << "Waiting on file lock..." << endl;
+                timeout = from_time_t(time(0) + 1);
+        }
+}
+        
+
+
+/*
+  Unlock the file.
+*/
+void File::unlock()
+{
+        if(!m_lock)
+                m_lock = new file_lock(full_path().c_str());
+        m_lock->unlock();
+}
+        
+
+
+/*
   Remove the underlying file.
   It is not an error later to rewrite the file, and the object remains
   valid after calling rm().  Since we don't maintain a file descriptor
@@ -159,6 +240,10 @@ string File::file_contents()
 */
 void File::rm()
 {
+        if(m_lock) {
+                delete m_lock;
+                m_lock = 0;
+        }
         int rm_ret = unlink(full_path().c_str());
         if(rm_ret) {
                 cerr << "  Error removing file:  " << strerror(errno) << endl;
