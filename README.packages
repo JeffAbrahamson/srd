@@ -7,7 +7,7 @@ installed, even though you've installed g++.
   libcrypto++-dev
   libcrypto++8
   libboost1.40-dev
-  libboost-program-options1.40-dev
+  libboost-program-options-dev
   libboost-program-options1.40.0
-  libboost-serialization1.40-dev
+  libboost-serialization-dev
   libboost-serialization1.40.0
