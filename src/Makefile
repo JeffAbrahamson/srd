@@ -64,6 +64,14 @@ srd-from-so :
 #
 ############################################################
 
+python.o : python.cpp
+	$(GCC) -c -fpic -o $@ -I/usr/include/python2.6 $<
+
+libpysrd.so : $(OBJECT) python.o
+	$(GCC) -shared -Wl,-soname,libpysrd.so -o pysrd.so	\
+		python.o					\
+		$(OBJECT) -lpython2.6 -lboost_python $(LIBS)
+
 TESTS = 			\
 	compress_test		\
 	crypt_test 		\
