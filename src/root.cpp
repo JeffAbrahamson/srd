@@ -75,9 +75,28 @@ Root::Root(const string pass, const string dir_name, const bool create)
                 validate();
                 return;
         }
-        // Now load the contents.  This is the only place we consider
-        // loading the root node's contents.
+        load();
+        validate();
+}
+
+
+
+/*
+  Load the root's contents.
+*/
+void Root::load()
+{
+        if(modified) {
+                cerr << "Uncommitted change to root and external change to root file.  "
+                        "Data will be lost." << endl;
+                throw(runtime_error("Refusing to modify externally modified root."));
+        }
+        if(mode(Verbose))
+                cout << "Loading root." << endl;
+        clear();                // Drop existing LeafProxy's, if any
+        lock();
         string plain_text = decrypt(file_contents(), password);
+        unlock();
         string big_text = decompression(plain_text);
         istringstream big_text_stream(big_text);
         boost::archive::text_iarchive ia(big_text_stream);
@@ -142,6 +161,8 @@ Root::~Root()
 void Root::add_leaf(const string key, const string payload, const bool do_commit)
 {
         validate();
+        if(exists() && underlying_is_modified())
+                load();
         LeafProxy proxy(password, "", dirname());
         proxy.set(key, payload);
         (*this)[proxy.basename()] = proxy;
@@ -183,6 +204,8 @@ void Root::set_leaf(const string proxy_key,
                     const string payload)
 {
         validate();
+        if(exists() && underlying_is_modified())
+                load();
         iterator it = find(proxy_key);
         if(end() == it)
                 throw(runtime_error("Key not found."));
@@ -200,6 +223,8 @@ void Root::set_leaf(const string proxy_key,
 void Root::rm_leaf(const string proxy_key)
 {
         validate();
+        if(exists() && underlying_is_modified())
+                load();
         iterator it = find(proxy_key);
         if(end() == it)
                 throw(runtime_error("Key not found."));
@@ -227,6 +252,8 @@ void Root::rm_leaf(const string proxy_key)
 Root Root::change_password(const std::string new_password)
 {
         validate();
+        if(exists() && underlying_is_modified())
+                load();
         Root new_root(new_password, dirname(), true);
         for(const_iterator it = begin();
             it != end();

@@ -72,6 +72,8 @@ namespace srd {
                 void validate();
 
         private:
+
+                void load();
                 
                 friend class boost::serialization::access;
                 template<class Archive>
