@@ -115,19 +115,39 @@ string File::basename()
 /*
   Set the contents of the file.
   The file need not yet exist.
+
+  Only this function, when calling itself recursively, should set
+  lock = false.  Otherwise, just set data.
+
 */
-void File::file_contents(string data)
+void File::file_contents(string data, bool lock)
 {
-        // #### Do safe write with mv (#27) ####
-        ofstream fs(full_path().c_str(), ios::out | ios::binary);
+        string filename = full_path();
+        string filename_new = filename + ".new";
+        File lock_file(basename() + ".lck", dirname());
+
+        if(lock) {
+                if(!lock_file.exists())
+                        lock_file.file_contents("", false);
+                lock_file.lock();
+        }
+        
+        ofstream fs(filename_new.c_str(), ios::out | ios::binary);
         if(!fs.is_open()) {
                 char *err_str = strerror(errno);
                 ostringstream oss(string("Failed to open file \""));
-                oss << full_path() << "\" for writing: " << err_str;
+                oss << filename_new << "\" for writing: " << err_str;
                 throw(runtime_error(oss.str()));
         }
         fs.write(data.data(), data.size());
         fs.close();
+
+        rename(filename_new.c_str(), filename.c_str()); // guaranteed atomic
+
+        if(lock) {
+                lock_file.unlock();
+                lock_file.rm();
+        }
 }
 
 
@@ -210,7 +230,7 @@ void File::lock()
 {
         if(!m_lock)
                 m_lock = new file_lock(full_path().c_str());
-        ptime timeout = from_time_t(time(0) + 1); // one second in the future
+        ptime timeout = from_time_t(time(0) + 2); // one second in the future
         while(!m_lock->timed_lock(timeout)) {
                 cout << "Waiting on file lock..." << endl;
                 timeout = from_time_t(time(0) + 1);

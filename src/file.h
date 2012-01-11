@@ -54,7 +54,7 @@ namespace srd {
                 
                 std::string full_path() { return dirname() + "/" + basename(); }
                 
-                void file_contents(std::string);
+                void file_contents(std::string data, bool lock = true);
                 std::string file_contents();
 
                 time_t modtime(const bool silent = true);
