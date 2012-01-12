@@ -67,9 +67,9 @@ fi
 
 ./srd -T $pass -X at
 #./srd -T $pass -m '' -f > test.d/output/animals-empty
-#results=$(./srd -T $pass -m '' -f)
-expected=$(cat test.d/output/animals-empty)
-if [ "" != "$expected" ]; then
+results=$(./srd -T $pass -m '' -f)
+#expected=$(cat test.d/output/animals-empty)
+if [ "$results" != "" ]; then
     echo C/at/ removal test failed.
     exit 1;
 fi
