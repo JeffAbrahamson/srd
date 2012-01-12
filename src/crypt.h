@@ -44,10 +44,10 @@ namespace srd {
         */
         class Crypt {
         public:
-                std::string encrypt(const std::string plain_message,
-                                    const std::string password);
-                std::string decrypt(const std::string cipher_message,
-                                    const std::string password);
+                std::string encrypt(const std::string &plain_message,
+                                    const std::string &password);
+                std::string decrypt(const std::string &cipher_message,
+                                    const std::string &password);
         };
 }
 

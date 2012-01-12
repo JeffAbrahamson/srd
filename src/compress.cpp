@@ -41,7 +41,7 @@ using namespace std;
 /*
   Compress a string.
 */
-string Compress::compression(const string in_buf)
+string Compress::compression(const string &in_buf)
 {
         // As documented at http://www.bzip.org/1.0.3/html/util-fns.html
         unsigned int output_max_size = static_cast<double>(in_buf.size()) * 1.06 + 600.5;
@@ -99,7 +99,7 @@ string Compress::compression(const string in_buf)
 /*
   Decompress a string.
 */
-string Compress::decompression(const string in_buf,
+string Compress::decompression(const string &in_buf,
                                      unsigned int uncompressed_size_hint)
 {
         if(0 == uncompressed_size_hint)

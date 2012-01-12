@@ -31,8 +31,8 @@ namespace srd {
         */
         class Compress {
         public:
-                std::string compression(const std::string);
-                std::string decompression(const std::string, unsigned int = 0);
+                std::string compression(const std::string &);
+                std::string decompression(const std::string &, unsigned int = 0);
                 
         };
 }
