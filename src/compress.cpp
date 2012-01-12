@@ -41,7 +41,7 @@ using namespace std;
 /*
   Compress a string.
 */
-string Compress::compression(const string &in_buf)
+string srd::compress(const string &in_buf)
 {
         // As documented at http://www.bzip.org/1.0.3/html/util-fns.html
         unsigned int output_max_size = static_cast<double>(in_buf.size()) * 1.06 + 600.5;
@@ -99,8 +99,8 @@ string Compress::compression(const string &in_buf)
 /*
   Decompress a string.
 */
-string Compress::decompression(const string &in_buf,
-                                     unsigned int uncompressed_size_hint)
+string srd::decompress(const string &in_buf,
+                  unsigned int uncompressed_size_hint)
 {
         if(0 == uncompressed_size_hint)
                 uncompressed_size_hint = 5 * in_buf.size();
@@ -140,7 +140,7 @@ string Compress::decompression(const string &in_buf,
         case BZ_OUTBUFF_FULL:
                 cout << "The size of the compressed data exceeds *destLen, trying *= 2."
                      << endl;
-                return Compress::decompression(in_buf, 2 * uncompressed_size_hint);
+                return decompress(in_buf, 2 * uncompressed_size_hint);
         case BZ_DATA_ERROR:
                 the_error = "Data integrity error was detected in the compressed data.";
                 cerr << the_error << endl;

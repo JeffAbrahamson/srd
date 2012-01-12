@@ -42,13 +42,10 @@ namespace srd {
         /*
           This is a simple mixin class that provides encryption and decryption.
         */
-        class Crypt {
-        public:
-                std::string encrypt(const std::string &plain_message,
-                                    const std::string &password);
-                std::string decrypt(const std::string &cipher_message,
-                                    const std::string &password);
-        };
+        std::string encrypt(const std::string &plain_message,
+                            const std::string &password);
+        std::string decrypt(const std::string &cipher_message,
+                            const std::string &password);
 }
 
 #endif  /* __CRYPT_H__*/

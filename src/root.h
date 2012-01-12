@@ -49,7 +49,7 @@ namespace srd {
           If create is false, the root's underlying file must already exist.
           If it is true, the root file must not exist and is created.
         */
-        class Root : public File, public Compress, public Crypt, public LeafProxyMap {
+        class Root : public File, public LeafProxyMap {
         public:
                 Root(const std::string password,
                      const std::string path = std::string(),

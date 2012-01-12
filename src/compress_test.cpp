@@ -44,15 +44,14 @@ namespace {
         int test_compress(const string message)
         {
                 int ret = 0;
-                Compress compressor;
-                string compressed = compressor.compression(message);
-                string decompressed = compressor.decompression(compressed);
+                string compressed = compress(message);
+                string decompressed = decompress(compressed);
                 if(compressed == message) {
                         cout << "Compress did not change the message!" << endl;
                         ret++;
                 }
                 if(decompressed != message) {
-                        cout << "Decompression failed to restore the message!" << endl;
+                        cout << "decompress() failed to restore the message!" << endl;
                         ret++;
                 }                
                 if(message.size() > 100 && compressed.size() > message.size()) {

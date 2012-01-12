@@ -26,15 +26,9 @@
 
 namespace srd {
 
-        /*
-          This is a simple mixin class that provides compression and decompression.
-        */
-        class Compress {
-        public:
-                std::string compression(const std::string &);
-                std::string decompression(const std::string &, unsigned int = 0);
-                
-        };
+        std::string compress(const std::string &);
+        std::string decompress(const std::string &, unsigned int = 0);
+
 }
 
 #endif  /* __COMPRESS_H__*/

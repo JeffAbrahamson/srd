@@ -47,7 +47,7 @@ namespace srd {
           On the other hand, it's not the human-readable pass phrase
           at least.
         */
-        class Leaf : public File, public Compress, public Crypt {
+        class Leaf : public File {
         public:
                 Leaf() { assert(0); };  // seemingly needed by serialize()
                 Leaf(const std::string password,

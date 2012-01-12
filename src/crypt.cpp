@@ -192,7 +192,7 @@ namespace {
 /*
   Encrypt and return cipher text.
 */
-string Crypt::encrypt(const string &plain_text, const string &password)
+string srd::encrypt(const string &plain_text, const string &password)
 {
         try {
                 crypto_key_type key;
@@ -230,7 +230,7 @@ string Crypt::encrypt(const string &plain_text, const string &password)
 /*
   Decrypt and return plain text.
 */
-string Crypt::decrypt(const string &cipher_text, const string &password)
+string srd::decrypt(const string &cipher_text, const string &password)
 {
         try {
                 crypto_key_type key;

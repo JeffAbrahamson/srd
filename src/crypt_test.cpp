@@ -82,9 +82,8 @@ namespace {
         {
                 int ret = 0;
                 string password(message_digest(message, false));
-                Crypt cryptor;
-                string cipher_text = cryptor.encrypt(message, password);
-                string plain_text = cryptor.decrypt(cipher_text, password);
+                string cipher_text = encrypt(message, password);
+                string plain_text = decrypt(cipher_text, password);
                 if(cipher_text == message) {
                         cout << "Encryption did not change message!" << endl;
                         ret++;

@@ -26,6 +26,7 @@
 #include <string>
 #include <sstream>
 
+#include "compress.h"
 #include "crypt.h"
 #include "leaf.h"
 #include "mode.h"
@@ -67,7 +68,7 @@ Leaf::Leaf(const string pass,
         if(mode(Verbose))
                 cout << "Loading leaf." << endl;
         string plain_text = decrypt(file_contents(), password);
-        string big_text = decompression(plain_text);
+        string big_text = decompress(plain_text);
         istringstream big_text_stream(big_text);
         boost::archive::text_iarchive ia(big_text_stream);
         ia & *this;
@@ -100,7 +101,7 @@ void Leaf::commit()
         boost::archive::text_oarchive oa(big_text_stream);
         oa & *this;
         string big_text(big_text_stream.str());
-        string plain_text = compression(big_text);
+        string plain_text = compress(big_text);
         string cipher_text = encrypt(plain_text, password);
         file_contents(cipher_text);
         modified = false;
