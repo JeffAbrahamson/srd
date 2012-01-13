@@ -4,9 +4,11 @@ SRC = 			\
 	compress.cpp	\
 	crypt.cpp	\
 	file.cpp	\
+	file_util.cpp	\
 	leaf.cpp	\
 	leaf_proxy.cpp	\
 	leaf_proxy_map.cpp \
+	lock.cpp	\
 	mode.cpp	\
 	root.cpp	\
 
@@ -14,9 +16,11 @@ HEADER =		\
 	compress.h  	\
 	crypt.h  	\
 	file.h		\
+	file_util.h	\
 	leaf.h  	\
 	leaf_proxy.h	\
 	leaf_proxy_map.h \
+	lock.h		\
 	mode.h		\
 	root.h  	\
 	types.h		\
