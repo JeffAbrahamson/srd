@@ -1,4 +1,6 @@
 GCC = g++ -ggdb3 -Wall
+#GCC = g++ -ggdb3 -Wall -std=c++0x
+# c++0x gives us rvalue references, most notably
 
 SRC = 			\
 	compress.cpp	\
@@ -80,8 +82,10 @@ TESTS = 			\
 	compress_test		\
 	crypt_test 		\
 	file_test 		\
+	file_util_test 		\
 	leaf_test 		\
 	leaf_proxy_test 	\
+	lock_test		\
 	mode_test 		\
 	root_test 		\
 

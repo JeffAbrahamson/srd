@@ -38,10 +38,11 @@ using namespace std;
 
 /*
   Create an empty file.
+  It is an error if the file already exists.
 */
-void file_create(const std::string fn)
+void srd::file_create(const string &fn)
 {
-        int fd = creat(fn.c_str(), O_RDONLY);
+        int fd = creat(fn.c_str(), 0600);
         if(-1 == fd)
                 throw(runtime_error(string("Failed to create ") + fn + " :  " + strerror(errno)));
         close(fd);
@@ -53,7 +54,7 @@ void file_create(const std::string fn)
   Return true if file exists, false otherwise.
   Throw a hopefully descriptive error on error.
 */
-bool file_exists(const string fn)
+bool srd::file_exists(const string &fn)
 {
         struct stat buf;
         if(stat(fn.c_str(), &buf)) {
@@ -69,7 +70,7 @@ bool file_exists(const string fn)
 /*
   Remove a file.
 */
-void file_rm(const string fn)
+void srd::file_rm(const string &fn)
 {
         int rm_ret = unlink(fn.c_str());
         if(rm_ret) {

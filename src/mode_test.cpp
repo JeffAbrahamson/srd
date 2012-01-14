@@ -23,7 +23,7 @@
 #include "mode.h"
 
 
-//using namespace srd;
+using namespace srd;
 using namespace std;
 
 

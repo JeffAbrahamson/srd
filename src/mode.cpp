@@ -24,19 +24,22 @@
 #include "mode.h"
 
 
+using namespace srd;
 using namespace std;
 
 
-static map<Mode, bool> modes;
+namespace srd {
+        static map<Mode, bool> modes;
+}
 
 
-void mode(const Mode m, const bool new_state)
+void srd::mode(const Mode m, const bool new_state)
 {
         modes[m] = new_state;
 }
 
 
-const bool mode(const Mode m)
+const bool srd::mode(const Mode m)
 {
         map<Mode, bool>::const_iterator it = modes.find(m);
         if(it == modes.end()) {

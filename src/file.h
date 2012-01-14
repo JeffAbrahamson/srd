@@ -23,7 +23,6 @@
 #define __FILE_H__ 1
 
 
-#include <boost/interprocess/sync/file_lock.hpp>
 #include <string>
 
 
@@ -44,26 +43,26 @@ namespace srd {
         public:
                 File(const std::string base_name = std::string(),
                      const std::string dir_name = std::string());
-                ~File() { if(m_lock) delete m_lock; };
+                ~File() {};
 
                 std::string dirname();
-                void dirname(const std::string in) { m_dir_name = in; }
+                void dirname(const std::string &in) { m_dir_name = in; }
                 
                 std::string basename();
-                void basename(const std::string in) { m_base_name = in; }
+                void basename(const std::string &in) { m_base_name = in; }
                 
                 std::string full_path() { return dirname() + "/" + basename(); }
                 
-                void file_contents(std::string data, bool lock = true);
+                void file_contents(std::string &data, bool lock = true);
                 std::string file_contents();
 
                 time_t modtime(const bool silent = true);
                 bool underlying_is_modified();
-                void lock();
-                void unlock();
                 
                 void rm();
-                bool exists();
+                bool exists();  /* Can't be const, because asking for the name might
+
+generate a name. */
 
                 
         protected:
@@ -73,6 +72,8 @@ namespace srd {
 
         private:
 
+                void file_contents_sub(std::string &data);
+                
                 std::string m_dir_name;
                 std::string m_base_name;
                 
@@ -83,8 +84,6 @@ namespace srd {
                 // When first we read the file, check it's mod time.
                 // If that changes. we'll know to reread.
                 time_t m_modtime;
-
-                boost::interprocess::file_lock *m_lock;
         };
 }
 

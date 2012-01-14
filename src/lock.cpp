@@ -69,8 +69,14 @@ Lock::Lock(const string &filename)
 
 Lock::~Lock()
 {
-        if(m_lock)
+        if(m_lock) {
+                 // With delete immediately after unlock(), is
+                 // unlock() necessary?  It's not entirely clear from
+                 // the code just now, so leave it here for the
+                 // moment.
                 m_lock->unlock();
+                delete m_lock;
+        }
         if(m_must_remove)
                 file_rm(m_filename);
 }

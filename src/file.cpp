@@ -36,11 +36,11 @@
 
 #include "crypt.h"
 #include "file.h"
+#include "file_util.h"
+#include "lock.h"
 #include "mode.h"
 
 
-using namespace boost::interprocess;
-using namespace boost::posix_time;
 using namespace srd;
 using namespace std;
 
@@ -50,20 +50,8 @@ using namespace std;
 */
 File::File(const string base_name,
            const string dir_name)
-        : m_dir_name(dir_name), m_base_name(base_name), m_dir_verified(false), m_lock(0)
+        : m_dir_name(dir_name), m_base_name(base_name), m_dir_verified(false)
 {
-        if(exists())
-                // This will likely fail for all but regular files.
-                // It will also fail if we can't write the file.
-                try {
-                        m_lock = new file_lock(full_path().c_str());
-                }
-                catch(interprocess_exception &e) {
-                        // It should be ok run against a read-only filesystem
-                        const char *what = e.what();
-                        if(strcmp(what, "Permission denied") == 0) {}
-                        else(throw e);
-                }
 }
 
 
@@ -120,18 +108,28 @@ string File::basename()
   lock = false.  Otherwise, just set data.
 
 */
-void File::file_contents(string data, bool lock)
+void File::file_contents(string &data, bool lock)
+{
+        string lock_filename = full_path() + ".lck";
+        if(lock) {
+                Lock L(lock_filename);
+                file_contents_sub(data);
+        } else
+                file_contents_sub(data);
+}
+
+
+
+/*
+  Do the guts of setting the contents of a file.
+  Abstracted to a separate function to permit RAII
+  lock.
+*/ 
+void File::file_contents_sub(string &data)
 {
         string filename = full_path();
         string filename_new = filename + ".new";
-        File lock_file(basename() + ".lck", dirname());
 
-        if(lock) {
-                if(!lock_file.exists())
-                        lock_file.file_contents("", false);
-                lock_file.lock();
-        }
-        
         ofstream fs(filename_new.c_str(), ios::out | ios::binary);
         if(!fs.is_open()) {
                 char *err_str = strerror(errno);
@@ -143,11 +141,6 @@ void File::file_contents(string data, bool lock)
         fs.close();
 
         rename(filename_new.c_str(), filename.c_str()); // guaranteed atomic
-
-        if(lock) {
-                lock_file.unlock();
-                lock_file.rm();
-        }
 }
 
 
@@ -221,33 +214,6 @@ bool File::underlying_is_modified()
                 return true;
         return false;
 }
-
-
-/*
-  Lock the file.
-*/
-void File::lock()
-{
-        if(!m_lock)
-                m_lock = new file_lock(full_path().c_str());
-        ptime timeout = from_time_t(time(0) + 2); // one second in the future
-        while(!m_lock->timed_lock(timeout)) {
-                cout << "Waiting on file lock..." << endl;
-                timeout = from_time_t(time(0) + 1);
-        }
-}
-        
-
-
-/*
-  Unlock the file.
-*/
-void File::unlock()
-{
-        if(!m_lock)
-                m_lock = new file_lock(full_path().c_str());
-        m_lock->unlock();
-}
         
 
 
@@ -260,15 +226,7 @@ void File::unlock()
 */
 void File::rm()
 {
-        if(m_lock) {
-                delete m_lock;
-                m_lock = 0;
-        }
-        int rm_ret = unlink(full_path().c_str());
-        if(rm_ret) {
-                cerr << "  Error removing file:  " << strerror(errno) << endl;
-                cerr << "    [File=" << full_path() << "]" << endl;
-        }
+        file_rm(full_path());
 }
 
         
@@ -278,12 +236,5 @@ void File::rm()
 */
 bool File::exists()
 {
-        struct stat buf;
-        if(stat(full_path().c_str(), &buf)) {
-                int error = errno;
-                if(ENOENT == errno)
-                        return false;
-                throw(runtime_error(strerror(error)));
-        }
-        return true;
+        return file_exists(full_path());
 }

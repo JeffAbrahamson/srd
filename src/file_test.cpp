@@ -108,7 +108,8 @@ namespace {
                 File f1;
                 File f2(f1.basename(), f1.dirname());
 
-                f1.file_contents("This is a test.");
+                string contents("This is a test.");
+                f1.file_contents(contents);
 
                 string f2_contents = f2.file_contents();
                 err_count += (f2.underlying_is_modified() ? 1 : 0); // Nope, hasn't been
@@ -116,7 +117,8 @@ namespace {
                         cout << "Unmodified file looks modified in test_modified()." << endl;
 
                 sleep(2);  // stat doesn't offer sub-second mod time everywhere
-                f1.file_contents("This is a test.");
+                contents = "This is a test.";
+                f1.file_contents(contents);
                 int err2 = (f2.underlying_is_modified() ? 0 : 1); // Now it has been modified
                 err_count += err2;
                 if(err2)
@@ -138,7 +140,8 @@ int main(int argc, char *argv[])
         
         int err_count = 0;
         File f_tmp("", "/tmp/");
-        f_tmp.file_contents("");
+        string contents("");
+        f_tmp.file_contents(contents);
         err_count += test_exists(f_tmp.dirname(), f_tmp.basename(), true);
         f_tmp.rm();
         err_count += test_exists(f_tmp.dirname(), f_tmp.basename(), false);

@@ -32,10 +32,11 @@
 
 #include "compress.h"
 #include "crypt.h"
-#include "mode.h"
 #include "file.h"
-#include "root.h"
 #include "leaf_proxy.h"
+#include "lock.h"
+#include "mode.h"
+#include "root.h"
 
 
 using namespace srd;
@@ -94,9 +95,11 @@ void Root::load()
         if(mode(Verbose))
                 cout << "Loading root." << endl;
         clear();                // Drop existing LeafProxy's, if any
-        lock();
-        string plain_text = decrypt(file_contents(), password);
-        unlock();
+        string plain_text;
+        {
+                Lock L(full_path() + ".lck");
+                plain_text = decrypt(file_contents(), password);
+        }
         string big_text = decompress(plain_text);
         istringstream big_text_stream(big_text);
         boost::archive::text_iarchive ia(big_text_stream);

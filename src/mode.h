@@ -23,23 +23,26 @@
 #define __MODE_H__ 1
 
 
-/*
-  Maintain a map of modes.
+namespace srd {
+        
+        /*
+          Maintain a map of modes.
 
-  Written for verbose and testing, to avoid having to pass them around
-  everywhere in case we need them deep down.  Especially verbose.
+          Written for verbose and testing, to avoid having to pass them around
+          everywhere in case we need them deep down.  Especially verbose.
   
-  Some might call this a kludge or even inelegant.  Abused, it would be.
-*/
+          Some might call this a kludge or even inelegant.  Abused, it would be.
+        */
 
 
-enum Mode {
-        Verbose,
-        Testing,
-};
+        enum Mode {
+                Verbose,
+                Testing,
+        };
 
-void mode(const Mode m, const bool new_state);
-const bool mode(const Mode m);
+        void mode(const Mode m, const bool new_state);
+        const bool mode(const Mode m);
 
+}
 
 #endif  /* __MODE_H__*/
