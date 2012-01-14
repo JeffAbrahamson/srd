@@ -51,7 +51,7 @@ namespace srd {
         */
         class Root : public File, public LeafProxyMap {
         public:
-                Root(const std::string password,
+                Root(const std::string &password,
                      const std::string path = std::string(),
                      const bool create = false);
                 virtual ~Root();
@@ -59,15 +59,15 @@ namespace srd {
                 // A leaf (or leaf proxy) contains a key and payload.
                 // But the root node contains proxy keys, which serve to identify
                 // the actual leaf, in which we have stored the real key.
-                void add_leaf(const std::string key, const std::string payload,
+                void add_leaf(const std::string &key, const std::string &payload,
                               const bool do_commit = true);
-                LeafProxy get_leaf(const std::string proxy_key);
-                void set_leaf(const std::string proxy_key,
-                              const std::string key,
-                              const std::string payload);
-                void rm_leaf(const std::string proxy_key);
+                LeafProxy get_leaf(const std::string &proxy_key);
+                void set_leaf(const std::string &proxy_key,
+                              const std::string &key,
+                              const std::string &payload);
+                void rm_leaf(const std::string &proxy_key);
 
-                Root change_password(const std::string new_password);
+                Root change_password(const std::string &new_password);
                 void commit();
                 void validate();
 
@@ -94,8 +94,8 @@ namespace srd {
                 };
                 std::vector<LeafProxyPersist> leaf_names;
 
-                void instantiate_leaf_proxy(LeafProxyPersist proxy_info);
-                void populate_leaf_names(LeafProxyMap::value_type val);
+                void instantiate_leaf_proxy(LeafProxyPersist &proxy_info);
+                void populate_leaf_names(LeafProxyMap::value_type &val);
                 
                 // Data members
 

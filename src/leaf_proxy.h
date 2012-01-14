@@ -43,7 +43,7 @@ namespace srd {
 
         public:
                 LeafProxy();   // needed by std::map::operator[]()
-                LeafProxy(const std::string password,
+                LeafProxy(const std::string &password,
                           const std::string base_name = std::string(),
                           const std::string dir_name = std::string());
                 /*
@@ -93,16 +93,16 @@ namespace srd {
                         return key() > rhs.key();
                 }
 
-                void set(const std::string in_key, const std::string in_payload);
+                void set(const std::string &in_key, const std::string &in_payload);
 
-                void key_cache(const std::string in) { cached_key = in; validate(); }
-                void key(const std::string);
+                void key_cache(const std::string &in) { cached_key = in; validate(); }
+                void key(const std::string &in_key);
                 std::string key() const;
-                void payload(const std::string);
+                void payload(const std::string &in_payload);
                 std::string payload() const;
 
                 void print_key() const;
-                void print_payload(const std::string pattern) const;
+                void print_payload(const std::string &pattern) const;
 
                 std::string basename() const;
                 void commit();
@@ -141,8 +141,8 @@ namespace srd {
         class LeafMatcher {
 
         public:
-                LeafMatcher(const srd::vector_string,
-                            const srd::vector_string,
+                LeafMatcher(const srd::vector_string &,
+                            const srd::vector_string &,
                             bool conj);
                 
                 bool operator()(LeafProxy &);

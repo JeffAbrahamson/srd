@@ -50,7 +50,7 @@ namespace srd {
         class Leaf : public File {
         public:
                 Leaf() { assert(0); };  // seemingly needed by serialize()
-                Leaf(const std::string password,
+                Leaf(const std::string &password,
                      const std::string base_name = std::string(),
                      const std::string dir_name = std::string(),
                      const bool = true);

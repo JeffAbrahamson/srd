@@ -50,7 +50,7 @@ using namespace std;
   Don't do this.  It's just a hook for removing leaves that we
   haven't loaded.  The only usage should be leaf_proxy::erase().
 */
-Leaf::Leaf(const string pass,
+Leaf::Leaf(const string &pass,
            const string base_name,
            const string dir_name,
            const bool load)

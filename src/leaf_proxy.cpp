@@ -53,7 +53,7 @@ LeafProxy::LeafProxy()
   The filename (base) and directory (dir) may be empty and will be
   created if needed.
 */
-LeafProxy::LeafProxy(const string pass,
+LeafProxy::LeafProxy(const string &pass,
                        const string base,
                        const string dir)
         : password(pass), input_base_name(base), input_dir_name(dir)
@@ -121,7 +121,7 @@ LeafProxy &LeafProxy::operator=(const LeafProxy &other)
   This is more efficient than subsequent calls to key(string) and
   payload(string), since it does a single commit on the leaf.
 */
-void LeafProxy::set(const string in_key, const string in_payload)
+void LeafProxy::set(const string &in_key, const string &in_payload)
 {
         init_leaf();
         the_leaf->key(in_key);
@@ -139,12 +139,12 @@ void LeafProxy::set(const string in_key, const string in_payload)
   If setting the payload at the same time, using set() is more efficient,
   since it only does one commit on the underlying leaf.
 */
-void LeafProxy::key(const string in)
+void LeafProxy::key(const string &in_key)
 {
         validate();
         init_leaf();
-        the_leaf->key(in);
-        cached_key = in;
+        the_leaf->key(in_key);
+        cached_key = in_key;
         commit();
         validate();
 }
@@ -173,11 +173,11 @@ string LeafProxy::key() const
   If setting the key at the same time, using set() is more efficient,
   since it only does one commit on the underlying leaf.
 */
-void LeafProxy::payload(const string in)
+void LeafProxy::payload(const string &in_payload)
 {
         validate();
         init_leaf();
-        the_leaf->payload(in);
+        the_leaf->payload(in_payload);
         commit();
         validate();
 }
@@ -212,7 +212,7 @@ void LeafProxy::print_key() const
   Print the leaf's payload.
   Optionally filter the output for lines matching pattern.
 */
-void LeafProxy::print_payload(const string pattern) const
+void LeafProxy::print_payload(const string &pattern) const
 {
         validate();
         string prefix = "  ";           // Someday make this an option maybe
@@ -314,8 +314,8 @@ void LeafProxy::validate() const
 ////////////////////////////////////////////////////////////////////////////////
 
 
-LeafMatcher::LeafMatcher(const vector_string in_key,
-                         const vector_string in_payload,
+LeafMatcher::LeafMatcher(const vector_string &in_key,
+                         const vector_string &in_payload,
                          bool conj)
         : key(in_key), payload(in_payload), conjunction(conj)
 {
@@ -330,8 +330,8 @@ LeafMatcher::LeafMatcher(const vector_string in_key,
 */
 class FindInString {
 public:
-        FindInString(string s) : str(s) {};
-        bool operator()(string s) { return str.find(s) != string::npos; };
+        FindInString(string &s) : str(s) {};
+        bool operator()(string &s) { return str.find(s) != string::npos; };
 private:
         string str;
 };

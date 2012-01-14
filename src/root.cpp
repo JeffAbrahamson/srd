@@ -54,7 +54,7 @@ using namespace std;
 
   The name of the root node must be determinable solely by the password.
 */
-Root::Root(const string pass, const string dir_name, const bool create)
+Root::Root(const string &pass, const string dir_name, const bool create)
         : password(pass), modified(false), valid(true)
 {
         string base_name(pass);
@@ -120,7 +120,7 @@ void Root::load()
   we copy them to a vector and persist that instead.  Here we
   reinstantiate the map from the vector elements.
 */
-void Root::instantiate_leaf_proxy(LeafProxyPersist proxy_info)
+void Root::instantiate_leaf_proxy(LeafProxyPersist &proxy_info)
 {
         (*this)[proxy_info.proxy_name] = LeafProxy(password, proxy_info.proxy_name, "");
         (*this)[proxy_info.proxy_name].key_cache(proxy_info.cached_key);
@@ -132,7 +132,7 @@ void Root::instantiate_leaf_proxy(LeafProxyPersist proxy_info)
   Kludge.  In order to persist the keys of the leaf_proxy_map leaves,
   we copy them to a vector and persist that instead.
 */
-void Root::populate_leaf_names(LeafProxyMap::value_type val)
+void Root::populate_leaf_names(LeafProxyMap::value_type &val)
 {
         LeafProxyPersist lpp;
         lpp.proxy_name = val.first;
@@ -161,7 +161,7 @@ Root::~Root()
   Add a leaf with key and payload.
   Insert the proxy key and leaf_proxy into the root.
 */
-void Root::add_leaf(const string key, const string payload, const bool do_commit)
+void Root::add_leaf(const string &key, const string &payload, const bool do_commit)
 {
         validate();
         if(exists() && underlying_is_modified())
@@ -187,7 +187,7 @@ void Root::add_leaf(const string key, const string payload, const bool do_commit
   Return the leaf_proxy object with the given proxy key.
   It is an error for the object not to exist.
 */
-LeafProxy Root::get_leaf(const string proxy_key)
+LeafProxy Root::get_leaf(const string &proxy_key)
 {
         validate();
         iterator it = find(proxy_key);
@@ -202,9 +202,9 @@ LeafProxy Root::get_leaf(const string proxy_key)
   Set the contents of an existing leaf.
   To create a new leaf, use add_leaf().
 */
-void Root::set_leaf(const string proxy_key,
-                    const string key,
-                    const string payload)
+void Root::set_leaf(const string &proxy_key,
+                    const string &key,
+                    const string &payload)
 {
         validate();
         if(exists() && underlying_is_modified())
@@ -223,7 +223,7 @@ void Root::set_leaf(const string proxy_key,
   Remove a leaf_proxy from the root, deleting the underlying leaf
   file.
 */
-void Root::rm_leaf(const string proxy_key)
+void Root::rm_leaf(const string &proxy_key)
 {
         validate();
         if(exists() && underlying_is_modified())
@@ -252,7 +252,7 @@ void Root::rm_leaf(const string proxy_key)
   Return the new root.  Will throw runtime_error if the new password
   generates an existing root object.
 */
-Root Root::change_password(const std::string new_password)
+Root Root::change_password(const std::string &new_password)
 {
         validate();
         if(exists() && underlying_is_modified())
