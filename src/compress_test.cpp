@@ -24,10 +24,8 @@
 #include <string>
 #include <vector>
 
-#include "compress.h"
-#include "mode.h"
+#include "srd.h"
 #include "test_text.h"
-#include "types.h"
 
 
 using namespace srd;

@@ -34,11 +34,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "crypt.h"
-#include "file.h"
-#include "file_util.h"
-#include "lock.h"
-#include "mode.h"
+#include "srd.h"
 
 
 using namespace srd;

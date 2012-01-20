@@ -28,11 +28,8 @@
 #include <unistd.h>
 #include <vector>
 
-#include "crypt.h"
-#include "file.h"
-#include "mode.h"
+#include "srd.h"
 #include "test_text.h"
-#include "types.h"
 
 
 using namespace srd;

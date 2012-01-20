@@ -21,7 +21,7 @@
 #include <iostream>
 #include <map>
 
-#include "mode.h"
+#include "srd.h"
 
 
 using namespace srd;

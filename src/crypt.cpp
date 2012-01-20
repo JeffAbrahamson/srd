@@ -104,7 +104,7 @@
 // #define CIPHER Twofish
 // #define CIPHER XTEA
 
-#include "crypt.h"
+#include "srd.h"
 
 
 using namespace srd;

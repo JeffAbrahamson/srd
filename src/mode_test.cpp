@@ -20,7 +20,7 @@
 
 #include <iostream>
 
-#include "mode.h"
+#include "srd.h"
 
 
 using namespace srd;

@@ -14,18 +14,7 @@ SRC = 			\
 	mode.cpp	\
 	root.cpp	\
 
-HEADER =		\
-	compress.h  	\
-	crypt.h  	\
-	file.h		\
-	file_util.h	\
-	leaf.h  	\
-	leaf_proxy.h	\
-	leaf_proxy_map.h \
-	lock.h		\
-	mode.h		\
-	root.h  	\
-	types.h		\
+HEADER = srd.h
 
 OBJECT = $(SRC:%.cpp=%.o)
 

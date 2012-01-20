@@ -22,8 +22,6 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-//#include <crypto++/base64.h>
-//#include <crypto++/sha.h>
 #include <stdexcept>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,12 +29,7 @@
 #include <termios.h>
 #include <unistd.h>
 
-
-#include "crypt.h"
-#include "leaf_proxy_map.h"
-#include "mode.h"
-#include "root.h"
-#include "types.h"
+#include "srd.h"
 
 
 namespace BPO = boost::program_options;

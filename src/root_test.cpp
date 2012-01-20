@@ -26,11 +26,8 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "crypt.h"
-#include "mode.h"
-#include "root.h"
+#include "srd.h"
 #include "test_text.h"
-#include "types.h"
 
 
 using namespace srd;

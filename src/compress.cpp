@@ -23,8 +23,7 @@
 #include <stdexcept>
 #include <string>
 
-#include "compress.h"
-#include "mode.h"
+#include "srd.h"
 
 
 using namespace srd;

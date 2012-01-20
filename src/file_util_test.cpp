@@ -23,8 +23,7 @@
 #include <sstream>
 #include <sys/types.h>
 
-#include "file_util.h"
-#include "mode.h"
+#include "srd.h"
 
 
 using namespace srd;

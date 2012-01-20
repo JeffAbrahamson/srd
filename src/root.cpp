@@ -30,13 +30,7 @@
 #include <string>
 #include <unistd.h>
 
-#include "compress.h"
-#include "crypt.h"
-#include "file.h"
-#include "leaf_proxy.h"
-#include "lock.h"
-#include "mode.h"
-#include "root.h"
+#include "srd.h"
 
 
 using namespace srd;

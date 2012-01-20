@@ -24,8 +24,7 @@
 #include <sstream>
 #include <string>
 
-#include "leaf_proxy.h"
-#include "mode.h"
+#include "srd.h"
 
 
 using namespace boost;

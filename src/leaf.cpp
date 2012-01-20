@@ -26,10 +26,7 @@
 #include <string>
 #include <sstream>
 
-#include "compress.h"
-#include "crypt.h"
-#include "leaf.h"
-#include "mode.h"
+#include "srd.h"
 
 
 using namespace srd;
