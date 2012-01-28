@@ -137,6 +137,7 @@ void File::file_contents_sub(string &data)
         fs.close();
 
         rename(filename_new.c_str(), filename.c_str()); // guaranteed atomic
+        m_modtime = modtime(false);
 }
 
 
@@ -176,7 +177,7 @@ string File::file_contents()
   If silent is false, complain if the file looks odd,
   notably if it is not a regular file.
 */
-time_t File::modtime(const bool silent)
+time_pair File::modtime(const bool silent)
 {
         struct stat stat_buf;
         int ret = stat(full_path().c_str(), &stat_buf);
@@ -194,7 +195,12 @@ time_t File::modtime(const bool silent)
                 cout << full_path() << " is a symbolic link, odd things could happen." << endl;
         else if(!S_ISREG(stat_buf.st_mode))
                 cout << full_path() << " is not a regular file, odd things could happen." << endl;
-        return stat_buf.st_mtime;
+        
+#if defined __USE_MISC || defined __USE_XOPEN2K8
+        return time_pair(stat_buf.st_mtim.tv_sec, stat_buf.st_mtim.tv_nsec);
+#else
+        return time_pair(stat_buf.st_mtime, stat_buf.st_mtimensec);
+#endif
 }
 
 
@@ -205,7 +211,7 @@ time_t File::modtime(const bool silent)
 */
 bool File::underlying_is_modified()
 {
-        time_t mt = modtime();
+        time_pair mt(modtime());
         if(mt > m_modtime)
                 return true;
         return false;

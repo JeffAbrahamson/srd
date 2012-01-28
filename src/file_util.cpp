@@ -23,8 +23,6 @@
 #include <iostream>
 #include <stdexcept>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 
 #include "srd.h"
 

@@ -89,7 +89,13 @@ namespace srd {
         void mode(const Mode m, const bool new_state);
         const bool mode(const Mode m);
 
-
+        
+        /* ************************************************************ */
+        /* types */
+        
+        typedef std::vector<std::string> vector_string;
+        typedef std::pair<time_t, unsigned long int> time_pair;  /* (seconds, nanoseconds) */
+        
 
         /* ************************************************************ */
         /* File */
@@ -122,7 +128,7 @@ namespace srd {
                 void file_contents(std::string &data, bool lock = true);
                 std::string file_contents();
 
-                time_t modtime(const bool silent = true);
+                time_pair modtime(const bool silent = true);
                 bool underlying_is_modified();
                 
                 void rm();
@@ -133,7 +139,7 @@ generate a name. */
                 
         protected:
 
-                time_t m_time(const bool silent = true);
+                time_pair m_time(const bool silent = true);
                 
 
         private:
@@ -149,17 +155,10 @@ generate a name. */
 
                 // When first we read the file, check it's mod time.
                 // If that changes. we'll know to reread.
-                time_t m_modtime;
+                time_pair m_modtime;
         };
 
 
-
-        /* ************************************************************ */
-        /* types */
-        
-        typedef std::vector<std::string> vector_string;
-
-        
 
         /* ************************************************************ */
         /* Leaf */

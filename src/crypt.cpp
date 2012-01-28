@@ -25,8 +25,6 @@
 #include <errno.h>
 #include <sstream>
 #include <stdexcept>
-#include <sys/stat.h>
-#include <sys/types.h>
 
 // Modified from http://www.cryptopp.com/wiki/Hash_Functions
 //
