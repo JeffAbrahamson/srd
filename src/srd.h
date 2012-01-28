@@ -28,6 +28,7 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/interprocess/sync/file_lock.hpp>
+#include <iterator>
 #include <map>
 #include <set>
 #include <string>
@@ -358,8 +359,34 @@ generate a name. */
 
           This is a separate class so that we can filter on search results.
         */
-        class LeafProxyMap : public std::map<std::string, LeafProxy> {
+        typedef std::map<std::string, LeafProxy> LeafProxyMapInternalType;
+        
+        class LeafProxyMap :
+        public std::iterator<std::random_access_iterator_tag, LeafProxyMapInternalType::value_type> {
         public:
+                typedef LeafProxyMapInternalType::iterator iterator;
+                typedef LeafProxyMapInternalType::const_iterator const_iterator;
+                typedef LeafProxyMapInternalType::key_type key_type;
+                typedef LeafProxyMapInternalType::mapped_type mapped_type;
+                typedef LeafProxyMapInternalType::size_type size_type;
+
+                LeafProxyMap() { the_map = new LeafProxyMapInternalType(); }
+                virtual ~LeafProxyMap() { assert(the_map); delete the_map; the_map = 0; }
+
+                // Need copy and assignment operators due to the_map.
+                LeafProxyMap(const LeafProxyMap &lpm)
+                        {
+                                this->the_map = new LeafProxyMapInternalType();
+                                *(this->the_map) = *(lpm.the_map);
+                        }
+                LeafProxyMap &operator=(const LeafProxyMap lpm) /* note passed by value */
+                        {
+                                if(this != &lpm) {
+                                        (*the_map).swap(*(lpm.the_map));
+                                }
+                                return *this;
+                        }
+
                 LeafProxyMap filter_keys(srd::vector_string, bool);
                 LeafProxyMap filter_payloads(srd::vector_string) ;
                 LeafProxyMap filter_keys_or_payloads(srd::vector_string,
@@ -368,6 +395,29 @@ generate a name. */
 
                 typedef std::set<LeafProxy, std::less<LeafProxy> > LPM_Set;
                 LPM_Set as_set() const;
+
+                /* Functions that proxy to the_map. */
+                void clear() { the_map->clear(); }
+                bool empty() const { return the_map->empty(); };
+
+                void erase(iterator pos) { return the_map->erase(pos); };
+                size_type erase(const key_type &k) { return the_map->erase(k); };
+                void erase(iterator first, iterator last) { return the_map->erase(first, last); };
+                
+                iterator find(const key_type &k) { return the_map->find(k); }
+                const_iterator find(const key_type &k) const { return the_map->find(k); }
+                size_type size() const { return the_map->size(); }
+
+                mapped_type &operator[](const key_type &k) { return (*the_map)[k]; }
+
+                iterator begin() { return the_map->begin(); }
+                const_iterator begin() const { return the_map->begin(); }
+                iterator end() { return the_map->end(); }
+                const_iterator end() const { return the_map->end(); }
+                
+                
+        private:
+                LeafProxyMapInternalType *the_map;
         };
         
 
