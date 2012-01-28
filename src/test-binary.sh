@@ -11,11 +11,11 @@ result_file=test.d/output/regression-db-output
 
 # Set regen=1 to regenerate the db.
 # Make sure the test passes before doing so!
-regen=1
+regen=0
 
 
-rand-string() { head -c $((25 + $RANDOM / 1000)) < /dev/urandom | sha1sum | awk '{print $1;}'; }
-#rand-string() { head -c 25 < /dev/urandom | cat -v; }
+#rand-string() { head -c $((25 + $RANDOM / 1000)) < /dev/urandom | sha1sum | awk '{print $1;}'; }
+rand-string() { head -c 20 < /dev/urandom | cat -v; }
 make-entry() {
     echo '['$(rand-string)']'
     N=$(($RANDOM / 1000))
@@ -28,17 +28,24 @@ if [ 1 == $regen ]; then
     make clean-test
 
     # This generation step is rather long, but confirmation later is
-    # not so bad.
-    make-entry | ./srd -T $pass --create -e
-    for((n=1; $n < 500; n++)); do
-	make-entry | time ./srd -T $pass -e
-	if [ $((n % 50)) == 0 ]; then
-	    echo -n .
-	    date
-	fi
-    done
+    # not so bad.  On my current desktop machine, generation takes
+    # about five minutes.
+    echo Generating new reference db...
+    date
+    for((entry=1; $entry < 5000; entry++)); do
+	make-entry
+    done > $tmp_file
+    date
 
-    ./srd -f ''> $tmp_file
+    echo Importing...
+    echo yes | ./srd -T $pass --create --import $tmp_file > /dev/null
+    ./srd -T $pass -f ''> $tmp_file.2
+    cmp --quiet $tmp_file $tmp_file.2
+    if [ 0 = $? ]; then
+	echo "Failed to generate database correctly."
+	exit 1
+    fi
+    rm $tmp_file.2
     
     db_name=srd-test-0000-$LOGNAME
     db_dest=test.d/regression-db/$db_name
@@ -48,12 +55,13 @@ if [ 1 == $regen ]; then
 fi
 
 make clean-test
+echo Comparing output from reference db to stored output
 # Expect the next glob should only match one thing
 cp -r test.d/regression-db/srd-test-0000-* ./
-./srd -f ''> $tmp_file
+./srd -T $pass -f ''> $tmp_file
 cmp --quiet $result_file $tmp_file
 if [ 0 = $? ]; then 
-    echo Binary match failed ($tmp_file vs $result_file)
+    echo Binary match failed \($tmp_file vs $result_file\)
     exit 1;
 fi
 
