@@ -113,7 +113,7 @@ namespace {
                 if(err_count)
                         cout << "Unmodified file looks modified in test_modified()." << endl;
 
-                sleep(2);  // stat doesn't offer sub-second mod time everywhere
+                sleep(1);  // Apparently we can do this in less than a nanosecond if we don't sleep
                 contents = "This is a test.";
                 f1.file_contents(contents);
                 int err2 = (f2.underlying_is_modified() ? 0 : 1); // Now it has been modified
