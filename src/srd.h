@@ -369,20 +369,18 @@ generate a name. */
                 typedef LeafProxyMapInternalType::mapped_type mapped_type;
                 typedef LeafProxyMapInternalType::size_type size_type;
 
-                LeafProxyMap() { the_map = new LeafProxyMapInternalType(); }
-                virtual ~LeafProxyMap() { assert(the_map); delete the_map; the_map = 0; }
+                LeafProxyMap() {};
+                virtual ~LeafProxyMap() {};
 
                 // Need copy and assignment operators due to the_map.
                 LeafProxyMap(const LeafProxyMap &lpm)
                         {
-                                this->the_map = new LeafProxyMapInternalType();
-                                *(this->the_map) = *(lpm.the_map);
+                                the_map = lpm.the_map;
                         }
-                LeafProxyMap &operator=(const LeafProxyMap lpm) /* note passed by value */
+                LeafProxyMap &operator=(const LeafProxyMap &lpm)
                         {
-                                if(this != &lpm) {
-                                        (*the_map).swap(*(lpm.the_map));
-                                }
+                                LeafProxyMap temp(lpm);
+                                the_map.swap(temp.the_map);
                                 return *this;
                         }
 
@@ -396,27 +394,27 @@ generate a name. */
                 LPM_Set as_set() const;
 
                 /* Functions that proxy to the_map. */
-                void clear() { the_map->clear(); }
-                bool empty() const { return the_map->empty(); };
+                void clear() { the_map.clear(); }
+                bool empty() const { return the_map.empty(); };
 
-                void erase(iterator pos) { return the_map->erase(pos); };
-                size_type erase(const key_type &k) { return the_map->erase(k); };
-                void erase(iterator first, iterator last) { return the_map->erase(first, last); };
+                void erase(iterator pos) { return the_map.erase(pos); };
+                size_type erase(const key_type &k) { return the_map.erase(k); };
+                void erase(iterator first, iterator last) { return the_map.erase(first, last); };
                 
-                iterator find(const key_type &k) { return the_map->find(k); }
-                const_iterator find(const key_type &k) const { return the_map->find(k); }
-                size_type size() const { return the_map->size(); }
+                iterator find(const key_type &k) { return the_map.find(k); }
+                const_iterator find(const key_type &k) const { return the_map.find(k); }
+                size_type size() const { return the_map.size(); }
 
-                mapped_type &operator[](const key_type &k) { return (*the_map)[k]; }
+                mapped_type &operator[](const key_type &k) { return the_map[k]; }
 
-                iterator begin() { return the_map->begin(); }
-                const_iterator begin() const { return the_map->begin(); }
-                iterator end() { return the_map->end(); }
-                const_iterator end() const { return the_map->end(); }
+                iterator begin() { return the_map.begin(); }
+                const_iterator begin() const { return the_map.begin(); }
+                iterator end() { return the_map.end(); }
+                const_iterator end() const { return the_map.end(); }
                 
                 
         private:
-                LeafProxyMapInternalType *the_map;
+                LeafProxyMapInternalType the_map;
         };
         
 
