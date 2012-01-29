@@ -82,6 +82,7 @@ test : $(TESTS)
 	./test.sh
 	./test-passwd.sh
 	./test-delete.sh
+	./test-binary.sh
 
 %_test : %_test.o test_text.o mode.o $(OBJECT)
 	$(GCC) -o $@ $^ $(LIBS)

@@ -3,11 +3,12 @@
 # Test that a database we have previously written is still readable
 # and produces the resuls we expect.
 
-pass=binaray-regression-test-db
+pass=binary-regression-test-db
 tmp_file=test_$pass
 echo setting pass=$pass
 export EDITOR=./test_editor.sh
 result_file=test.d/output/regression-db-output
+db_tgz=test.d/regression-db.tgz
 
 # Set regen=1 to regenerate the db.
 # Make sure the test passes before doing so!
@@ -48,16 +49,15 @@ if [ 1 == $regen ]; then
     rm $tmp_file.2
     
     db_name=srd-test-0000-$LOGNAME
-    db_dest=test.d/regression-db/$db_name
     rm -rf $db_dest $result_file
-    mv $db_name $db_dest
+    tar czf $db_tgz $db_name/
     mv $tmp_file $result_file
 fi
 
 make clean-test
 echo Comparing output from reference db to stored output
 # Expect the next glob should only match one thing
-cp -r test.d/regression-db/srd-test-0000-* ./
+tar xzf $db_tgz
 ./srd -T $pass -f ''> $tmp_file
 cmp --quiet $result_file $tmp_file
 if [ 0 = $? ]; then 
@@ -66,3 +66,4 @@ if [ 0 = $? ]; then
 fi
 
 make clean-test
+rm $tmp_file
