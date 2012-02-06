@@ -65,7 +65,7 @@ string File::dirname()
                         spath << "srd-test-0000-" << getenv("LOGNAME");
                         m_dir_name = spath.str();
                 } else
-                        m_dir_name = string(getenv("HOME")) + "/srd2/";
+                        m_dir_name = string(getenv("HOME")) + "/srd/";
         }
         if(!m_dir_verified && mkdir(m_dir_name.c_str(), 0700) && EEXIST != errno) {
                 cerr << "  Error creating directory \""
