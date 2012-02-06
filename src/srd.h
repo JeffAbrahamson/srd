@@ -28,7 +28,7 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/interprocess/sync/file_lock.hpp>
-#include <iterator>
+//#include <iterator>
 #include <map>
 #include <set>
 #include <string>
@@ -358,17 +358,26 @@ generate a name. */
 
           This is a separate class so that we can filter on search results.
         */
-        typedef std::map<std::string, LeafProxy> LeafProxyMapInternalType;
         
-        class LeafProxyMap :
-        public std::iterator<std::random_access_iterator_tag, LeafProxyMapInternalType::value_type> {
+        
+        class LeafProxyMap {
+                //public std::iterator<std::random_access_iterator_tag, LeafProxyMapInternalType::value_type>
+
         public:
+                typedef std::map<std::string, LeafProxy> LeafProxyMapInternalType;
+                
                 typedef LeafProxyMapInternalType::iterator iterator;
                 typedef LeafProxyMapInternalType::const_iterator const_iterator;
                 typedef LeafProxyMapInternalType::key_type key_type;
                 typedef LeafProxyMapInternalType::mapped_type mapped_type;
                 typedef LeafProxyMapInternalType::size_type size_type;
 
+                //typedef LeafProxyMapInternalType::iterator_category iterator_category;
+                typedef LeafProxyMapInternalType::value_type value_type;
+                typedef LeafProxyMapInternalType::difference_type difference_type;
+                typedef LeafProxyMapInternalType::pointer pointer;
+                typedef LeafProxyMapInternalType::reference reference;
+                
                 LeafProxyMap() {};
                 virtual ~LeafProxyMap() {};
 
