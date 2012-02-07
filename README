@@ -14,7 +14,9 @@ another context with minimal hacking.
 Want to use it?
 
 I believe the code works.  There are reasonably extensive regtests
-that convince me of this.  Send me mail with feedback.
+that convince me of this.  I use it and trust my secrets (bank
+passwords, online account info, etc.) to it.  Send me mail with
+feedback.
 
 
 Why did I write this?
@@ -83,12 +85,10 @@ Here's the usage message:
 
 Known issues / bugs
 
-The code is not thread-safe.  Indeed, it assumes a single event
+The code may not be thread-safe.  Indeed, it assumes a single event
 stream, where it is impossible, say, to edit two leaves at the same
 time.  (The conflict here is at the level of the root, since each
-editor risks re-persisting the root differently.)
-
-These things are not hard to change, and probably should be, but they
-don't matter much in the context of a simple commandline tool.  Until,
-of course, the day when someone runs two instances of srd together.
-Cf. issues #26, #27.
+editor risks re-persisting the root differently.)  There are some
+checks to avoid this happening, but no regtests rigorously confirm
+that this always works.  Peer review and suggestions welcome.
+Cf. issues #26, #27 (both closed).
