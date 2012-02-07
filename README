@@ -1,22 +1,27 @@
+
+This is a release version of srd.
+
+
 srd is a secure rolodesk, which is a bit of a retro name for an
 encrypted set of notes.  In modern parlance, it might be called a
 password vault, but the idea is to be able to write and retrieve
 arbitrary bits of text.
 
-srd is being developed on an ubuntu linux system.  There's no real
-reason to suspect it wouldn't work elsewhere, but that hasn't been
-tested.
+I developed srd on an ubuntu linux system.  There's no real reason to
+suspect it wouldn't work elsewhere, but that hasn't been tested.
 
-There's a library (pending issue #12) if you want to use the code in
-another context with minimal hacking.
+There's a library if you want to use the code in another context with
+minimal hacking.
 
 
 Want to use it?
 
-I believe the code works.  There are reasonably extensive regtests
-that convince me of this.  I use it and trust my secrets (bank
-passwords, online account info, etc.) to it.  Send me mail with
-feedback.
+The code is stable, and I believe it works.  There are reasonably
+extensive regtests that convince me of this.  I use it and trust my
+secrets (bank passwords, online account info, etc.) to it.  Send me
+mail with feedback.  As always (see src/COPYING), you accept that it
+may not work for you.  If it doesn't, I'd appreciate hearing of a
+reproducible case of the failure.
 
 
 Why did I write this?
