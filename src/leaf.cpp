@@ -50,25 +50,28 @@ using namespace std;
 Leaf::Leaf(const string &pass,
            const string base_name,
            const string dir_name,
-           const bool load)
-        : password(pass), modified(false)
+           const bool do_load)
+        : m_password(pass), m_modified(false), m_loaded(false)
 {
         basename(base_name);    // If empty, will be computed for us
         dirname(dir_name);      // If empty, will be computed for us
-        if(!exists())
-                return;         // If never persisted, then ok to return empty leaf
-        if(!load) {
+        if(!exists()) {
+                // If never persisted, then ok to return empty leaf.
+                m_loaded = true;
+                return;         
+        }
+        if(!do_load) {
+                // Not loading imposes on the client an obligation not
+                // to take actions that assume the contents are
+                // loaded.  In particular, the client must not ask for
+                // the key or the payload.  (We assert that this is
+                // respected.)  Dynamic loading causes const problems,
+                // the backflips for which seem unreasonable.
                 if(mode(Verbose))
                         cout << "Initializing leaf without load." << endl;
                 return;
         }
-        if(mode(Verbose))
-                cout << "Loading leaf." << endl;
-        string plain_text = decrypt(file_contents(), password);
-        string big_text = decompress(plain_text);
-        istringstream big_text_stream(big_text);
-        boost::archive::text_iarchive ia(big_text_stream);
-        ia & *this;
+        load();
         validate();
 }
 
@@ -85,6 +88,22 @@ Leaf::~Leaf()
 }
 
 
+/*
+  Load ourselves from the file.
+*/
+void Leaf::load()
+{
+        if(mode(Verbose))
+                cout << "Loading leaf." << endl;
+        string plain_text = decrypt(file_contents(), m_password);
+        string big_text = decompress(plain_text);
+        istringstream big_text_stream(big_text);
+        boost::archive::text_iarchive ia(big_text_stream);
+        ia & *this;
+        m_loaded = true;
+}
+
+
 
 /*
   If we've been modified, then write to our file.
@@ -92,16 +111,16 @@ Leaf::~Leaf()
 void Leaf::commit()
 {
         validate();
-        if(!modified)
+        if(!m_modified)
                 return;
         ostringstream big_text_stream;
         boost::archive::text_oarchive oa(big_text_stream);
         oa & *this;
         string big_text(big_text_stream.str());
         string plain_text = compress(big_text);
-        string cipher_text = encrypt(plain_text, password);
+        string cipher_text = encrypt(plain_text, m_password);
         file_contents(cipher_text);
-        modified = false;
+        m_modified = false;
         validate();
         if(mode(Verbose))
                 cout << "leaf committed" << endl;
@@ -117,7 +136,7 @@ void Leaf::erase()
 {
         validate();
         rm();
-        modified = false;
+        m_modified = false;
         validate();
 }
 
@@ -129,7 +148,7 @@ void Leaf::erase()
 */
 void Leaf::validate()
 {
-        assert(password.size() > 0);
+        assert(m_password.size() > 0);
         assert(basename().size() > 0);
         assert(dirname().size() > 0);
 }
@@ -142,8 +161,8 @@ void Leaf::validate()
 template<class Archive>
 void Leaf::serialize(Archive &ar, const unsigned int version)
 {
-        ar & node_key;
-        ar & node_payload;
+        ar & m_node_key;
+        ar & m_node_payload;
 }
 
 

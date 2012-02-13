@@ -181,36 +181,43 @@ generate a name. */
                 Leaf(const std::string &password,
                      const std::string base_name = std::string(),
                      const std::string dir_name = std::string(),
-                     const bool = true);
+                     const bool do_load = true);
                 virtual ~Leaf();
 
                 void commit();
                 void erase();
                 
                 void key(const std::string &key_in) {
-                        node_key = key_in;
-                        modified = true;
+                        m_node_key = key_in;
+                        m_modified = true;
+                        m_loaded = true;
                 };
-                const std::string key() const { return node_key; };
+                const std::string key() const { assert(m_loaded); return m_node_key; };
                 void payload(const std::string &payload_in)
                 {
-                        node_payload = payload_in;
-                        modified = true;
+                        m_node_payload = payload_in;
+                        m_modified = true;
+                        m_loaded = true;
                 };
-                const std::string payload() const { return node_payload; };
+                const std::string payload() const { assert(m_loaded); return m_node_payload; };
 
                 void validate();
+                bool is_loaded() const { return m_loaded; };
                                 
         private:
                 friend class boost::serialization::access;
                 template<class Archive>
                         void serialize(Archive &ar, const unsigned int version);
-
-                const std::string password;
-                bool modified;
+                void load();
                 
-                std::string node_key;
-                std::string node_payload;
+                const std::string m_password;
+                bool m_modified;
+                // m_loaded is true if the leaf has been loaded from its underlying file
+                // or if the leaf is new (and perhaps hasn't been persisted yet).
+                bool m_loaded;
+                
+                std::string m_node_key;
+                std::string m_node_payload;
         };
         
 
@@ -245,7 +252,7 @@ generate a name. */
                   The copy constructor and assignment operators
                   support this by not copying the_leaf pointer.
                 */
-                ~LeafProxy() { if(the_leaf) delete the_leaf; the_leaf = NULL; };
+                ~LeafProxy() { delete_leaf(); };
 
                 LeafProxy(const LeafProxy &);
                 LeafProxy &operator=(const LeafProxy &);
@@ -294,12 +301,13 @@ generate a name. */
                 void commit();
                 void erase();
 
-                void validate() const;
+                void validate(bool force_load = false) const;
 
         private:
 
-                void init_leaf() const;
-
+                void init_leaf(bool do_load = true) const;
+                void delete_leaf() const;
+                
                 std::string password; // should be const but for operator=()
 
                 // input_base_name and input_dir_name exist to create
@@ -461,7 +469,7 @@ generate a name. */
 
                 Root change_password(const std::string &new_password);
                 void commit();
-                void validate();
+                void validate(bool force_load = false) const;
 
         private:
 

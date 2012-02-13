@@ -238,8 +238,15 @@ void LeafProxy::print_payload(const string &pattern) const
 string LeafProxy::basename() const
 {
         validate();
-        init_leaf();
-        return the_leaf->basename();
+        // If the leaf is loaded, we can return the basename.  If not,
+        // don't load just to compute the name.  Rather, init without
+        // loading, compute the name, and then toss the pointer.
+        if(the_leaf)
+                return the_leaf->basename();
+        init_leaf(false);
+        string out_base_name(the_leaf->basename());
+        delete_leaf();
+        return out_base_name;
 }
 
 
@@ -285,27 +292,51 @@ void LeafProxy::erase()
 /*
   Load the leaf if its file exists.  Otherwise just initialize the leaf.
 */
-void LeafProxy::init_leaf() const
+void LeafProxy::init_leaf(bool do_load) const
 {
         validate();
-        if(!the_leaf)
-                the_leaf = new Leaf(password, input_base_name, input_dir_name);
+        if(the_leaf)
+                return;
+        the_leaf = new Leaf(password, input_base_name, input_dir_name, do_load);
         validate();
 }
 
 
 /*
-  Confirm that all is well.
+  Clean up the_leaf pointer.
 */
-void LeafProxy::validate() const
+void LeafProxy::delete_leaf() const
 {
+        if(the_leaf)
+                delete the_leaf;
+        the_leaf = NULL;
+}
+
+
+
+/*
+  Confirm that all is well.
+
+  If force_load is true, we load every leaf to make sure it really
+  does load and is consistent.
+*/
+void LeafProxy::validate(bool force_load) const
+{
+        if(force_load) {
+                init_leaf();    // which will in turn re-call validate()
+                return;
+        }
         if(!the_leaf)
                 return;
         assert(valid);
         assert((void *)the_leaf > (void *)0x1FF); // kludge, catch some bad pointers
         // Is it worth making a password accessor in leaf just to check this?
+        // Indeed, does it even need to be true?  We could, in priciple, have
+        // different passwords for each leaf.
         //assert(password == the_leaf->password);
-        assert("" == cached_key || cached_key == the_leaf->key());
+        if(the_leaf->is_loaded() &&
+           ("" != cached_key && cached_key != the_leaf->key()))
+                throw(runtime_error("Bad cached key."));
         the_leaf->validate();
 }
 

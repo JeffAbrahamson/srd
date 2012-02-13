@@ -59,7 +59,7 @@ namespace {
                       leaf_visitor *);
         bool do_import(const string password, const string filename);
         bool do_create(const string password);
-
+        bool do_validate(const string password);
 
 
         BPO::variables_map parse_options(int argc, char *argv[])
@@ -95,7 +95,9 @@ namespace {
                          "by -f:  each line must either be \"[KEY]\" "
                          "for key KEY or else begin with two spaces of indent (which are "
                          "disgarded during the input) for data (payload) portion associated "
-                         "with the most recent key line.");
+                         "with the most recent key line.")
+                        ("validate,V",
+                         "Confirm that all records are loadable and consistent");
 
                 BPO::options_description matching("Matching options");
                 matching.add_options()
@@ -615,6 +617,37 @@ namespace {
                 }
                 return 0;
         }
+
+
+
+        /*
+          Instantiate the root and force validation.
+          Return zero if all is well, non-zero otherwise.
+        */
+        bool do_validate(const string password)
+        {
+                try {
+                        Root root(password, "");
+                        try {
+                                root.validate(true);
+                        }
+                        catch(runtime_error &e) {
+                                cout << "Validation failed: forced validation failed." << endl;
+                                cout << e.what() << endl;
+                                return 1;
+                        }
+                }
+                catch(runtime_error &e) {
+                        cout << "Validation failed:  root did not instantiate." << endl;
+                        cout << e.what() << endl;
+                        return 1;
+                }
+                catch(...) {
+                        cout << "catch all" << endl;
+                        return 1;
+                }
+                return 0;
+        }
 }
 
 
@@ -655,6 +688,9 @@ int main(int argc, char *argv[])
         if(options.count("create") > 0)
                 if(do_create(passwd))
                         return 1; // password mismatch
+
+        if(options.count("validate") > 0)
+                return(do_validate(passwd));
 
         if(options.count("shell")) {
                 do_shell(passwd);

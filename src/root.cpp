@@ -303,15 +303,18 @@ void Root::commit()
 /*
   Confirm that all is well.
   It is an error if all is not, and we will die.
+
+  If force_load is true, we load every leaf to make sure it really
+  does load and is consistent.
 */
-void Root::validate()
+void Root::validate(bool force_load) const
 {
         assert(valid);
         assert(password.size() > 0);
         // Validate each of the leaf proxies.  Note that this won't cause them to load.
-        for(iterator it = begin(); it != end(); it++) {
+        for(const_iterator it = begin(); it != end(); it++) {
                 assert((*it).first == (*it).second.basename());
-                (*it).second.validate();
+                (*it).second.validate(force_load);
         }
         assert(leaf_names.size() == 0);
 }
