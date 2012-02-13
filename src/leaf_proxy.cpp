@@ -119,15 +119,20 @@ LeafProxy &LeafProxy::operator=(const LeafProxy &other)
 
   This is more efficient than subsequent calls to key(string) and
   payload(string), since it does a single commit on the leaf.
+
+  Return whether or not the key has changed so that the client can
+  take action if needed.
 */
-void LeafProxy::set(const string &in_key, const string &in_payload)
+bool LeafProxy::set(const string &in_key, const string &in_payload)
 {
         init_leaf();
         the_leaf->key(in_key);
         the_leaf->payload(in_payload);
+        bool key_changed = (cached_key != in_key);
         cached_key = in_key;
         commit();
         validate();
+        return key_changed;
 }
 
 

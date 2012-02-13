@@ -207,7 +207,8 @@ void Root::set_leaf(const string &proxy_key,
         if(end() == it)
                 throw(runtime_error("Key not found."));
         LeafProxy &proxy = it->second;
-        proxy.set(key, payload);
+        if(proxy.set(key, payload))
+                modified = true;
         validate();
 }
 

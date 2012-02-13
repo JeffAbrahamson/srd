@@ -279,7 +279,7 @@ generate a name. */
                         return key() > rhs.key();
                 }
 
-                void set(const std::string &in_key, const std::string &in_payload);
+                bool set(const std::string &in_key, const std::string &in_payload);
 
                 void key_cache(const std::string &in) { cached_key = in; validate(); }
                 void key(const std::string &in_key);

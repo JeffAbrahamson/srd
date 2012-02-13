@@ -83,6 +83,7 @@ test : $(TESTS)
 	./test-passwd.sh
 	./test-delete.sh
 	./test-binary.sh
+	./test-key-change.sh
 
 %_test : %_test.o test_text.o mode.o $(OBJECT)
 	$(GCC) -o $@ $^ $(LIBS)
