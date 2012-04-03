@@ -25,6 +25,7 @@
 
 #include <algorithm>
 #include <assert.h>
+#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/interprocess/sync/file_lock.hpp>
@@ -367,6 +368,34 @@ generate a name. */
           This is a separate class so that we can filter on search results.
         */
         
+
+        // Helper classes for abstracting string match
+        struct StringMatcher {
+                //virtual const bool operator()(const std::string &in_a, const std::string &in_b) const = 0;
+                virtual const bool operator()(const std::string &in_a, const std::string &in_b) const {
+                        std::cerr << "():  Fail base" << std::endl; return false; };
+                //virtual const bool contains(const std::string &in_a, const std::string &in_b) const = 0;
+                virtual const bool contains(const std::string &in_a, const std::string &in_b) const {
+                        std::cerr << "contains:  Fail base" << std::endl; return false; };
+                //virtual const int id() const { return 1; };
+        };
+        
+        struct IdentStringMatcher : public StringMatcher {
+                virtual const bool operator()(const std::string &in_a, const std::string &in_b) const
+                { return in_a == in_b; }
+                virtual const bool contains(const std::string &in_a, const std::string &in_b) const
+                { return in_a.find(in_b) != std::string::npos; }
+                //virtual const int id() const { return 2; };
+        };
+        
+        struct UpperStringMatcher : public StringMatcher {
+                virtual const bool operator()(const std::string &in_a, const std::string &in_b) const
+                { return boost::algorithm::to_upper_copy(in_a) == boost::algorithm::to_upper_copy(in_b); }
+                virtual const bool contains(const std::string &in_a, const std::string &in_b) const
+                { return boost::algorithm::to_upper_copy(in_a).find(boost::algorithm::to_upper_copy(in_b)) != std::string::npos; }
+                //virtual const int id() const { return 3; };
+        };
+
         
         class LeafProxyMap {
                 //public std::iterator<std::random_access_iterator_tag, LeafProxyMapInternalType::value_type>
@@ -401,11 +430,12 @@ generate a name. */
                                 return *this;
                         }
 
-                LeafProxyMap filter_keys(srd::vector_string, bool);
-                LeafProxyMap filter_payloads(srd::vector_string) ;
-                LeafProxyMap filter_keys_or_payloads(srd::vector_string,
-                                                     srd::vector_string,
-                                                     bool);
+                LeafProxyMap filter_keys(const srd::vector_string &, const bool exact, const StringMatcher &in_matcher);
+                LeafProxyMap filter_payloads(const srd::vector_string &, const StringMatcher &in_matcher);
+                LeafProxyMap filter_keys_or_payloads(const srd::vector_string &,
+                                                     const srd::vector_string &,
+                                                     const bool exact,
+                                                     const StringMatcher &in_matcher);
 
                 typedef std::set<LeafProxy, std::less<LeafProxy> > LPM_Set;
                 LPM_Set as_set() const;

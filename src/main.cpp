@@ -43,23 +43,26 @@ namespace {
 
         BPO::variables_map parse_options(int, char *[]);
         string get_password(const string prompt = "Password:  ");
-        void do_shell(const string);
-        bool change_password(const string);
-        void do_edit(const string,
-                     const vector_string,
-                     const vector_string,
-                     const vector_string,
-                     bool);
+        void do_shell(const string &);
+        bool change_password(const string &);
+        void do_edit(const string &,
+                     const vector_string &,
+                     const vector_string &,
+                     const vector_string &,
+                     const bool exact,
+                     const bool match_case_sensitive);
         class leaf_visitor;
         void do_match(Root &root,
-                      const vector_string,
-                      const vector_string,
-                      const vector_string,
-                      bool,
+                      const vector_string &,
+                      const vector_string &,
+                      const vector_string &,
+                      const bool exact,
+                      const StringMatcher &in_matcher,
                       leaf_visitor *);
-        bool do_import(const string password, const string filename);
-        bool do_create(const string password);
-        bool do_validate(const string password);
+        bool do_import(const string &password, const string &filename);
+        bool do_create(const string &password);
+        bool do_validate(const string &password);
+        const boost::shared_ptr<StringMatcher> string_matcher(const bool case_sensitive);
 
 
         BPO::variables_map parse_options(int argc, char *argv[])
@@ -108,7 +111,9 @@ namespace {
                         ("match-data,d", BPO::value<vector_string>(),
                          "Restrict to records whose data match")
                         ("exact-match,E",
-                         "Exact key match");
+                         "Exact key match")
+                        ("ignore-case,i",
+                         "Match without case");
 
                 BPO::options_description display("Display options");
                 display.add_options()
@@ -184,7 +189,7 @@ namespace {
 
 
 
-        void do_shell(const string password)
+        void do_shell(const string &password)
         {
                 // ################
                 cout << "do_shell() not yet implemented." << endl;
@@ -199,7 +204,7 @@ namespace {
           Return 0 on success.
           Return 1 on failure.
         */
-        bool change_password(const string password)
+        bool change_password(const string &password)
         {
                 Root old_root(password, "");
 
@@ -239,10 +244,11 @@ namespace {
            */
 
         LeafProxyMap get_leaf_proxy_map(Root &root,
-                                        const vector_string match_key,
-                                        const vector_string match_data,
-                                        const vector_string match_or,
-                                        const bool match_exact);
+                                        const vector_string &match_key,
+                                        const vector_string &match_data,
+                                        const vector_string &match_or,
+                                        const bool match_exact,
+                                        const StringMatcher &in_matcher);
         void user_add(Root &root);
         bool user_edit(string &key, string &payload);
 
@@ -336,13 +342,25 @@ namespace {
         private:
                 Root &the_root;
         };
-        
 
-        void do_edit(const string password,
-                            const vector_string match_key,
-                            const vector_string match_payload,
-                            const vector_string match_or,
-                            const bool match_exact)
+
+        /*
+          Utility function to provide a reference to a StringMatcher (via operator*).
+        */
+        const boost::shared_ptr<StringMatcher> string_matcher(const bool case_sensitive)
+        {
+                if(case_sensitive)
+                        return boost::shared_ptr<IdentStringMatcher>(new IdentStringMatcher());
+                return boost::shared_ptr<UpperStringMatcher>(new UpperStringMatcher());
+        }
+
+
+        void do_edit(const string &password,
+                     const vector_string &match_key,
+                     const vector_string &match_payload,
+                     const vector_string &match_or,
+                     const bool match_exact,
+                     const bool match_case_sensitive)
         {
                 Root root(password, "");
                 if(0 == match_key.size() && 0 == match_payload.size() && 0 == match_or.size()) {
@@ -350,8 +368,8 @@ namespace {
                         user_add(root);
                         return;
                 }
-                LeafProxyMap lpm = get_leaf_proxy_map(root, match_key, match_payload,
-                                                      match_or, match_exact);
+                LeafProxyMap lpm = get_leaf_proxy_map(root, match_key, match_payload, match_or, match_exact,
+                                                      *string_matcher(match_case_sensitive));
                 if(0 == lpm.size()) {
                         cout << "No record matches." << endl;
                         return;
@@ -378,10 +396,11 @@ namespace {
 
 
         void do_match(Root &root,
-                      const vector_string match_key,
-                      const vector_string match_payload,
-                      const vector_string match_or,
+                      const vector_string &match_key,
+                      const vector_string &match_payload,
+                      const vector_string &match_or,
                       const bool match_exact,
+                      const StringMatcher &in_matcher,
                       LeafVisitor *visitor)
         {
                 if(0 == match_key.size() && 0 == match_payload.size() && 0 == match_or.size()) {
@@ -391,7 +410,7 @@ namespace {
                         return;
                 }
                 LeafProxyMap lpm = get_leaf_proxy_map(root, match_key, match_payload,
-                                                      match_or, match_exact);
+                                                      match_or, match_exact, in_matcher);
 
                 (*visitor)(lpm);
         }
@@ -399,16 +418,17 @@ namespace {
 
 
         LeafProxyMap get_leaf_proxy_map(Root &root,
-                                        const vector_string match_key,
-                                        const vector_string match_payload,
-                                        const vector_string match_or,
-                                        const bool match_exact)
+                                        const vector_string &match_key,
+                                        const vector_string &match_payload,
+                                        const vector_string &match_or,
+                                        const bool match_exact,
+                                        const StringMatcher &in_matcher)
         {
-                LeafProxyMap lpm = root.filter_keys(match_key, match_exact);
+                LeafProxyMap lpm = root.filter_keys(match_key, match_exact, in_matcher);
                 if(match_payload.size())
-                        lpm = lpm.filter_payloads(match_payload);
+                        lpm = lpm.filter_payloads(match_payload, in_matcher);
                 if(match_or.size())
-                        lpm = lpm.filter_keys_or_payloads(match_or, match_or, match_exact);
+                        lpm = lpm.filter_keys_or_payloads(match_or, match_or, match_exact, in_matcher);
                 return lpm;
         }
 
@@ -496,7 +516,7 @@ namespace {
           Query the user to confirm correct parsing.
           Commit the change on user confirmation.
         */
-        bool do_import(const string password, const string filename)
+        bool do_import(const string &password, const string &filename)
         {
                 vector<pair<string, string> > incoming = import_read_file(filename);
                 if(0 == incoming.size()) {
@@ -594,7 +614,7 @@ namespace {
           Return 0 on success.
           Return 1 on failure.
         */
-        bool do_create(const string password)
+        bool do_create(const string &password)
         {
                 if(!mode(Testing)) {
                         // When testing, password is in the clear on the commandline
@@ -624,7 +644,7 @@ namespace {
           Instantiate the root and force validation.
           Return zero if all is well, non-zero otherwise.
         */
-        bool do_validate(const string password)
+        bool do_validate(const string &password)
         {
                 try {
                         Root root(password, "");
@@ -677,6 +697,7 @@ int main(int argc, char *argv[])
 
         bool is_test = options.count("TEST") > 0;
         mode(Testing, is_test);
+        bool match_case_sensitive = (options.count("ignore-case") == 0);
 
         string passwd;
         if(is_test)
@@ -740,7 +761,7 @@ int main(int argc, char *argv[])
                 cout << "match-exact=" << match_exact << endl;
         
         if(options.count("edit")) {
-                do_edit(passwd, match_key, match_data, match_or, match_exact);
+                do_edit(passwd, match_key, match_data, match_or, match_exact, match_case_sensitive);
                 return 0;
         }
 
@@ -758,7 +779,8 @@ int main(int argc, char *argv[])
                                           (options.count("grep") > 0) ?
                                           options["grep"].as<string>() : string());
         }
-        do_match(root, match_key, match_data, match_or, match_exact, lv);
+        do_match(root, match_key, match_data, match_or, match_exact,
+                 *string_matcher(match_case_sensitive), lv);
         delete lv;
         return 0;
 }

@@ -85,7 +85,7 @@ namespace {
                                 // So we are expecting (key, payload)
                                 vector_string payloads_to_find;
                                 payloads_to_find.push_back(*it);
-                                LeafProxyMap results = root.filter_payloads(payloads_to_find);
+                                LeafProxyMap results = root.filter_payloads(payloads_to_find, IdentStringMatcher());
                                 if(0 == results.size())
                                         error_count++;
                         }
@@ -139,7 +139,7 @@ namespace {
                 int ret = 0;
                 vector_string key_pattern;
                 key_pattern.push_back(text.first);
-                LeafProxyMap key_results = root.filter_keys(key_pattern, false);
+                LeafProxyMap key_results = root.filter_keys(key_pattern, false, IdentStringMatcher());
                 if(key_results.size() != 1) {
                         cout << "Key \"" << text.first << ":  "
                              << "Found " << key_results.size() << " keys expected 1."
@@ -149,7 +149,7 @@ namespace {
 
                 vector_string payload_pattern;
                 payload_pattern.push_back(text.second);
-                LeafProxyMap payload_results = root.filter_payloads(payload_pattern);
+                LeafProxyMap payload_results = root.filter_payloads(payload_pattern, IdentStringMatcher());
                 if(payload_results.size() != 1) {
                         cout << "Payload \"" << text.second << "\":  "
                              << "Found " << payload_results.size() << " leaves, expected 1."
@@ -159,7 +159,7 @@ namespace {
 
                 payload_pattern.clear();
                 payload_pattern.push_back(text.second.substr(3,8));
-                payload_results = root.filter_keys(key_pattern, false).filter_payloads(payload_pattern);
+                payload_results = root.filter_keys(key_pattern, false, IdentStringMatcher()).filter_payloads(payload_pattern, IdentStringMatcher());
                 if(payload_results.size() != 1) {
                         cout << "Payload \"" << text.second << "(3,8)\":  "
                              << "Found " << payload_results.size() << " leaves, expected 1."
@@ -291,7 +291,7 @@ namespace {
                                 // So we are expecting (key, payload)
                                 vector_string payloads_to_find;
                                 payloads_to_find.push_back(*it);
-                                LeafProxyMap results = new_root.filter_payloads(payloads_to_find);
+                                LeafProxyMap results = new_root.filter_payloads(payloads_to_find, IdentStringMatcher());
                                 if(0 == results.size())
                                         error_count++;
                         }

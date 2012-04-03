@@ -41,7 +41,7 @@ for f in $poems; do
     ./srd -T $pass "$key" | perl -pwe 's/^  //;' > $tmp_file
     cmp --quiet $f $tmp_file
     if [ 0 != $? ]; then 
-	echo Partial match test failed.
+	echo Partial match test failed: $f
 	exit 1;
     fi
 done
@@ -63,7 +63,7 @@ payload_word="fired the shot"
 ./srd -T $pass -d "$payload_word" | perl -pwe 's/^  //;' > $tmp_file
 cmp --quiet $f $tmp_file
 if [ 0 != $? ]; then 
-    echo Partial match test failed.
+    echo Partial payload match test failed: $f
     exit 1;
 fi
 
