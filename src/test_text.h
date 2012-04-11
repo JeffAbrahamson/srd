@@ -33,6 +33,7 @@ namespace srd {
         
         srd::vector_string test_text();
         std::map<std::string, std::string> orderly_text();
+        std::map<std::string, std::string> case_text();
 }
 
 

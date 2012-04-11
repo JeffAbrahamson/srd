@@ -36,14 +36,6 @@ using namespace std;
 
 namespace {
 
-        int test_root_basic(string password);
-        int test_root_singles();
-        int test_root_change_password();
-        int test_ordering();
-        bool confirm_ordering(Root &root);
-        int confirm_once(Root &root, pair<string, string> text);
-
-
         /*
           Message key is hash of message.
           Password is hash of key.
@@ -96,41 +88,6 @@ namespace {
 
 
         /*
-          Exercise root with distinct keys and known messages.
-        */
-        int test_root_singles()
-        {
-                int error_count = 0;
-                map<string, string> text = orderly_text();
-                // A new password to guarantee a new root.
-                // But mode(Testing) is still true, so we'll nonetheless
-                // use the testing directory.  It will just have an additional
-                // root (and leaves) stored in it.
-                string password = pseudo_random_string(15);
-                {
-                        // Instantiate and add (key,value) pairs
-                        Root root(password, "", true);
-                        // Using a std::for_each and boost::bind here would add to a
-                        // temporary object, so iterate by hand.  Is there a better way?
-                        for(map<string, string>::const_iterator it = text.begin();
-                            it != text.end();
-                            it++) {
-                                root.add_leaf(it->first, it->second, false);
-                        }
-                        root.commit();
-                        // Read-only, but that's fine.  Probably making an unnecessary copy.
-                        int errors = count_if(text.begin(),
-                                              text.end(),
-                                              boost::bind(&confirm_once, root, _1));
-                        error_count += errors;
-                }
-        
-                return error_count;
-        }
-
-
-
-        /*
           Check that each (key, value) pair in text appears precisely once in root.
           Return the number of errors found, so 0 assuming all is well.
         */
@@ -168,6 +125,136 @@ namespace {
                 }
         
                 return ret;
+        }
+
+
+
+        /*
+          Exercise root with distinct keys and known messages.
+        */
+        int test_root_singles(const map<string, string> &text)
+        {
+                cout << "test_root_singles()" << endl;
+                int error_count = 0;
+                // A new password to guarantee a new root.
+                // But mode(Testing) is still true, so we'll nonetheless
+                // use the testing directory.  It will just have an additional
+                // root (and leaves) stored in it.
+                string password = pseudo_random_string(15);
+                {
+                        // Instantiate and add (key,value) pairs
+                        Root root(password, "", true);
+                        // Using a std::for_each and boost::bind here would add to a
+                        // temporary object, so iterate by hand.  Is there a better way?
+                        for(map<string, string>::const_iterator it = text.begin();
+                            it != text.end();
+                            it++) {
+                                root.add_leaf(it->first, it->second, false);
+                        }
+                        root.commit();
+                        // Read-only, but that's fine.  Probably making an unnecessary copy.
+                        int errors = count_if(text.begin(),
+                                              text.end(),
+                                              boost::bind(&confirm_once, root, _1));
+                        error_count += errors;
+                }
+        
+                return error_count;
+        }
+
+
+        /*
+          Check that each key in text appears precisely twice in root.
+          Check that each value in text appears precisely twice in root.
+          Return the number of errors found, so 0 assuming all is well.
+        */
+        int confirm_twice(Root &root, const pair<string, string> &text)
+        {
+                int ret = 0;
+                vector_string key_pattern;
+                key_pattern.push_back(text.first);
+                LeafProxyMap key_results = root.filter_keys(key_pattern, false, UpperStringMatcher());
+                if(key_results.size() != 2) {
+                        cout << "Key \"" << text.first << ":  "
+                             << "Found " << key_results.size() << " keys expected 2."
+                             << endl;
+                        ret++;
+                }
+
+                vector_string payload_pattern;
+                payload_pattern.push_back(text.second);
+                LeafProxyMap payload_results = root.filter_payloads(payload_pattern, UpperStringMatcher());
+                if(payload_results.size() != 2) {
+                        cout << "Payload \"" << text.second << "\":  "
+                             << "Found " << payload_results.size() << " leaves, expected 2."
+                             << endl;
+                        ret++;
+                }
+
+                return ret;
+        }
+
+
+
+        /*
+          Same as test_root_singles, but match case insensitive and
+          confirm that each key and each value appears exactly twice.
+        */
+        int test_root_doubles(const map<string, string> &text)
+        {
+                cout << "test_root_doubles()" << endl;
+                int error_count = 0;
+                // A new password to guarantee a new root.
+                // But mode(Testing) is still true, so we'll nonetheless
+                // use the testing directory.  It will just have an additional
+                // root (and leaves) stored in it.
+                string password = pseudo_random_string(15);
+                {
+                        // Instantiate and add (key,value) pairs
+                        Root root(password, "", true);
+                        // Using a std::for_each and boost::bind here would add to a
+                        // temporary object, so iterate by hand.  Is there a better way?
+                        for(map<string, string>::const_iterator it = text.begin();
+                            it != text.end();
+                            it++) {
+                                root.add_leaf(it->first, it->second, false);
+                        }
+                        root.commit();
+                        // Read-only, but that's fine.  Probably making an unnecessary copy.
+                        int errors = count_if(text.begin(),
+                                              text.end(),
+                                              boost::bind(&confirm_twice, root, _1));
+                        error_count += errors;
+                }
+        
+                return error_count;
+        }
+        
+
+
+        /*
+          Return true if leaves are ordered.
+          Return false if not.
+        */
+        bool confirm_ordering(Root &root)
+        {
+                int errors = 0;
+                string last_key;        // any key is >= ""
+                LeafProxyMap::LPM_Set leaves = root.as_set();
+                assert(leaves.size() == root.size());
+                for(LeafProxyMap::LPM_Set::iterator it = leaves.begin();
+                    it != leaves.end();
+                    it++) {
+                        // std::set iterators are const, since we can't modify
+                        // set elements.
+                        const string key((*it).key());
+                        if(key < last_key)
+                                errors++;
+                        last_key = key;
+                }
+                if(errors > 0)
+                        cout << "Found " << errors << " ordering errors." << endl;
+                return 0 == errors;
         }
 
 
@@ -215,33 +302,6 @@ namespace {
                         cout << "  ...done in " << end_time - start_time << " seconds." << endl;
                 }
                 return 0;
-        }
-
-
-
-        /*
-          Return true if leaves are ordered.
-          Return false if not.
-        */
-        bool confirm_ordering(Root &root)
-        {
-                int errors = 0;
-                string last_key;        // any key is >= ""
-                LeafProxyMap::LPM_Set leaves = root.as_set();
-                assert(leaves.size() == root.size());
-                for(LeafProxyMap::LPM_Set::iterator it = leaves.begin();
-                    it != leaves.end();
-                    it++) {
-                        // std::set iterators are const, since we can't modify
-                        // set elements.
-                        const string key((*it).key());
-                        if(key < last_key)
-                                errors++;
-                        last_key = key;
-                }
-                if(errors > 0)
-                        cout << "Found " << errors << " ordering errors." << endl;
-                return 0 == errors;
         }
 
 
@@ -313,9 +373,12 @@ int main(int argc, char *argv[])
         { Root(password, "", true); } // Create this root
         int err_count = test_root_basic(password);
         err_count += test_root_basic(password);
-        err_count += test_root_singles();
+        err_count += test_root_singles(orderly_text());
         err_count += test_root_change_password();
         err_count += test_ordering();
+        map<string, string> doubles = case_text();
+        err_count += test_root_singles(doubles);
+        err_count += test_root_doubles(doubles);
         
         if(err_count)
                 cout << "Errors (" << err_count << ") in test!!" << endl;

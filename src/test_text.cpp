@@ -93,3 +93,26 @@ map<string, string> srd::orderly_text()
         return text;
 }
 
+
+/*
+  Test corpus for case-insensitive search.
+  Case sensitive, unique keys and values.
+  Case insensitive, each key is repeated twice, as is each value.
+*/
+map<string, string> srd::case_text()
+{
+        map<string, string> text;
+        text["A"] = "The sun was shining on the sea";
+        text["a"] = "the sun was shining on the sea";
+        text["B"] = "Shining with all his might";
+        text["b"] = "shining with all his might";
+        text["C"] = "He did his very best to make the billows smooth and bright";
+        text["c"] = "he DID his VERY best TO make THE billows SMOOTH and BRIGHT";
+        text["D"] = "And this was odd because it was the middle of the night.";
+        text["d"] = "the moon was shining sulkily";
+        text["E"] = "The moon was shining sulkily";
+        text["e"] = "And this was ODD because it was the middle of the night.";
+
+        return text;
+}
+
