@@ -113,7 +113,7 @@ namespace {
                         ("exact-match,E",
                          "Exact key match")
                         ("ignore-case,i",
-                         "Match without case");
+                         "Match without case.  (Does not affect -g,--grep.)");
 
                 BPO::options_description display("Display options");
                 display.add_options()
