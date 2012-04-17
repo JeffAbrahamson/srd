@@ -73,6 +73,8 @@ namespace {
                          "Produce help message")
                         ("read-only,R",
                          "Read-only, do not persist data")
+                        ("database-dir", BPO::value<string>(),
+                         "Name of directory to use for database instead of default")
                         ("verbose,v",
                          "Emit debugging information");
 
@@ -704,7 +706,7 @@ int main(int argc, char *argv[])
                 cerr << "(Error is fatal, quitting before doing anything.)" << endl;
                 return 1;
         }
-
+        
         const bool verbose = options.count("verbose") > 0;
         mode(Verbose, verbose);
         mode(ReadOnly, options.count("read-only") > 0);
@@ -712,6 +714,9 @@ int main(int argc, char *argv[])
         bool is_test = options.count("TEST") > 0;
         mode(Testing, is_test);
         bool match_case_sensitive = (options.count("ignore-case") == 0);
+
+        if(options.count("database-dir"))
+                set_base_dir(options["database-dir"].as<string>());
 
         string passwd;
         if(is_test)

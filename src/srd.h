@@ -102,11 +102,13 @@ namespace srd {
         /* ************************************************************ */
         /* File */
 
+        void set_base_dir(const std::string &in_dir);
+        
         /*
           A simple mix-in class to handle reading and writing (binary) files,
           as well as testing for existence and removing them.
 
-          This could surely be done more cleverly.  Or already has been.
+          This could surely be done more cleverly.  Or already has been.  (Cf. boost filesystem)
 
           At construction time, we can optionally specify a directory and a name
           (base_name) for the file.  Otherwise, these are determined following

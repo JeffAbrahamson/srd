@@ -41,6 +41,39 @@ using namespace srd;
 using namespace std;
 
 
+
+namespace {
+
+        string base_dir;
+        
+
+        string &get_base_dir()
+        {
+                // Make sure it's hard to set after first use
+                if(base_dir.empty())
+                        base_dir = string(getenv("HOME")) + "/srd/";
+                return base_dir;
+        }
+        
+}
+
+
+
+/*
+  Set base directory.  This must be called before anything tries to
+  use the base directory.  It may only be called once.
+*/
+void srd::set_base_dir(const std::string &in_dir)
+{
+        // Illegal to set more than once or to set after use
+        assert("" == base_dir);
+        if(mode(Verbose))
+                cout << "Setting base dir to " << in_dir << endl;
+        base_dir = in_dir;
+}
+
+
+
 /*
   Create a file if we know something about what to call it.
 */
@@ -65,7 +98,7 @@ string File::dirname()
                         spath << "srd-test-0000-" << getenv("LOGNAME");
                         m_dir_name = spath.str();
                 } else
-                        m_dir_name = string(getenv("HOME")) + "/srd/";
+                        m_dir_name = get_base_dir();
         }
         if(!m_dir_verified && mkdir(m_dir_name.c_str(), 0700) && EEXIST != errno) {
                 cerr << "  Error creating directory \""
