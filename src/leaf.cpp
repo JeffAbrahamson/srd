@@ -67,8 +67,10 @@ Leaf::Leaf(const string &pass,
                 // the key or the payload.  (We assert that this is
                 // respected.)  Dynamic loading causes const problems,
                 // the backflips for which seem unreasonable.
+                /*
                 if(mode(Verbose))
                         cout << "Initializing leaf without load." << endl;
+                */
                 return;
         }
         load();
@@ -93,6 +95,8 @@ Leaf::~Leaf()
 */
 void Leaf::load()
 {
+        if(m_loaded)
+                return;
         if(mode(Verbose))
                 cout << "Loading leaf." << endl;
         string plain_text = decrypt(file_contents(), m_password);
