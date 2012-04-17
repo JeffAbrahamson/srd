@@ -92,6 +92,13 @@ Leaf::~Leaf()
 
 /*
   Load ourselves from the file.
+
+  It is possible that we reload leaves when we don't need to.  See the
+  note at LeafProxy::operator=().  Brief, we're protecting against a
+  harder problem of making sure a leaf can't be loaded twice and
+  modified separately in two copies.  That problem isn't
+  insurmountable, but neither is it currently important to fix in the
+  context of srd.
 */
 void Leaf::load()
 {
