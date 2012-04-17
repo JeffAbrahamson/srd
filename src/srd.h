@@ -85,6 +85,7 @@ namespace srd {
         enum Mode {
                 Verbose,
                 Testing,
+                ReadOnly,
         };
 
         void mode(const Mode m, const bool new_state);
@@ -133,10 +134,10 @@ namespace srd {
                 bool underlying_is_modified();
                 
                 void rm();
-                bool exists();  /* Can't be const, because asking for the name might
-
-generate a name. */
-
+                bool exists();  /* Can't be const, because asking for
+                                   the name might generate a name. */
+                bool is_writeable();
+                bool dir_is_writeable();
                 
         protected:
 

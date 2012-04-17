@@ -37,8 +37,13 @@ using namespace std;
   RAII lock.
 */
 Lock::Lock(const string &filename)
-        : m_filename(filename), m_must_remove(false)
+        : m_filename(filename), m_must_remove(false), m_lock(0)
 {
+        if(mode(ReadOnly)) {
+                if(mode(Verbose))
+                        cout << "Skipping lock while read-only" << endl;
+                return;
+        }
         // This will likely fail for all but regular files.
         // It will also fail if we can't write the file.
         if(!file_exists(m_filename)) {

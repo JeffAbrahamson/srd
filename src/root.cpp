@@ -62,7 +62,13 @@ Root::Root(const string &pass, const string dir_name, const bool create)
                         throw(runtime_error("Can't create existing root."));
                 throw(runtime_error("Root doesn't exist.  (Incorrect password?)"));
         }
+        if(!is_writeable())
+                mode(ReadOnly, true);
         if(!exists()) {
+                if(mode(ReadOnly)) {
+                        cerr << "Refusing to create new root node while read-only." << endl;
+                        throw("No persistence permitted while read-only.");
+                }
                 cout << "Root node does not exist, will create." << endl;
                 if(mode(Verbose))
                         cout << "    [" << full_path() << "]" << endl;
@@ -88,6 +94,10 @@ void Root::load()
         }
         if(mode(Verbose))
                 cout << "Loading root." << endl;
+        if(!mode(ReadOnly) && (!is_writeable() || !dir_is_writeable())) {
+                cout << "Opening database in read-only mode." << endl;
+                mode(ReadOnly, true);
+        }
         clear();                // Drop existing LeafProxy's, if any
         string plain_text;
         {
@@ -277,7 +287,7 @@ Root Root::change_password(const std::string &new_password)
 void Root::commit()
 {
         validate();
-        if(!modified)
+        if(!modified || mode(ReadOnly))
                 return;
         for_each(begin(),
                  end(),

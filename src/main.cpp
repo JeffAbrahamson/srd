@@ -71,6 +71,8 @@ namespace {
                 general.add_options()
                         ("help,h",
                          "Produce help message")
+                        ("read-only,R",
+                         "Read-only, do not persist data")
                         ("verbose,v",
                          "Emit debugging information");
 
@@ -362,7 +364,18 @@ namespace {
                      const bool match_exact,
                      const bool match_case_sensitive)
         {
+                if(mode(ReadOnly)) {
+                        cerr << "Database is read-only.  Edit not permitted." << endl;
+                        return;
+                }
                 Root root(password, "");
+                if(mode(ReadOnly)) {
+                        // Maybe instantiating the root discovered
+                        // that we don't have write permission.
+                        cerr << "Database is read-only.  Edit not permitted." << endl;
+                        return;
+                }
+
                 if(0 == match_key.size() && 0 == match_payload.size() && 0 == match_or.size()) {
                         // Edit request with no search criteria means create new
                         user_add(root);
@@ -694,7 +707,8 @@ int main(int argc, char *argv[])
 
         const bool verbose = options.count("verbose") > 0;
         mode(Verbose, verbose);
-
+        mode(ReadOnly, options.count("read-only") > 0);
+        
         bool is_test = options.count("TEST") > 0;
         mode(Testing, is_test);
         bool match_case_sensitive = (options.count("ignore-case") == 0);

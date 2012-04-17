@@ -98,6 +98,7 @@ int main(int argc, char *argv[])
 
         mode(Verbose, false);
         mode(Testing, true);
+        mode(ReadOnly, false);
         
         int err_count = 0;
         vector_string messages = test_text();

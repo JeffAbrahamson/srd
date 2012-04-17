@@ -258,7 +258,7 @@ string LeafProxy::basename() const
 void LeafProxy::commit()
 {
         validate();
-        if(the_leaf) {
+        if(the_leaf && !mode(ReadOnly)) {
                 the_leaf->commit();
                 validate();
                 if(mode(Verbose))

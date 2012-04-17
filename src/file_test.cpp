@@ -20,11 +20,11 @@
 
 #include <algorithm>
 #include <boost/interprocess/sync/file_lock.hpp>
-#include <errno.h>
+#include <cerrno>
 #include <iostream>
 #include <stdexcept>
 #include <string>
-#include <string.h>
+#include <cstring>
 #include <unistd.h>
 #include <vector>
 
@@ -124,8 +124,43 @@ namespace {
                 //f1.rm();
                 return err_count;
         }
-}
 
+
+        /*
+          Test that we can tell if files and directories are writeable or not.
+        */
+        int test_is_writeable(const string dir, const string base, const bool result_expected)
+        {
+                File my_file(base, dir);
+                if(my_file.is_writeable() == result_expected)
+                        return 0;
+                string errstr(strerror(errno));
+                cout << "test_is_writeable(" << dir << ", " << base << ", "
+                     << result_expected << ")" << endl;
+                cout << "    [" << my_file.full_path() << "]" << endl;
+                cout << "    [" << errstr << "]" << endl;
+                return 1;
+        }
+
+
+        /*
+          Test that we can tell if directories are writeable or not.
+        */
+        int test_dir_is_writeable(const string dir, const bool result_expected)
+        {
+                File my_file(".", dir);
+                if(my_file.dir_is_writeable() != my_file.is_writeable())
+                        return 1;
+                if(my_file.dir_is_writeable() == result_expected)
+                        return 0;
+                string errstr(strerror(errno));
+                cout << "test_dir_is_writeable(" << dir << ", "
+                     << result_expected << ")" << endl;
+                cout << "    [" << my_file.full_path() << "]" << endl;
+                cout << "    [" << errstr << "]" << endl;
+                return 1;
+        }
+}
 
 
 int main(int argc, char *argv[])
@@ -134,6 +169,7 @@ int main(int argc, char *argv[])
         
         mode(Verbose, false);
         mode(Testing, true);
+        mode(ReadOnly, false);
         
         int err_count = 0;
         File f_tmp("", "/tmp/");
@@ -152,6 +188,16 @@ int main(int argc, char *argv[])
 
         err_count += test_modified();
 
+        err_count += test_is_writeable("/tmp", ".", true);
+        err_count += test_is_writeable("/var/log", ".", false); // or else your system is strange...
+        err_count += test_is_writeable("/dev", "null", true);
+        err_count += test_is_writeable("/var/log", "syslog", false);
+        
+        // or else your system is strange...
+        err_count += test_dir_is_writeable("/tmp", true);
+        err_count += test_dir_is_writeable("/dev", false);
+        err_count += test_dir_is_writeable("/var/log", false);
+        
         if(err_count)
                 cout << "Errors (" << err_count << ") in test!!" << endl;
         else

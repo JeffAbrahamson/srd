@@ -184,7 +184,7 @@ time_pair File::modtime(const bool silent)
         if(ret) {
                 cerr << "Failed to stat " << full_path() << ":" << endl;
                 cerr << "  " << strerror(errno) << endl;
-                throw(runtime_error("File::file_contents() failed to stat file"));
+                throw(runtime_error("File::modtime() failed to stat file"));
         }
         if(S_ISLNK(stat_buf.st_mode))
                 // At issue is that the view from different hosts
@@ -228,6 +228,7 @@ bool File::underlying_is_modified()
 */
 void File::rm()
 {
+        // We're const with respect to the class.
         file_rm(full_path());
 }
 
@@ -239,4 +240,36 @@ void File::rm()
 bool File::exists()
 {
         return file_exists(full_path());
+}
+
+
+bool File::is_writeable()
+{
+        int ret = access(full_path().c_str(), W_OK);
+        if(ret) {
+                if(ENOENT == errno)
+                        return dir_is_writeable();
+                if(EROFS == errno || EACCES == errno)
+                        return false;
+                string errstr(strerror(errno));
+                cerr << "[file] access(" << full_path() << "):" << errno << endl;
+                cerr << "  " << errstr << endl;
+                return false;
+        }
+        return true;
+}
+
+
+bool File::dir_is_writeable()
+{
+        int ret = access(dirname().c_str(), W_OK);
+        if(ret) {
+                if(EROFS == errno || EACCES == errno)
+                        return false;
+                string errstr(strerror(errno));
+                cerr << "[dir] access(" << full_path() << "):" << errno << endl;
+                cerr << "  " << errstr << endl;
+                return false;
+        }
+        return true;
 }

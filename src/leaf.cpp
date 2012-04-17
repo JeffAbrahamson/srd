@@ -115,7 +115,7 @@ void Leaf::load()
 void Leaf::commit()
 {
         validate();
-        if(!m_modified)
+        if(!m_modified || mode(ReadOnly))
                 return;
         ostringstream big_text_stream;
         boost::archive::text_oarchive oa(big_text_stream);

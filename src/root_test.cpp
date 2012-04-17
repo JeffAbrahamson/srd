@@ -368,6 +368,8 @@ int main(int argc, char *argv[])
         
         mode(Verbose, false);
         mode(Testing, true);
+        mode(ReadOnly, false);
+        
         string password = pseudo_random_string(20);
 
         { Root(password, "", true); } // Create this root
