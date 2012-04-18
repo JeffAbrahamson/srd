@@ -202,7 +202,16 @@ namespace {
         }
 
 
-
+        /*
+          Authenticate once, then permit multiple queries.
+          If we implement this, we'll need to do a bit more work
+          to protect against leaves being modified externally.
+          In addition, the root currently protects itself by emitting
+          a warning about what has happened and then throwing (and
+          so exiting).  That's perhaps fine for the unlikely scenario
+          in a CLI program, but not so much if we are going to be persistant.
+          Cf. issue #1.
+        */
         void do_shell(const string &password)
         {
                 // ################
