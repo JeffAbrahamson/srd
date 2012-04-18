@@ -94,6 +94,20 @@ if [ "$results" != "$expected" ]; then
     exit 1;
 fi
 
+echo Test payload matching with multiple patterns
+results=$(./srd -T $pass -d this -d by)
+expected=$(echo '[Concord Hymn]'; echo '[The Raven]')
+if [ "$results" != "$expected" ]; then
+    echo Multi-pattern test failed.
+    exit 1;
+fi
+results=$(./srd -T $pass -d this -d by -J)
+expected=$(echo '[Concord Hymn]'; echo '[The Raven]'; echo '[The Walrus and the Carpenter]')
+if [ "$results" != "$expected" ]; then
+    echo Multi-pattern disjunction test failed.
+    exit 1;
+fi
+
 
 #echo Now test import on a new database
 pass=$(date +%s.%N)

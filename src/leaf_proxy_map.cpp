@@ -33,8 +33,12 @@ using namespace std;
   This is far more efficient than looking at payloads, as the leaf
   proxy caches the key, avoiding the need to load the leaf.  So we
   always begin by doing key search.
+
+  Key search is always a disjunction on the pattern space.
 */
-LeafProxyMap LeafProxyMap::filter_keys(const srd::vector_string &patterns, const bool exact, const StringMatcher &in_matcher)
+LeafProxyMap LeafProxyMap::filter_keys(const srd::vector_string &patterns,
+                                       const bool exact,
+                                       const StringMatcher &in_matcher)
 {
         if(0 == patterns.size())
                 // Empty pattern set should pass everything rather than exclude everything.
@@ -60,8 +64,12 @@ LeafProxyMap LeafProxyMap::filter_keys(const srd::vector_string &patterns, const
 
 /*
   Return leaf proxies for all leaves whose payload matches pattern.
+
+  Payload search is a conjunction on the pattern space unless disjunction == true.
 */
-LeafProxyMap LeafProxyMap::filter_payloads(const vector_string &patterns, const StringMatcher &in_matcher)
+LeafProxyMap LeafProxyMap::filter_payloads(const vector_string &patterns,
+                                           const bool disjunction,
+                                           const StringMatcher &in_matcher)
 {
         if(0 == patterns.size())
                 // Empty pattern set should pass everything rather than exclude everything.
@@ -69,14 +77,28 @@ LeafProxyMap LeafProxyMap::filter_payloads(const vector_string &patterns, const 
         LeafProxyMap results = LeafProxyMap();
         for(iterator it = begin(); it != end(); it++) {
                 LeafProxy &proxy = (*it).second;
-                bool found_in_this_proxy = false;
-                for(vector_string::const_iterator pat_it = patterns.begin();
-                    !found_in_this_proxy && pat_it != patterns.end();
-                    pat_it++) {
-                        if(in_matcher.contains(proxy.payload(), *pat_it)) {
-                                found_in_this_proxy = true;
-                                results[it->first] = proxy;
+                if(disjunction) {
+                        // disjunction
+                        bool found_in_this_proxy = false;
+                        for(vector_string::const_iterator pat_it = patterns.begin();
+                            !found_in_this_proxy && pat_it != patterns.end();
+                            pat_it++) {
+                                if(in_matcher.contains(proxy.payload(), *pat_it)) {
+                                        found_in_this_proxy = true;
+                                        results[it->first] = proxy;
+                                }
                         }
+                } else {
+                        // conjunction
+                        bool found_in_this_proxy = true;
+                        for(vector_string::const_iterator pat_it = patterns.begin();
+                            found_in_this_proxy && pat_it != patterns.end();
+                            pat_it++) {
+                                if(!in_matcher.contains(proxy.payload(), *pat_it))
+                                        found_in_this_proxy = false;
+                        }                        
+                        if(found_in_this_proxy)
+                                results[it->first] = proxy;
                 }
         }
         return results;
@@ -88,25 +110,20 @@ LeafProxyMap LeafProxyMap::filter_payloads(const vector_string &patterns, const 
   Return leaf proxies for all leaves whose key matches key_pattern or
   whose payload matches payload_pattern.
 */
-LeafProxyMap LeafProxyMap::filter_keys_or_payloads(const vector_string &key_patterns,
-                                                   const vector_string &payload_patterns,
+LeafProxyMap LeafProxyMap::filter_keys_or_payloads(const vector_string &patterns,
                                                    const bool exact,
                                                    const StringMatcher &in_matcher)
 {
-        if(0 == key_patterns.size() && 0 == payload_patterns.size())
+        if(0 == patterns.size())
                 // Empty pattern set should pass everything rather than exclude everything.
                 return *this;
-        if(0 == key_patterns.size())
-                return filter_keys(key_patterns, exact, in_matcher);
-        if(0 == payload_patterns.size())
-                return filter_payloads(payload_patterns, in_matcher);
         
         LeafProxyMap results = LeafProxyMap();
         for(iterator it = begin(); it != end(); it++) {
                 LeafProxy &proxy = (*it).second;
                 bool found_in_this_proxy = false;
-                for(vector_string::const_iterator pat_it = key_patterns.begin();
-                    !found_in_this_proxy && pat_it != key_patterns.end();
+                for(vector_string::const_iterator pat_it = patterns.begin();
+                    !found_in_this_proxy && pat_it != patterns.end();
                     pat_it++) {
                         if((exact && in_matcher(proxy.key(), *pat_it))
                            || (!exact && in_matcher.contains(proxy.key(), *pat_it))) {
@@ -114,8 +131,8 @@ LeafProxyMap LeafProxyMap::filter_keys_or_payloads(const vector_string &key_patt
                                 results[it->first] = proxy;
                         }
                 }
-                for(vector_string::const_iterator pat_it = payload_patterns.begin();
-                    !found_in_this_proxy && pat_it != payload_patterns.end();
+                for(vector_string::const_iterator pat_it = patterns.begin();
+                    !found_in_this_proxy && pat_it != patterns.end();
                     pat_it++) {
                         if(in_matcher.contains(proxy.payload(), *pat_it)) {
                                 found_in_this_proxy = true;

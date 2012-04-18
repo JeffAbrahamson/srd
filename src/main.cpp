@@ -50,13 +50,15 @@ namespace {
                      const vector_string &,
                      const vector_string &,
                      const bool exact,
-                     const bool match_case_sensitive);
+                     const bool disjunction,
+                     const StringMatcher &in_matcher);
         class leaf_visitor;
         void do_match(Root &root,
                       const vector_string &,
                       const vector_string &,
                       const vector_string &,
                       const bool exact,
+                      const bool disjunction,
                       const StringMatcher &in_matcher,
                       leaf_visitor *);
         bool do_import(const string &password, const string &filename);
@@ -111,13 +113,16 @@ namespace {
                         ("match-key,m", BPO::value<vector_string>(),
                          "Restrict to records whose keys match")
                         ("match-data-or-key,D", BPO::value<vector_string>(),
-                         "Consider key and data for match (i.e., logical or)")
+                         "Restrict to records whose key or data match")
                         ("match-data,d", BPO::value<vector_string>(),
-                         "Restrict to records whose data match")
+                         "Restrict to records whose data match all patterns (cf. -J)")
                         ("exact-match,E",
                          "Exact key match")
                         ("ignore-case,i",
-                         "Match without case.  (Does not affect -g,--grep.)");
+                         "Match without case.  (Does not affect -g,--grep.)")
+                        ("disjunction,J",
+                         "When matching multiple patterns against payloads with "
+                         "-d, --match-data, use inclusive or (any hit is sufficient)");
 
                 BPO::options_description display("Display options");
                 display.add_options()
@@ -146,10 +151,15 @@ namespace {
 
                 if(opt_map.count("help")) {
                         cout << "srd <options> [key-match-pattern]" << endl << endl;
-                        cout << "  Patterns for -m, -D, -d are comma-separated pattterns."
+                        cout << "  Pattern matching options (-m, -D, -d) may be repeated."
+                             << endl;
+                        cout << "    Multiple key patterns (-m) match as inclusive or." << endl;
+                        cout << "    Multiple payload patterns (-d) match as and (but cf. -J)." << endl;
+                        cout << "    Multiple key-or-payload patterns (-D) match as inclusive or."
                              << endl;
                         cout << "  Key-match-pattern, if present, is the same as specifying -m."
                              << endl;
+                        cout << "  To create a new record, use -e with no pattern." << endl;
                         cout << endl;
                 
                         cout << options << endl;
@@ -252,6 +262,7 @@ namespace {
                                         const vector_string &match_data,
                                         const vector_string &match_or,
                                         const bool match_exact,
+                                        const bool disjunction,
                                         const StringMatcher &in_matcher);
         void user_add(Root &root);
         bool user_edit(string &key, string &payload);
@@ -364,7 +375,8 @@ namespace {
                      const vector_string &match_payload,
                      const vector_string &match_or,
                      const bool match_exact,
-                     const bool match_case_sensitive)
+                     const bool disjunction,
+                     const StringMatcher &in_matcher)
         {
                 if(mode(ReadOnly)) {
                         cerr << "Database is read-only.  Edit not permitted." << endl;
@@ -383,8 +395,8 @@ namespace {
                         user_add(root);
                         return;
                 }
-                LeafProxyMap lpm = get_leaf_proxy_map(root, match_key, match_payload, match_or, match_exact,
-                                                      *string_matcher(match_case_sensitive));
+                LeafProxyMap lpm = get_leaf_proxy_map(root, match_key, match_payload, match_or,
+                                                      match_exact, disjunction, in_matcher);
                 if(0 == lpm.size()) {
                         cout << "No record matches." << endl;
                         return;
@@ -415,17 +427,18 @@ namespace {
                       const vector_string &match_payload,
                       const vector_string &match_or,
                       const bool match_exact,
+                      const bool disjunction,
                       const StringMatcher &in_matcher,
                       LeafVisitor *visitor)
         {
                 if(0 == match_key.size() && 0 == match_payload.size() && 0 == match_or.size()) {
-                        // Edit request with no search criteria means create new
                         cerr << "No match criteria provided." << endl;
                         cerr << "To match all records, use an empty key (\"\")." << endl;
                         return;
                 }
                 LeafProxyMap lpm = get_leaf_proxy_map(root, match_key, match_payload,
-                                                      match_or, match_exact, in_matcher);
+                                                      match_or, match_exact, disjunction,
+                                                      in_matcher);
 
                 (*visitor)(lpm);
         }
@@ -437,13 +450,14 @@ namespace {
                                         const vector_string &match_payload,
                                         const vector_string &match_or,
                                         const bool match_exact,
+                                        const bool disjunction,
                                         const StringMatcher &in_matcher)
         {
                 LeafProxyMap lpm = root.filter_keys(match_key, match_exact, in_matcher);
                 if(match_payload.size())
-                        lpm = lpm.filter_payloads(match_payload, in_matcher);
+                        lpm = lpm.filter_payloads(match_payload, disjunction, in_matcher);
                 if(match_or.size())
-                        lpm = lpm.filter_keys_or_payloads(match_or, match_or, match_exact, in_matcher);
+                        lpm = lpm.filter_keys_or_payloads(match_or, match_exact, in_matcher);
                 return lpm;
         }
 
@@ -707,13 +721,14 @@ int main(int argc, char *argv[])
                 return 1;
         }
         
-        const bool verbose = options.count("verbose") > 0;
+        const bool verbose = (options.count("verbose") > 0);
         mode(Verbose, verbose);
         mode(ReadOnly, options.count("read-only") > 0);
         
         bool is_test = options.count("TEST") > 0;
         mode(Testing, is_test);
         bool match_case_sensitive = (options.count("ignore-case") == 0);
+        bool disjunction = (options.count("disjunction") > 0);
 
         if(options.count("database-dir"))
                 set_base_dir(options["database-dir"].as<string>());
@@ -780,7 +795,13 @@ int main(int argc, char *argv[])
                 cout << "match-exact=" << match_exact << endl;
         
         if(options.count("edit")) {
-                do_edit(passwd, match_key, match_data, match_or, match_exact, match_case_sensitive);
+                do_edit(passwd,
+                        match_key,
+                        match_data,
+                        match_or,
+                        match_exact,
+                        disjunction,
+                        *string_matcher(match_case_sensitive));
                 return 0;
         }
 
@@ -798,7 +819,7 @@ int main(int argc, char *argv[])
                                           (options.count("grep") > 0) ?
                                           options["grep"].as<string>() : string());
         }
-        do_match(root, match_key, match_data, match_or, match_exact,
+do_match(root, match_key, match_data, match_or, match_exact, disjunction,
                  *string_matcher(match_case_sensitive), lv);
         delete lv;
         return 0;

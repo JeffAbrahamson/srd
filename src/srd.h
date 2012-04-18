@@ -433,10 +433,13 @@ namespace srd {
                                 return *this;
                         }
 
-                LeafProxyMap filter_keys(const srd::vector_string &, const bool exact, const StringMatcher &in_matcher);
-                LeafProxyMap filter_payloads(const srd::vector_string &, const StringMatcher &in_matcher);
+                LeafProxyMap filter_keys(const srd::vector_string &,
+                                         const bool exact,
+                                         const StringMatcher &in_matcher);
+                LeafProxyMap filter_payloads(const srd::vector_string &,
+                                             const bool disjunction,
+                                             const StringMatcher &in_matcher);
                 LeafProxyMap filter_keys_or_payloads(const srd::vector_string &,
-                                                     const srd::vector_string &,
                                                      const bool exact,
                                                      const StringMatcher &in_matcher);
 
