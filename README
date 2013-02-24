@@ -45,9 +45,9 @@ Here's the usage message:
     srd <options> [key-match-pattern]
 
       Pattern matching options (-m, -D, -d) may be repeated.
-        Multiple key patterns (-m) match as inclusive or.
-        Multiple payload patterns (-d) match as and (but cf. -J).
-        Multiple key-or-payload patterns (-D) match as inclusive or.
+	Multiple key patterns (-m) match as inclusive or.
+	Multiple payload patterns (-d) match as and (but cf. -J).
+	Multiple key-or-payload patterns (-D) match as inclusive or.
       Key-match-pattern, if present, is the same as specifying -m.
       To create a new record, use -e with no pattern.
 
@@ -57,49 +57,53 @@ Here's the usage message:
       -h [ --help ]         Produce help message
       -R [ --read-only ]    Read-only, do not persist data
       --database-dir arg    Name of directory to use for database instead of 
-                            default
+			    default
       -v [ --verbose ]      Emit debugging information
 
     Actions (if none, then match):
       -e [ --edit ]         Edit record
       -x [ --delete ]       Delete the results of an (exact) key match.  
-                            Conceptually -E -m arg, can be used with -mDd.
+			    Conceptually -E -m arg, can be used with -mDd.
       -X [ --delete-all ]   Delete all matches.  Conceptually equivalent to -m arg,
-                            can be used with -mDd.  If more than one match, will 
-                            request confirmation.
+			    can be used with -mDd.  If more than one match, will 
+			    request confirmation.
       -p [ --passwd ]       Change password (no other options permitted)
       --create              Create database.  The database is identified by a hash 
-                            of the password, so --create distinguishes between 
-                            creating a new database and mistyping the password.
+			    of the password, so --create distinguishes between 
+			    creating a new database and mistyping the password.
       --import arg          Import a text file.  The format is the same as that 
-                            output by -f:  each line must either be "[KEY]" for key
-                            KEY or else begin with two spaces of indent (which are 
-                            disgarded during the input) for data (payload) portion 
-                            associated with the most recent key line.
+			    output by -f:  each line must either be "[KEY]" for key
+			    KEY or else begin with two spaces of indent (which are 
+			    disgarded during the input) for data (payload) portion 
+			    associated with the most recent key line.
       -V [ --validate ]     Confirm that all records are loadable and consistent
+      --checksum            Compute database checksum (keys and payload)
+      --checksum-by-key     Compute database checksum by key, restrictable by 
+			    matching options
 
     Matching options:
       -m [ --match-key ] arg         Restrict to records whose keys match
       -D [ --match-data-or-key ] arg Restrict to records whose key or data match
       -d [ --match-data ] arg        Restrict to records whose data match all 
-                                     patterns (cf. -J)
+				     patterns (cf. -J)
       -E [ --exact-match ]           Exact key match
       -i [ --ignore-case ]           Match without case.  (Does not affect 
-                                     -g,--grep.)
+				     -g,--grep.)
       -J [ --disjunction ]           When matching multiple patterns against 
-                                     payloads with -d, --match-data, use inclusive 
-                                     or (any hit is sufficient)
+				     payloads with -d, --match-data, use inclusive 
+				     or (any hit is sufficient)
 
     Display options:
       -k [ --keys-only ]     Display keys only (default true if multiple matches, 
-                             false for single match)
+			     false for single match)
       -f [ --full-display ]  Display full data (default true for single match, 
-                             false for multiple matches)
+			     false for multiple matches)
       -g [ --grep ] arg      Output filter for data
 
     Test options (don't use outside regression tests):
       -T [ --TEST ] arg     Test mode, use local data directory, specify password 
-                            on commandline
+			    on commandline
+
 
 Known issues / bugs
 
