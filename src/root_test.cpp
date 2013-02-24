@@ -391,7 +391,7 @@ int main(int argc, char *argv[])
         map<string, string> doubles = case_text();
         err_count += test_root_singles(doubles);
         err_count += test_root_doubles(doubles);
-        
+
         if(err_count)
                 cout << "Errors (" << err_count << ") in test!!" << endl;
         else

@@ -127,6 +127,38 @@ if [ "$results" != "$expected" ]; then
     exit 1;
 fi
 
+# Confirm that we can checksum the database
+results=$(./srd -T $pass --checksum)
+expected="jDYZanlcjxWIcTfrt8bZgcK7zTlVr6Fln/WKa9r6vS0="
+if [ "$results" != "$expected" ]; then
+    echo Checksum test failed.
+    exit 1;
+fi
+
+# Confirm that we can checksum the database by key
+results=$(./srd -T $pass --checksum-by-key)
+expected=$(cat test.d/output/checksum-by-key)
+if [ "$results" != "$expected" ]; then
+    echo Checksum-by-key test failed.
+    exit 1;
+fi
+
+# Confirm that we can checksum the database by key, with match
+results=$(./srd -T $pass --checksum-by-key '')
+expected=$(cat test.d/output/checksum-by-key)
+if [ "$results" != "$expected" ]; then
+    echo "Checksum-by-key '' test failed."
+    exit 1;
+fi
+
+# Confirm that we can checksum the database by key, with match
+results=$(./srd -T $pass --checksum-by-key The)
+expected=$(cat test.d/output/checksum-by-key-the)
+if [ "$results" != "$expected" ]; then
+    echo "Checksum-by-key 'The' test failed."
+    exit 1;
+fi
+
 #./srd -T $pass --create > test.d/output/create-again 2>&1
 results=$(./srd -T $pass --create 2>&1)
 expected=$(cat test.d/output/create-again)

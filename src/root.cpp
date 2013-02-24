@@ -331,6 +331,27 @@ void Root::validate(bool force_load) const
 
 
 
+/*
+  Checksum all keys and payloads together.
+*/
+void Root::checksum(bool force_load) const
+{
+        validate(true);
+        LeafProxyMap::LPM_Set leaves = this->as_set();
+        string text;
+        for(LeafProxyMap::LPM_Set::iterator it = leaves.begin();
+            it != leaves.end();
+            ++it) {
+                string key = (*it).key();
+                string value = (*it).payload();
+                text.append(key);
+                text.append(value);
+        }
+        cout << message_digest(text) << endl;
+}
+
+
+
 template<class Archive>
 void Root::serialize(Archive &ar, const unsigned int version)
 {

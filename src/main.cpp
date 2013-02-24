@@ -64,6 +64,7 @@ namespace {
         bool do_import(const string &password, const string &filename);
         bool do_create(const string &password);
         bool do_validate(const string &password);
+        bool do_checksum(const string &password);
         const boost::shared_ptr<StringMatcher> string_matcher(const bool case_sensitive);
 
 
@@ -106,7 +107,11 @@ namespace {
                          "disgarded during the input) for data (payload) portion associated "
                          "with the most recent key line.")
                         ("validate,V",
-                         "Confirm that all records are loadable and consistent");
+                         "Confirm that all records are loadable and consistent")
+                        ("checksum",
+                         "Compute database checksum (keys and payload)")
+                        ("checksum-by-key",
+                         "Compute database checksum by key, restrictable by matching options");
 
                 BPO::options_description matching("Matching options");
                 matching.add_options()
@@ -365,6 +370,28 @@ namespace {
                         
         private:
                 Root &the_root;
+        };
+
+
+        /*
+          A visitor that prints the results of a search.
+        */
+        class LeafChecksumVisitor : public LeafVisitor {
+
+        public:
+                LeafChecksumVisitor() {};
+
+                void operator()(const LeafProxyMap &lpm) const {
+                        LeafProxyMap::LPM_Set leaves = lpm.as_set();
+                        for(LeafProxyMap::LPM_Set::iterator it = leaves.begin();
+                            it != leaves.end();
+                            ++it) {
+                                cout << "[" << (*it).key() << "]";
+                                cout << "  ";
+                                cout << message_digest((*it).payload()) << endl;
+                        }
+
+                }
         };
 
 
@@ -701,7 +728,38 @@ namespace {
                         return 1;
                 }
                 catch(...) {
-                        cout << "catch all" << endl;
+                        cout << "catch all error" << endl;
+                        return 1;
+                }
+                return 0;
+        }
+
+
+        /*
+          Instantiate the root and force validation.
+          Return zero if all is well, non-zero otherwise.
+        */
+        bool do_checksum(const string &password)
+        {
+                // this is still do_validate()
+                try {
+                        Root root(password, "");
+                        try {
+                                root.checksum(true);
+                        }
+                        catch(runtime_error &e) {
+                                cout << "Failed to compute checksum." << endl;
+                                cout << e.what() << endl;
+                                return 1;
+                        }
+                }
+                catch(runtime_error &e) {
+                        cout << "Checksum failed:  root did not instantiate." << endl;
+                        cout << e.what() << endl;
+                        return 1;
+                }
+                catch(...) {
+                        cout << "catch all error" << endl;
                         return 1;
                 }
                 return 0;
@@ -755,6 +813,9 @@ int main(int argc, char *argv[])
 
         if(options.count("validate") > 0)
                 return(do_validate(passwd));
+
+        if(options.count("checksum") > 0)
+                return(do_checksum(passwd));
 
         if(options.count("shell")) {
                 do_shell(passwd);
@@ -822,13 +883,17 @@ int main(int argc, char *argv[])
                 lv = new LeafDeleteVisitor(root);
         } else if(options.count("delete-all")) {
                 lv = new LeafDeleteVisitor(root);
+        } else if(options.count("checksum-by-key")) {
+                lv = new LeafChecksumVisitor();
+                if(0 == match_key.size())
+                        match_key.push_back(""); // match all keys if no match requested
         } else {
                 lv = new LeafPrintVisitor(options.count("keys-only") > 0,
                                           options.count("full-display") > 0,
                                           (options.count("grep") > 0) ?
                                           options["grep"].as<string>() : string());
         }
-do_match(root, match_key, match_data, match_or, match_exact, disjunction,
+        do_match(root, match_key, match_data, match_or, match_exact, disjunction,
                  *string_matcher(match_case_sensitive), lv);
         delete lv;
         return 0;

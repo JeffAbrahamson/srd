@@ -506,6 +506,7 @@ namespace srd {
                 Root change_password(const std::string &new_password);
                 void commit();
                 void validate(bool force_load = false) const;
+                void checksum(bool force_load = false) const;
 
         private:
 
