@@ -727,6 +727,9 @@ namespace {
                         cout << e.what() << endl;
                         return 1;
                 }
+                catch(exception &e) {
+                        cout << "exc: " << e.what() << endl;
+                }
                 catch(...) {
                         cout << "catch all error" << endl;
                         return 1;

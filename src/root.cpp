@@ -93,7 +93,7 @@ void Root::load()
                 throw(runtime_error("Refusing to modify externally modified root."));
         }
         if(mode(Verbose))
-                cout << "Loading root." << endl;
+                cout << "Loading root:  " << basename() << endl;
         if(!mode(ReadOnly) && (!is_writeable() || !dir_is_writeable())) {
                 cout << "Opening database in read-only mode." << endl;
                 mode(ReadOnly, true);

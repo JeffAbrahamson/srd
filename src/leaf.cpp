@@ -105,7 +105,7 @@ void Leaf::load()
         if(m_loaded)
                 return;
         if(mode(Verbose))
-                cout << "Loading leaf." << endl;
+                cout << "Loading leaf:  " << basename() << endl;
         string plain_text = decrypt(file_contents(), m_password);
         string big_text = decompress(plain_text);
         istringstream big_text_stream(big_text);
