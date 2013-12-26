@@ -1,6 +1,5 @@
-GCC = g++ -ggdb3 -Wall
-#GCC = g++ -ggdb3 -Wall -std=c++0x
-# c++0x gives us rvalue references, most notably
+#CC = clang++ -ggdb3 -Wall -std=c++0x
+CC = g++ -ggdb3 -Wall -std=c++0x
 
 SRC = 			\
 	compress.cpp	\
@@ -27,13 +26,13 @@ LIBS = 				\
 all : libs srd test TAGS
 
 %.o : %.cpp %.h
-	$(GCC) -c -fpic -o $@ $<
+	$(CC) -c -fpic -o $@ $<
 
 %.o : %.cpp
-	$(GCC) -c -fpic -o $@ $<
+	$(CC) -c -fpic -o $@ $<
 
 srd : main.o $(HEADER) $(OBJECT) Makefile
-	$(GCC) -o srd main.o $(OBJECT) $(LIBS)
+	$(CC) -o srd main.o $(OBJECT) $(LIBS)
 
 libs : libsrd.so libsrd.a
 
@@ -51,19 +50,19 @@ libsrd.so : $(OBJECT)
 #
 # To build srd from srdlib.a:
 srd-from-archive :
-	$(GCC) -o srd-from-archive main.o libsrd.a $(LIBS)
+	$(CC) -o srd-from-archive main.o libsrd.a $(LIBS)
 #
 # To build srd from srdlib.so:
 srd-from-so :
-	$(GCC) -o srd-from-so main.o -L. -lsrd $(LIBS)
+	$(CC) -o srd-from-so main.o -L. -lsrd $(LIBS)
 #
 ############################################################
 
 python.o : python.cpp
-	$(GCC) -c -fpic -o $@ -I/usr/include/python2.6 $<
+	$(CC) -c -fpic -o $@ -I/usr/include/python2.6 $<
 
 libpysrd.so : $(OBJECT) python.o
-	$(GCC) -shared -Wl,-soname,libpysrd.so -o pysrd.so	\
+	$(CC) -shared -Wl,-soname,libpysrd.so -o pysrd.so	\
 		python.o					\
 		$(OBJECT) -lpython2.6 -lboost_python $(LIBS)
 
@@ -86,7 +85,7 @@ test : $(TESTS)
 	./test-key-change.sh
 
 %_test : %_test.o test_text.o mode.o $(OBJECT)
-	$(GCC) -o $@ $^ $(LIBS)
+	$(CC) -o $@ $^ $(LIBS)
 	-./$@
 
 clean :
@@ -94,10 +93,6 @@ clean :
 
 clean-test :
 	rm -rf srd-test-*/ test_[0-9]*\.[0-9]*
-
-snap : clean
-	-mkdir snapshot/$$(date +'%Y-%m-%d')
-	cp *.cpp *.h Makefile snapshot/$$(date +'%Y-%m-%d')
 
 TAGS : *cpp *h
 	etags *cpp *h

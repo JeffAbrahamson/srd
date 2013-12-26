@@ -450,9 +450,9 @@ namespace srd {
                 void clear() { the_map.clear(); }
                 bool empty() const { return the_map.empty(); };
 
-                void erase(iterator pos) { return the_map.erase(pos); };
+                void erase(iterator pos) { the_map.erase(pos); };
                 size_type erase(const key_type &k) { return the_map.erase(k); };
-                void erase(iterator first, iterator last) { return the_map.erase(first, last); };
+                void erase(iterator first, iterator last) { the_map.erase(first, last); };
                 
                 iterator find(const key_type &k) { return the_map.find(k); }
                 const_iterator find(const key_type &k) const { return the_map.find(k); }

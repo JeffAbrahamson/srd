@@ -31,42 +31,14 @@
 
 #include "srd.h"
 
-
 namespace BPO = boost::program_options;
 using namespace srd;
 using namespace std;
 
 class help_exception : public exception {};
 
-
 namespace {
-
-        BPO::variables_map parse_options(int, char *[]);
         string get_password(const string prompt = "Password:  ");
-        void do_shell(const string &);
-        bool change_password(const string &);
-        void do_edit(const string &,
-                     const vector_string &,
-                     const vector_string &,
-                     const vector_string &,
-                     const bool exact,
-                     const bool disjunction,
-                     const StringMatcher &in_matcher);
-        class leaf_visitor;
-        void do_match(Root &root,
-                      const vector_string &,
-                      const vector_string &,
-                      const vector_string &,
-                      const bool exact,
-                      const bool disjunction,
-                      const StringMatcher &in_matcher,
-                      leaf_visitor *);
-        bool do_import(const string &password, const string &filename);
-        bool do_create(const string &password);
-        bool do_validate(const string &password);
-        bool do_checksum(const string &password);
-        const boost::shared_ptr<StringMatcher> string_matcher(const bool case_sensitive);
-
 
         BPO::variables_map parse_options(int argc, char *argv[])
         {
@@ -173,7 +145,6 @@ namespace {
         
                 return opt_map;
         }
-
 
 
         string get_password(const string prompt)
