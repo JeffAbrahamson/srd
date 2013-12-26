@@ -58,6 +58,13 @@ make clean-test
 echo Comparing output from reference db to stored output
 # Expect the next glob should only match one thing
 tar xzf $db_tgz
+
+./srd -T $pass --validate
+if [ 0 != $? ]; then
+    echo Validation failed.
+    exit 1;
+fi
+
 ./srd -T $pass -f ''> $tmp_file
 cmp --quiet $result_file $tmp_file
 if [ 0 = $? ]; then 

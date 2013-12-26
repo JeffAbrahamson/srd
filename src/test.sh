@@ -12,6 +12,11 @@ for f in $poems; do
     ./srd -T $pass $create -e < $f
     create=
 done
+./srd -T $pass --validate
+if [ 0 != $? ]; then
+    echo Validation failed.
+    exit 1;
+fi
 
 #echo Test key matching
 for f in $poems; do

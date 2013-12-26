@@ -14,9 +14,24 @@ for f in $poems; do
     ./srd -T $pass $create -e < $f
     create=
 done
+./srd -T $pass --validate
+if [ 0 != $? ]; then
+    echo 'Validation failed (1).'
+    exit 1;
+fi
 
 # With -T, this is hard-coded to change from $pass to ${pass}2, which is $pass2
 ./srd -T $pass --passwd
+if [ 0 != $? ]; then
+    echo Password change failed.
+    exit 1;
+fi
+
+./srd -T $pass2 --validate
+if [ 0 != $? ]; then
+    echo 'Validation failed (2).'
+    exit 1;
+fi
 
 # Test key matching
 for f in $poems; do
