@@ -40,10 +40,10 @@ using namespace std;
 */
 void srd::file_create(const string &fn)
 {
-        int fd = creat(fn.c_str(), 0600);
-        if(-1 == fd)
-                throw(runtime_error(string("Failed to create ") + fn + " :  " + strerror(errno)));
-        close(fd);
+    int fd = creat(fn.c_str(), 0600);
+    if(-1 == fd)
+	throw(runtime_error(string("Failed to create ") + fn + " :  " + strerror(errno)));
+    close(fd);
 }
 
 
@@ -54,14 +54,14 @@ void srd::file_create(const string &fn)
 */
 bool srd::file_exists(const string &fn)
 {
-        struct stat buf;
-        if(stat(fn.c_str(), &buf)) {
-                int error = errno;
-                if(ENOENT == errno)
-                        return false;
-                throw(runtime_error(strerror(error)));
-        }
-        return true;
+    struct stat buf;
+    if(stat(fn.c_str(), &buf)) {
+	int error = errno;
+	if(ENOENT == errno)
+	    return false;
+	throw(runtime_error(strerror(error)));
+    }
+    return true;
 }
 
 
@@ -70,11 +70,9 @@ bool srd::file_exists(const string &fn)
 */
 void srd::file_rm(const string &fn)
 {
-        int rm_ret = unlink(fn.c_str());
-        if(rm_ret) {
-                cerr << "  Error removing file:  " << strerror(errno) << endl;
-                cerr << "    [File=" << fn << "]" << endl;
-        }
+    int rm_ret = unlink(fn.c_str());
+    if(rm_ret) {
+	cerr << "  Error removing file:  " << strerror(errno) << endl;
+	cerr << "    [File=" << fn << "]" << endl;
+    }
 }
-
-

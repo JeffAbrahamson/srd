@@ -49,35 +49,35 @@ using namespace std;
   The name of the root node must be determinable solely by the password.
 */
 Root::Root(const string &pass, const string dir_name, const bool create)
-        : password(pass), modified(false), valid(true)
+    : password(pass), modified(false), valid(true)
 {
-        string base_name(pass);
-        for(int i = 0; i < 30; i++)
-                base_name = message_digest(base_name, true);
-        basename(base_name);    // Must be reproducible from password alone
-        dirname(dir_name);      // If empty, will be computed for us
-        if(exists() == create) {
-                // i.e., if exists() != !create
-                if(create)
-                        throw(runtime_error("Can't create existing root."));
-                throw(runtime_error("Root doesn't exist.  (Incorrect password?)"));
-        }
-        if(!is_writeable())
-                mode(ReadOnly, true);
-        if(!exists()) {
-                if(mode(ReadOnly)) {
-                        cerr << "Refusing to create new root node while read-only." << endl;
-                        throw("No persistence permitted while read-only.");
-                }
-                cout << "Root node does not exist, will create." << endl;
-                if(mode(Verbose))
-                        cout << "    [" << full_path() << "]" << endl;
-                modified = true;
-                validate();
-                return;
-        }
-        load();
-        validate();
+    string base_name(pass);
+    for(int i = 0; i < 30; i++)
+	base_name = message_digest(base_name, true);
+    basename(base_name);    // Must be reproducible from password alone
+    dirname(dir_name);      // If empty, will be computed for us
+    if(exists() == create) {
+	// i.e., if exists() != !create
+	if(create)
+	    throw(runtime_error("Can't create existing root."));
+	throw(runtime_error("Root doesn't exist.  (Incorrect password?)"));
+    }
+    if(!is_writeable())
+	mode(ReadOnly, true);
+    if(!exists()) {
+	if(mode(ReadOnly)) {
+	    cerr << "Refusing to create new root node while read-only." << endl;
+	    throw("No persistence permitted while read-only.");
+	}
+	cout << "Root node does not exist, will create." << endl;
+	if(mode(Verbose))
+	    cout << "    [" << full_path() << "]" << endl;
+	modified = true;
+	validate();
+	return;
+    }
+    load();
+    validate();
 }
 
 
@@ -87,34 +87,34 @@ Root::Root(const string &pass, const string dir_name, const bool create)
 */
 void Root::load()
 {
-        if(modified) {
-                cerr << "Uncommitted change to root and external change to root file.  "
-                        "Data will be lost." << endl;
-                throw(runtime_error("Refusing to modify externally modified root."));
-        }
-        if(mode(Verbose))
-                cout << "Loading root:  " << basename() << endl;
-        if(!mode(ReadOnly) && (!is_writeable() || !dir_is_writeable())) {
-                cout << "Opening database in read-only mode." << endl;
-                mode(ReadOnly, true);
-        }
-        clear();                // Drop existing LeafProxy's, if any
-        string plain_text;
-        {
-                Lock L(full_path() + ".lck");
-                plain_text = decrypt(file_contents(), password);
-        }
-        string big_text = decompress(plain_text);
-        istringstream big_text_stream(big_text);
-        boost::archive::text_iarchive ia(big_text_stream);
-        ia & *this;
+    if(modified) {
+	cerr << "Uncommitted change to root and external change to root file.  "
+	    "Data will be lost." << endl;
+	throw(runtime_error("Refusing to modify externally modified root."));
+    }
+    if(mode(Verbose))
+	cout << "Loading root:  " << basename() << endl;
+    if(!mode(ReadOnly) && (!is_writeable() || !dir_is_writeable())) {
+	cout << "Opening database in read-only mode." << endl;
+	mode(ReadOnly, true);
+    }
+    clear();                // Drop existing LeafProxy's, if any
+    string plain_text;
+    {
+	Lock L(full_path() + ".lck");
+	plain_text = decrypt(file_contents(), password);
+    }
+    string big_text = decompress(plain_text);
+    istringstream big_text_stream(big_text);
+    boost::archive::text_iarchive ia(big_text_stream);
+    ia & *this;
 
-        for_each(leaf_names.begin(),
-                 leaf_names.end(),
-                 boost::bind(&Root::instantiate_leaf_proxy, this, _1));
-        assert(size() == leaf_names.size());
-        leaf_names.clear();
-        validate();
+    for_each(leaf_names.begin(),
+	     leaf_names.end(),
+	     boost::bind(&Root::instantiate_leaf_proxy, this, _1));
+    assert(size() == leaf_names.size());
+    leaf_names.clear();
+    validate();
 }
 
 
@@ -126,8 +126,8 @@ void Root::load()
 */
 void Root::instantiate_leaf_proxy(LeafProxyPersist &proxy_info)
 {
-        (*this)[proxy_info.proxy_name] = LeafProxy(password, proxy_info.proxy_name, "");
-        (*this)[proxy_info.proxy_name].key_cache(proxy_info.cached_key);
+    (*this)[proxy_info.proxy_name] = LeafProxy(password, proxy_info.proxy_name, "");
+    (*this)[proxy_info.proxy_name].key_cache(proxy_info.cached_key);
 }
 
 
@@ -138,10 +138,10 @@ void Root::instantiate_leaf_proxy(LeafProxyPersist &proxy_info)
 */
 void Root::populate_leaf_names(LeafProxyMap::value_type &val)
 {
-        LeafProxyPersist lpp;
-        lpp.proxy_name = val.first;
-        lpp.cached_key = val.second.key();
-        leaf_names.push_back(lpp);
+    LeafProxyPersist lpp;
+    lpp.proxy_name = val.first;
+    lpp.cached_key = val.second.key();
+    leaf_names.push_back(lpp);
 }
 
 
@@ -153,10 +153,10 @@ void Root::populate_leaf_names(LeafProxyMap::value_type &val)
 */
 Root::~Root()
 {
-        if(valid) {
-                validate();
-                commit();
-        }
+    if(valid) {
+	validate();
+	commit();
+    }
 }
 
 
@@ -167,22 +167,22 @@ Root::~Root()
 */
 void Root::add_leaf(const string &key, const string &payload, const bool do_commit)
 {
-        validate();
-        if(exists() && underlying_is_modified())
-                load();
-        LeafProxy proxy(password, "", dirname());
-        proxy.set(key, payload);
-        (*this)[proxy.basename()] = proxy;
-        modified = true;        // Adding a leaf requires persisting the root.
-        if(do_commit)
-                // Best practice is to commit, and so do_commit
-                // defaults to true.  If the client knows that it will
-                // add quite a few things in short order, it might
-                // take the shortcut of delaying commit (and so
-                // explicitly calling commit()).  The root will in any
-                // case be committed if necessary at destruction.
-                commit();
-        validate();
+    validate();
+    if(exists() && underlying_is_modified())
+	load();
+    LeafProxy proxy(password, "", dirname());
+    proxy.set(key, payload);
+    (*this)[proxy.basename()] = proxy;
+    modified = true;        // Adding a leaf requires persisting the root.
+    if(do_commit)
+	// Best practice is to commit, and so do_commit
+	// defaults to true.  If the client knows that it will
+	// add quite a few things in short order, it might
+	// take the shortcut of delaying commit (and so
+	// explicitly calling commit()).  The root will in any
+	// case be committed if necessary at destruction.
+	commit();
+    validate();
 }
 
 
@@ -193,11 +193,11 @@ void Root::add_leaf(const string &key, const string &payload, const bool do_comm
 */
 LeafProxy Root::get_leaf(const string &proxy_key)
 {
-        validate();
-        iterator it = find(proxy_key);
-        if(end() == it)
-                throw(runtime_error("Key not found."));
-        return it->second;
+    validate();
+    iterator it = find(proxy_key);
+    if(end() == it)
+	throw(runtime_error("Key not found."));
+    return it->second;
 }
 
 
@@ -210,16 +210,16 @@ void Root::set_leaf(const string &proxy_key,
                     const string &key,
                     const string &payload)
 {
-        validate();
-        if(exists() && underlying_is_modified())
-                load();
-        iterator it = find(proxy_key);
-        if(end() == it)
-                throw(runtime_error("Key not found."));
-        LeafProxy &proxy = it->second;
-        if(proxy.set(key, payload))
-                modified = true;
-        validate();
+    validate();
+    if(exists() && underlying_is_modified())
+	load();
+    iterator it = find(proxy_key);
+    if(end() == it)
+	throw(runtime_error("Key not found."));
+    LeafProxy &proxy = it->second;
+    if(proxy.set(key, payload))
+	modified = true;
+    validate();
 }
 
 
@@ -230,17 +230,17 @@ void Root::set_leaf(const string &proxy_key,
 */
 void Root::rm_leaf(const string &proxy_key)
 {
-        validate();
-        if(exists() && underlying_is_modified())
-                load();
-        iterator it = find(proxy_key);
-        if(end() == it)
-                throw(runtime_error("Key not found."));
-        it->second.erase();
-        erase(it);
-        modified = true;
-        commit();
-        validate();
+    validate();
+    if(exists() && underlying_is_modified())
+	load();
+    iterator it = find(proxy_key);
+    if(end() == it)
+	throw(runtime_error("Key not found."));
+    it->second.erase();
+    erase(it);
+    modified = true;
+    commit();
+    validate();
 }
 
 
@@ -259,24 +259,24 @@ void Root::rm_leaf(const string &proxy_key)
 */
 Root Root::change_password(const std::string &new_password)
 {
-        validate();
-        if(exists() && underlying_is_modified())
-                load();
-        Root new_root(new_password, dirname(), true);
-        for(const_iterator it = begin();
-            it != end();
-            it++)
-                new_root.add_leaf((*it).second.key(), (*it).second.payload(), false);
-        new_root.commit();
-        while(!empty()) {
-                iterator it = begin();
-                (*it).second.erase();
-                erase(it);
-        }
-        validate();
-        valid = false;
-        new_root.validate();
-        return new_root;
+    validate();
+    if(exists() && underlying_is_modified())
+	load();
+    Root new_root(new_password, dirname(), true);
+    for(const_iterator it = begin();
+	it != end();
+	it++)
+	new_root.add_leaf((*it).second.key(), (*it).second.payload(), false);
+    new_root.commit();
+    while(!empty()) {
+	iterator it = begin();
+	(*it).second.erase();
+	erase(it);
+    }
+    validate();
+    valid = false;
+    new_root.validate();
+    return new_root;
 }
 
 
@@ -286,26 +286,26 @@ Root Root::change_password(const std::string &new_password)
 */
 void Root::commit()
 {
-        validate();
-        if(!modified || mode(ReadOnly))
-                return;
-        for_each(begin(),
-                 end(),
-                 boost::bind(&Root::populate_leaf_names, this, _1));
-        assert(size() == leaf_names.size());
+    validate();
+    if(!modified || mode(ReadOnly))
+	return;
+    for_each(begin(),
+	     end(),
+	     boost::bind(&Root::populate_leaf_names, this, _1));
+    assert(size() == leaf_names.size());
 
-        ostringstream big_text_stream;
-        boost::archive::text_oarchive oa(big_text_stream);
-        oa & *this;
-        string big_text(big_text_stream.str());
-        string plain_text = compress(big_text);
-        string cipher_text = encrypt(plain_text, password);
-        file_contents(cipher_text);
+    ostringstream big_text_stream;
+    boost::archive::text_oarchive oa(big_text_stream);
+    oa & *this;
+    string big_text(big_text_stream.str());
+    string plain_text = compress(big_text);
+    string cipher_text = encrypt(plain_text, password);
+    file_contents(cipher_text);
 
-        leaf_names.clear();
-        validate();
-        if(mode(Verbose))
-                cout << "root committed, size=" << size() << endl;
+    leaf_names.clear();
+    validate();
+    if(mode(Verbose))
+	cout << "root committed, size=" << size() << endl;
 }
 
 
@@ -319,14 +319,14 @@ void Root::commit()
 */
 void Root::validate(bool force_load) const
 {
-        assert(valid);
-        assert(password.size() > 0);
-        // Validate each of the leaf proxies.  Note that this won't cause them to load.
-        for(const_iterator it = begin(); it != end(); it++) {
-                assert((*it).first == (*it).second.basename());
-                (*it).second.validate(force_load);
-        }
-        assert(leaf_names.size() == 0);
+    assert(valid);
+    assert(password.size() > 0);
+    // Validate each of the leaf proxies.  Note that this won't cause them to load.
+    for(const_iterator it = begin(); it != end(); it++) {
+	assert((*it).first == (*it).second.basename());
+	(*it).second.validate(force_load);
+    }
+    assert(leaf_names.size() == 0);
 }
 
 
@@ -336,18 +336,18 @@ void Root::validate(bool force_load) const
 */
 void Root::checksum(bool force_load) const
 {
-        validate(true);
-        LeafProxyMap::LPM_Set leaves = this->as_set();
-        string text;
-        for(LeafProxyMap::LPM_Set::iterator it = leaves.begin();
-            it != leaves.end();
-            ++it) {
-                string key = (*it).key();
-                string value = (*it).payload();
-                text.append(key);
-                text.append(value);
-        }
-        cout << message_digest(text) << endl;
+    validate(true);
+    LeafProxyMap::LPM_Set leaves = this->as_set();
+    string text;
+    for(LeafProxyMap::LPM_Set::iterator it = leaves.begin();
+	it != leaves.end();
+	++it) {
+	string key = (*it).key();
+	string value = (*it).payload();
+	text.append(key);
+	text.append(value);
+    }
+    cout << message_digest(text) << endl;
 }
 
 
@@ -355,8 +355,5 @@ void Root::checksum(bool force_load) const
 template<class Archive>
 void Root::serialize(Archive &ar, const unsigned int version)
 {
-        ar & leaf_names;
+    ar & leaf_names;
 }
-
-
-

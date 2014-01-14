@@ -34,82 +34,79 @@ using namespace std;
 
 
 namespace {
-        int test_leaf_proxy(string);
+    int test_leaf_proxy(string);
 
         
-        /*
-          Message key is hash of message.
-          Password is hash of key.
-          Persist the leaf proxy (so the underlying leaf), then reconstitute it.
-        */
-        int test_leaf_proxy(const string message)
-        {
-                // Arbitrary assignments
-                string key = message_digest(message);
-                string password = message_digest(key);
+    /*
+      Message key is hash of message.
+      Password is hash of key.
+      Persist the leaf proxy (so the underlying leaf), then reconstitute it.
+    */
+    int test_leaf_proxy(const string message)
+    {
+	// Arbitrary assignments
+	string key = message_digest(message);
+	string password = message_digest(key);
 
-                string base_name, dir_name, full_path;
-                {
-                        LeafProxy first_leaf_proxy(password, "", "");
-                        first_leaf_proxy.set(key, message);
-                        base_name = first_leaf_proxy.basename();
-                        first_leaf_proxy.commit();
-                }
+	string base_name, dir_name, full_path;
+	{
+	    LeafProxy first_leaf_proxy(password, "", "");
+	    first_leaf_proxy.set(key, message);
+	    base_name = first_leaf_proxy.basename();
+	    first_leaf_proxy.commit();
+	}
         
-                LeafProxy second_leaf_proxy(password, base_name, "");
-                int ret = 0;
-                if(second_leaf_proxy.basename().size() == 0) {
-                        cout << "Proxy has empty basename." << endl;
-                        ret++;
-                }
-                if(second_leaf_proxy.key() != key) {
-                        cout << "Key mismatch" << endl;
-                        ret++;
-                };
-                if(second_leaf_proxy.payload() != message) {
-                        cout << "Payload mismatch" << endl;
-                        ret++;
-                }
-                second_leaf_proxy.erase();
+	LeafProxy second_leaf_proxy(password, base_name, "");
+	int ret = 0;
+	if(second_leaf_proxy.basename().size() == 0) {
+	    cout << "Proxy has empty basename." << endl;
+	    ret++;
+	}
+	if(second_leaf_proxy.key() != key) {
+	    cout << "Key mismatch" << endl;
+	    ret++;
+	};
+	if(second_leaf_proxy.payload() != message) {
+	    cout << "Payload mismatch" << endl;
+	    ret++;
+	}
+	second_leaf_proxy.erase();
 
-                LeafProxy third_leaf_proxy(password, base_name, "");
-                if(third_leaf_proxy.basename().size() == 0) {
-                        cout << "Proxy has empty basename." << endl;
-                        ret++;
-                }
-                if(third_leaf_proxy.key() != "") {
-                        cout << "Key should be empty after delete, but isn't." << endl;
-                        ret++;
-                };
-                if(third_leaf_proxy.payload() != "") {
-                        cout << "Payload should be empty after delete, but isn't." << endl;
-                        ret++;
-                };
+	LeafProxy third_leaf_proxy(password, base_name, "");
+	if(third_leaf_proxy.basename().size() == 0) {
+	    cout << "Proxy has empty basename." << endl;
+	    ret++;
+	}
+	if(third_leaf_proxy.key() != "") {
+	    cout << "Key should be empty after delete, but isn't." << endl;
+	    ret++;
+	};
+	if(third_leaf_proxy.payload() != "") {
+	    cout << "Payload should be empty after delete, but isn't." << endl;
+	    ret++;
+	};
 
-                return ret;
-        }
+	return ret;
+    }
 }
 
 
 
 int main(int argc, char *argv[])
 {
-        cout << "Testing leaf_proxy.cpp" << endl;
+    cout << "Testing leaf_proxy.cpp" << endl;
 
-        mode(Verbose, false);
-        mode(Testing, true);
-        mode(ReadOnly, false);
+    mode(Verbose, false);
+    mode(Testing, true);
+    mode(ReadOnly, false);
         
-        int err_count = 0;
-        vector_string messages = test_text();
-        err_count = count_if(messages.begin(), messages.end(), test_leaf_proxy);
+    int err_count = 0;
+    vector_string messages = test_text();
+    err_count = count_if(messages.begin(), messages.end(), test_leaf_proxy);
 
-        if(err_count)
-                cout << "Errors (" << err_count << ") in test!!" << endl;
-        else
-                cout << "All tests passed!" << endl;
-        return 0 != err_count;
+    if(err_count)
+	cout << "Errors (" << err_count << ") in test!!" << endl;
+    else
+	cout << "All tests passed!" << endl;
+    return 0 != err_count;
 }
-
-
-

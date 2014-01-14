@@ -17,49 +17,36 @@
   along with srd.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
 #include "srd.h"
-
 
 using namespace srd;
 using namespace std;
 
-
-
-namespace {
-
-
-}
-
-
-
 int main(int argc, char *argv[])
 {
-        cout << "Testing file_util.cpp" << endl;
+    cout << "Testing file_util.cpp" << endl;
         
-        mode(Verbose, false);
-        mode(Testing, true);
+    mode(Verbose, false);
+    mode(Testing, true);
         
-        int err_count = 0;
+    int err_count = 0;
 
-        ostringstream tmp_name_s;
-        tmp_name_s << "/tmp/srd-" << getpid() << "-" << time(0) << "XXXXXX";
-        string tmp_name(tmp_name_s.str());
+    ostringstream tmp_name_s;
+    tmp_name_s << "/tmp/srd-" << getpid() << "-" << time(0) << "XXXXXX";
+    string tmp_name(tmp_name_s.str());
 
-        /*
-          lock tmp file
-          confirm exists
-          unlock
-          confirm doesn't exist
+    /*
+      lock tmp file
+      confirm exists
+      unlock
+      confirm doesn't exist
 
-          create temp file
-          lock tmp file
-          confirm exists
-          unlock
-          confirm exists
-         */
+      create temp file
+      lock tmp file
+      confirm exists
+      unlock
+      confirm exists
+    */
         
-        return 0 != err_count;
+    return 0 != err_count;
 }
-
-

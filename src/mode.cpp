@@ -29,26 +29,24 @@ using namespace std;
 
 
 namespace srd {
-        static map<Mode, bool> modes;
+    static map<Mode, bool> modes;
 }
 
 
 void srd::mode(const Mode m, const bool new_state)
 {
-        modes[m] = new_state;
+    modes[m] = new_state;
 }
 
 
 const bool srd::mode(const Mode m)
 {
-        map<Mode, bool>::const_iterator it = modes.find(m);
-        if(it == modes.end()) {
-                cerr << "Failed to find mode " << m << endl;
-                cerr << "This is a bug whose effects are undefined." << endl;
-                cerr << "Continuing as though the result had been false." << endl;
-                return false;
-        }
-        return it->second;
+    map<Mode, bool>::const_iterator it = modes.find(m);
+    if(it == modes.end()) {
+	cerr << "Failed to find mode " << m << endl;
+	cerr << "This is a bug whose effects are undefined." << endl;
+	cerr << "Continuing as though the result had been false." << endl;
+	return false;
+    }
+    return it->second;
 }
-
-

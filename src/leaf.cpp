@@ -51,30 +51,30 @@ Leaf::Leaf(const string &pass,
            const string base_name,
            const string dir_name,
            const bool do_load)
-        : m_password(pass), m_modified(false), m_loaded(false)
+    : m_password(pass), m_modified(false), m_loaded(false)
 {
-        basename(base_name);    // If empty, will be computed for us
-        dirname(dir_name);      // If empty, will be computed for us
-        if(!exists()) {
-                // If never persisted, then ok to return empty leaf.
-                m_loaded = true;
-                return;         
-        }
-        if(!do_load) {
-                // Not loading imposes on the client an obligation not
-                // to take actions that assume the contents are
-                // loaded.  In particular, the client must not ask for
-                // the key or the payload.  (We assert that this is
-                // respected.)  Dynamic loading causes const problems,
-                // the backflips for which seem unreasonable.
-                /*
-                if(mode(Verbose))
-                        cout << "Initializing leaf without load." << endl;
-                */
-                return;
-        }
-        load();
-        validate();
+    basename(base_name);    // If empty, will be computed for us
+    dirname(dir_name);      // If empty, will be computed for us
+    if(!exists()) {
+	// If never persisted, then ok to return empty leaf.
+	m_loaded = true;
+	return;         
+    }
+    if(!do_load) {
+	// Not loading imposes on the client an obligation not
+	// to take actions that assume the contents are
+	// loaded.  In particular, the client must not ask for
+	// the key or the payload.  (We assert that this is
+	// respected.)  Dynamic loading causes const problems,
+	// the backflips for which seem unreasonable.
+	/*
+	  if(mode(Verbose))
+	  cout << "Initializing leaf without load." << endl;
+	*/
+	return;
+    }
+    load();
+    validate();
 }
 
 
@@ -86,7 +86,7 @@ Leaf::Leaf(const string &pass,
 */
 Leaf::~Leaf()
 {
-        commit();
+    commit();
 }
 
 
@@ -102,16 +102,16 @@ Leaf::~Leaf()
 */
 void Leaf::load()
 {
-        if(m_loaded)
-                return;
-        if(mode(Verbose))
-                cout << "Loading leaf:  " << basename() << endl;
-        string plain_text = decrypt(file_contents(), m_password);
-        string big_text = decompress(plain_text);
-        istringstream big_text_stream(big_text);
-        boost::archive::text_iarchive ia(big_text_stream);
-        ia & *this;
-        m_loaded = true;
+    if(m_loaded)
+	return;
+    if(mode(Verbose))
+	cout << "Loading leaf:  " << basename() << endl;
+    string plain_text = decrypt(file_contents(), m_password);
+    string big_text = decompress(plain_text);
+    istringstream big_text_stream(big_text);
+    boost::archive::text_iarchive ia(big_text_stream);
+    ia & *this;
+    m_loaded = true;
 }
 
 
@@ -121,20 +121,20 @@ void Leaf::load()
 */
 void Leaf::commit()
 {
-        validate();
-        if(!m_modified || mode(ReadOnly))
-                return;
-        ostringstream big_text_stream;
-        boost::archive::text_oarchive oa(big_text_stream);
-        oa & *this;
-        string big_text(big_text_stream.str());
-        string plain_text = compress(big_text);
-        string cipher_text = encrypt(plain_text, m_password);
-        file_contents(cipher_text);
-        m_modified = false;
-        validate();
-        if(mode(Verbose))
-                cout << "leaf committed" << endl;
+    validate();
+    if(!m_modified || mode(ReadOnly))
+	return;
+    ostringstream big_text_stream;
+    boost::archive::text_oarchive oa(big_text_stream);
+    oa & *this;
+    string big_text(big_text_stream.str());
+    string plain_text = compress(big_text);
+    string cipher_text = encrypt(plain_text, m_password);
+    file_contents(cipher_text);
+    m_modified = false;
+    validate();
+    if(mode(Verbose))
+	cout << "leaf committed" << endl;
 }
 
 
@@ -145,10 +145,10 @@ void Leaf::commit()
 */
 void Leaf::erase()
 {
-        validate();
-        rm();
-        m_modified = false;
-        validate();
+    validate();
+    rm();
+    m_modified = false;
+    validate();
 }
 
 
@@ -159,9 +159,9 @@ void Leaf::erase()
 */
 void Leaf::validate()
 {
-        assert(m_password.size() > 0);
-        assert(basename().size() > 0);
-        assert(dirname().size() > 0);
+    assert(m_password.size() > 0);
+    assert(basename().size() > 0);
+    assert(dirname().size() > 0);
 }
 
 
@@ -172,9 +172,6 @@ void Leaf::validate()
 template<class Archive>
 void Leaf::serialize(Archive &ar, const unsigned int version)
 {
-        ar & m_node_key;
-        ar & m_node_payload;
+    ar & m_node_key;
+    ar & m_node_payload;
 }
-
-
-

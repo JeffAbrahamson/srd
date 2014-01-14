@@ -34,32 +34,32 @@ using namespace std;
 
 namespace {
         
-        int test_compress(string message);
+    int test_compress(string message);
 
-        /*
-          Return number of errors that occur.
-        */
-        int test_compress(const string message)
-        {
-                int ret = 0;
-                string compressed = compress(message);
-                string decompressed = decompress(compressed);
-                if(compressed == message) {
-                        cout << "Compress did not change the message!" << endl;
-                        ret++;
-                }
-                if(decompressed != message) {
-                        cout << "decompress() failed to restore the message!" << endl;
-                        ret++;
-                }                
-                if(message.size() > 100 && compressed.size() > message.size()) {
-                        // Ignore the cases where small messages expand
-                        cout << "Message size change: " << message.size()
-                             << " <= " << compressed.size() << endl;
-                        ret++;
-                }
-                return ret;
-        }
+    /*
+      Return number of errors that occur.
+    */
+    int test_compress(const string message)
+    {
+	int ret = 0;
+	string compressed = compress(message);
+	string decompressed = decompress(compressed);
+	if(compressed == message) {
+	    cout << "Compress did not change the message!" << endl;
+	    ret++;
+	}
+	if(decompressed != message) {
+	    cout << "decompress() failed to restore the message!" << endl;
+	    ret++;
+	}                
+	if(message.size() > 100 && compressed.size() > message.size()) {
+	    // Ignore the cases where small messages expand
+	    cout << "Message size change: " << message.size()
+		 << " <= " << compressed.size() << endl;
+	    ret++;
+	}
+	return ret;
+    }
 
 
 }
@@ -67,21 +67,18 @@ namespace {
 
 int main(int argc, char *argv[])
 {
-        cout << "Testing compress.cpp" << endl;
+    cout << "Testing compress.cpp" << endl;
 
-        mode(Verbose, false);
-        mode(Testing, true);
+    mode(Verbose, false);
+    mode(Testing, true);
         
-        int err_count = 0;
-        vector_string messages = test_text();
-        err_count = count_if(messages.begin(), messages.end(), test_compress);
+    int err_count = 0;
+    vector_string messages = test_text();
+    err_count = count_if(messages.begin(), messages.end(), test_compress);
         
-        if(err_count)
-                cout << "Errors (" << err_count << ") in test!!" << endl;
-        else
-                cout << "All tests passed!" << endl;
-        return 0 != err_count;
+    if(err_count)
+	cout << "Errors (" << err_count << ") in test!!" << endl;
+    else
+	cout << "All tests passed!" << endl;
+    return 0 != err_count;
 }
-
-
-

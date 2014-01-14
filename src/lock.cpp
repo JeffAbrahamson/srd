@@ -37,52 +37,50 @@ using namespace std;
   RAII lock.
 */
 Lock::Lock(const string &filename)
-        : m_filename(filename), m_must_remove(false), m_lock(0)
+    : m_filename(filename), m_must_remove(false), m_lock(0)
 {
-        if(mode(ReadOnly)) {
-                if(mode(Verbose))
-                        cout << "Skipping lock while read-only" << endl;
-                return;
-        }
-        // This will likely fail for all but regular files.
-        // It will also fail if we can't write the file.
-        if(!file_exists(m_filename)) {
-                // Can't lock on what doesn't exist
-                file_create(m_filename);
-                m_must_remove = true;
-        }
-        try {
-                m_lock = new file_lock(m_filename.c_str());
-        }
-        catch(interprocess_exception &e) {
-                // It should be ok run against a read-only filesystem
-                const char *what = e.what();
-                if(strcmp(what, "Permission denied") == 0) {}
-                else(throw e);
-        }
+    if(mode(ReadOnly)) {
+	if(mode(Verbose))
+	    cout << "Skipping lock while read-only" << endl;
+	return;
+    }
+    // This will likely fail for all but regular files.
+    // It will also fail if we can't write the file.
+    if(!file_exists(m_filename)) {
+	// Can't lock on what doesn't exist
+	file_create(m_filename);
+	m_must_remove = true;
+    }
+    try {
+	m_lock = new file_lock(m_filename.c_str());
+    }
+    catch(interprocess_exception &e) {
+	// It should be ok run against a read-only filesystem
+	const char *what = e.what();
+	if(strcmp(what, "Permission denied") == 0) {}
+	else(throw e);
+    }
         
-        const int wait_delay = 2;                 // seconds in the future to try again on fail
-        ptime timeout = from_time_t(time(0) + wait_delay);
-        while(!m_lock->timed_lock(timeout)) {
-                cout << "Waiting on file lock..." << endl;
-                timeout = from_time_t(time(0) + 1);
-        }
+    const int wait_delay = 2;                 // seconds in the future to try again on fail
+    ptime timeout = from_time_t(time(0) + wait_delay);
+    while(!m_lock->timed_lock(timeout)) {
+	cout << "Waiting on file lock..." << endl;
+	timeout = from_time_t(time(0) + 1);
+    }
 }
 
 
 
 Lock::~Lock()
 {
-        if(m_lock) {
-                 // With delete immediately after unlock(), is
-                 // unlock() necessary?  It's not entirely clear from
-                 // the code just now, so leave it here for the
-                 // moment.
-                m_lock->unlock();
-                delete m_lock;
-        }
-        if(m_must_remove)
-                file_rm(m_filename);
+    if(m_lock) {
+	// With delete immediately after unlock(), is
+	// unlock() necessary?  It's not entirely clear from
+	// the code just now, so leave it here for the
+	// moment.
+	m_lock->unlock();
+	delete m_lock;
+    }
+    if(m_must_remove)
+	file_rm(m_filename);
 }
-
-

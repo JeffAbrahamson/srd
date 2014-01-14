@@ -40,18 +40,16 @@ namespace {
 
 int main(int argc, char *argv[])
 {
-        cout << "Testing file_util.cpp" << endl;
+    cout << "Testing file_util.cpp" << endl;
         
-        mode(Verbose, false);
-        mode(Testing, true);
+    mode(Verbose, false);
+    mode(Testing, true);
         
-        int err_count = 0;
+    int err_count = 0;
 
-        ostringstream tmp_name_s;
-        tmp_name_s << "/tmp/srd-" << getpid() << "-" << time(0) << "XXXXXX";
-        string tmp_name = tmp_name_s.str();
+    ostringstream tmp_name_s;
+    tmp_name_s << "/tmp/srd-" << getpid() << "-" << time(0) << "XXXXXX";
+    string tmp_name = tmp_name_s.str();
         
-        return 0 != err_count;
+    return 0 != err_count;
 }
-
-

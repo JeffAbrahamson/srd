@@ -35,42 +35,42 @@ int check_mode(Mode m, bool b);
 */
 int main(int argc, char *argv[])
 {
-        cout << "Testing mode.cpp" << endl;
+    cout << "Testing mode.cpp" << endl;
 
-        int error_count = 0;
+    int error_count = 0;
 
-        mode(Verbose, false);
-        error_count += check_mode(Verbose, false);
-        mode(Verbose, true);
-        error_count += check_mode(Verbose, true);
-        mode(Verbose, false);
-        error_count += check_mode(Verbose, false);
+    mode(Verbose, false);
+    error_count += check_mode(Verbose, false);
+    mode(Verbose, true);
+    error_count += check_mode(Verbose, true);
+    mode(Verbose, false);
+    error_count += check_mode(Verbose, false);
 
-        mode(Testing, false);
-        error_count += check_mode(Testing, false);
-        mode(Testing, true);
-        error_count += check_mode(Testing, true);
-        mode(Testing, false);
-        error_count += check_mode(Testing, false);
-        mode(Testing, true);
-        mode(Testing, true);
-        mode(Testing, true);
-        error_count += check_mode(Testing, true);
+    mode(Testing, false);
+    error_count += check_mode(Testing, false);
+    mode(Testing, true);
+    error_count += check_mode(Testing, true);
+    mode(Testing, false);
+    error_count += check_mode(Testing, false);
+    mode(Testing, true);
+    mode(Testing, true);
+    mode(Testing, true);
+    error_count += check_mode(Testing, true);
                 
-        error_count += check_mode(Verbose, false);
-        mode(Verbose, false);
-        error_count += check_mode(Verbose, false);
-        mode(Verbose, true);
-        error_count += check_mode(Verbose, true);
-        mode(Verbose, false);
-        error_count += check_mode(Verbose, false);
+    error_count += check_mode(Verbose, false);
+    mode(Verbose, false);
+    error_count += check_mode(Verbose, false);
+    mode(Verbose, true);
+    error_count += check_mode(Verbose, true);
+    mode(Verbose, false);
+    error_count += check_mode(Verbose, false);
 }
 
 
 
 int check_mode(Mode m, bool b)
 {
-        if(mode(m) == b)
-                return 0;
-        return 1;
+    if(mode(m) == b)
+	return 0;
+    return 1;
 }

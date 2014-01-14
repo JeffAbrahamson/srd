@@ -40,24 +40,24 @@ LeafProxyMap LeafProxyMap::filter_keys(const srd::vector_string &patterns,
                                        const bool exact,
                                        const StringMatcher &in_matcher)
 {
-        if(0 == patterns.size())
-                // Empty pattern set should pass everything rather than exclude everything.
-                return *this;
-        LeafProxyMap results = LeafProxyMap();
-        for(iterator it = begin(); it != end(); it++) {
-                LeafProxy &proxy = (*it).second;
-                bool found_in_this_proxy = false;
-                for(vector_string::const_iterator pat_it = patterns.begin();
-                    !found_in_this_proxy && pat_it != patterns.end();
-                    pat_it++) {
-                        if((exact && in_matcher(*pat_it, proxy.key()))
-                           || (!exact && in_matcher.contains(proxy.key(), *pat_it))) {
-                                found_in_this_proxy = true;
-                                results[it->first] = proxy;
-                        }
-                }
-        }
-        return results;
+    if(0 == patterns.size())
+	// Empty pattern set should pass everything rather than exclude everything.
+	return *this;
+    LeafProxyMap results = LeafProxyMap();
+    for(iterator it = begin(); it != end(); it++) {
+	LeafProxy &proxy = (*it).second;
+	bool found_in_this_proxy = false;
+	for(vector_string::const_iterator pat_it = patterns.begin();
+	    !found_in_this_proxy && pat_it != patterns.end();
+	    pat_it++) {
+	    if((exact && in_matcher(*pat_it, proxy.key()))
+	       || (!exact && in_matcher.contains(proxy.key(), *pat_it))) {
+		found_in_this_proxy = true;
+		results[it->first] = proxy;
+	    }
+	}
+    }
+    return results;
 }
 
 
@@ -71,37 +71,37 @@ LeafProxyMap LeafProxyMap::filter_payloads(const vector_string &patterns,
                                            const bool disjunction,
                                            const StringMatcher &in_matcher)
 {
-        if(0 == patterns.size())
-                // Empty pattern set should pass everything rather than exclude everything.
-                return *this;
-        LeafProxyMap results = LeafProxyMap();
-        for(iterator it = begin(); it != end(); it++) {
-                LeafProxy &proxy = (*it).second;
-                if(disjunction) {
-                        // disjunction
-                        bool found_in_this_proxy = false;
-                        for(vector_string::const_iterator pat_it = patterns.begin();
-                            !found_in_this_proxy && pat_it != patterns.end();
-                            pat_it++) {
-                                if(in_matcher.contains(proxy.payload(), *pat_it)) {
-                                        found_in_this_proxy = true;
-                                        results[it->first] = proxy;
-                                }
-                        }
-                } else {
-                        // conjunction
-                        bool found_in_this_proxy = true;
-                        for(vector_string::const_iterator pat_it = patterns.begin();
-                            found_in_this_proxy && pat_it != patterns.end();
-                            pat_it++) {
-                                if(!in_matcher.contains(proxy.payload(), *pat_it))
-                                        found_in_this_proxy = false;
-                        }                        
-                        if(found_in_this_proxy)
-                                results[it->first] = proxy;
-                }
-        }
-        return results;
+    if(0 == patterns.size())
+	// Empty pattern set should pass everything rather than exclude everything.
+	return *this;
+    LeafProxyMap results = LeafProxyMap();
+    for(iterator it = begin(); it != end(); it++) {
+	LeafProxy &proxy = (*it).second;
+	if(disjunction) {
+	    // disjunction
+	    bool found_in_this_proxy = false;
+	    for(vector_string::const_iterator pat_it = patterns.begin();
+		!found_in_this_proxy && pat_it != patterns.end();
+		pat_it++) {
+		if(in_matcher.contains(proxy.payload(), *pat_it)) {
+		    found_in_this_proxy = true;
+		    results[it->first] = proxy;
+		}
+	    }
+	} else {
+	    // conjunction
+	    bool found_in_this_proxy = true;
+	    for(vector_string::const_iterator pat_it = patterns.begin();
+		found_in_this_proxy && pat_it != patterns.end();
+		pat_it++) {
+		if(!in_matcher.contains(proxy.payload(), *pat_it))
+		    found_in_this_proxy = false;
+	    }                        
+	    if(found_in_this_proxy)
+		results[it->first] = proxy;
+	}
+    }
+    return results;
 }
 
 
@@ -114,47 +114,46 @@ LeafProxyMap LeafProxyMap::filter_keys_or_payloads(const vector_string &patterns
                                                    const bool exact,
                                                    const StringMatcher &in_matcher)
 {
-        if(0 == patterns.size())
-                // Empty pattern set should pass everything rather than exclude everything.
-                return *this;
+    if(0 == patterns.size())
+	// Empty pattern set should pass everything rather than exclude everything.
+	return *this;
         
-        LeafProxyMap results = LeafProxyMap();
-        for(iterator it = begin(); it != end(); it++) {
-                LeafProxy &proxy = (*it).second;
-                bool found_in_this_proxy = false;
-                for(vector_string::const_iterator pat_it = patterns.begin();
-                    !found_in_this_proxy && pat_it != patterns.end();
-                    pat_it++) {
-                        if((exact && in_matcher(proxy.key(), *pat_it))
-                           || (!exact && in_matcher.contains(proxy.key(), *pat_it))) {
-                                found_in_this_proxy = true;
-                                results[it->first] = proxy;
-                        }
-                }
-                for(vector_string::const_iterator pat_it = patterns.begin();
-                    !found_in_this_proxy && pat_it != patterns.end();
-                    pat_it++) {
-                        if(in_matcher.contains(proxy.payload(), *pat_it)) {
-                                found_in_this_proxy = true;
-                                results[it->first] = proxy;
-                        }
-                }
+    LeafProxyMap results = LeafProxyMap();
+    for(iterator it = begin(); it != end(); it++) {
+	LeafProxy &proxy = (*it).second;
+	bool found_in_this_proxy = false;
+	for(vector_string::const_iterator pat_it = patterns.begin();
+	    !found_in_this_proxy && pat_it != patterns.end();
+	    pat_it++) {
+	    if((exact && in_matcher(proxy.key(), *pat_it))
+	       || (!exact && in_matcher.contains(proxy.key(), *pat_it))) {
+		found_in_this_proxy = true;
+		results[it->first] = proxy;
+	    }
+	}
+	for(vector_string::const_iterator pat_it = patterns.begin();
+	    !found_in_this_proxy && pat_it != patterns.end();
+	    pat_it++) {
+	    if(in_matcher.contains(proxy.payload(), *pat_it)) {
+		found_in_this_proxy = true;
+		results[it->first] = proxy;
+	    }
+	}
                 
-        }
-        return results;
+    }
+    return results;
 }
 
 
 
 LeafProxyMap::LPM_Set LeafProxyMap::as_set() const
 {
-        set<LeafProxy, less<LeafProxy> > s;
-        for(LeafProxyMap::const_iterator it = begin();
-            it != end();
-            it++) {
-                LeafProxy lp = it->second;
-                s.insert(it->second);
-        }
-        return s;
+    set<LeafProxy, less<LeafProxy> > s;
+    for(LeafProxyMap::const_iterator it = begin();
+	it != end();
+	it++) {
+	LeafProxy lp = it->second;
+	s.insert(it->second);
+    }
+    return s;
 }
-

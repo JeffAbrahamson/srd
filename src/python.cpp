@@ -32,12 +32,11 @@ using namespace std;
 
 BOOST_PYTHON_MODULE(srd)
 {
-        class_<root>("root", init<string, string, bool>())
-                .def("add_leaf", &root::add_leaf)
-                .def("get_leaf", &root::get_leaf)
-                .def("set_leaf", &root::set_leaf)
-                .def("rm_leaf", &root::rm_leaf)
-                .def("change_password", &root::change_password);
+    class_<root>("root", init<string, string, bool>())
+	.def("add_leaf", &root::add_leaf)
+	.def("get_leaf", &root::get_leaf)
+	.def("set_leaf", &root::set_leaf)
+	.def("rm_leaf", &root::rm_leaf)
+	.def("change_password", &root::change_password);
 
 }
-

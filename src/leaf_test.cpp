@@ -36,80 +36,77 @@ using namespace std;
 
 namespace {
 
-        int test_leaf(string);
+    int test_leaf(string);
 
         
-        /*
-          Make a leaf and confirm that re-invoking the leaf gives us the same
-          data that we stored.
+    /*
+      Make a leaf and confirm that re-invoking the leaf gives us the same
+      data that we stored.
 
-          For simplicity, we start with a message, which will be the payload,
-          and then compute key and password as hashes of the message.
-        */
-        int test_leaf(const string message)
-        {
-                // Arbitrary assignments
-                string key = message_digest(message);
-                string password = message_digest(key);
+      For simplicity, we start with a message, which will be the payload,
+      and then compute key and password as hashes of the message.
+    */
+    int test_leaf(const string message)
+    {
+	// Arbitrary assignments
+	string key = message_digest(message);
+	string password = message_digest(key);
 
-                string base_name, dir_name, full_path;
-                {
-                        Leaf first_leaf(password, "", "");
-                        first_leaf.key(key);
-                        first_leaf.payload(message);
-                        base_name = first_leaf.basename();
-                        dir_name = first_leaf.dirname();
-                        full_path = first_leaf.full_path();
-                        // and on destruction here, it will be persisted.
-                }
+	string base_name, dir_name, full_path;
+	{
+	    Leaf first_leaf(password, "", "");
+	    first_leaf.key(key);
+	    first_leaf.payload(message);
+	    base_name = first_leaf.basename();
+	    dir_name = first_leaf.dirname();
+	    full_path = first_leaf.full_path();
+	    // and on destruction here, it will be persisted.
+	}
         
-                Leaf second_leaf(password, base_name, dir_name);
-                int ret = 0;
-                if(second_leaf.key() != key) {
-                        cout << "Key mismatch" << endl;
-                        ret++;
-                } else if(second_leaf.payload() != message) {
-                        cout << "Payload mismatch" << endl;
-                        ret++;
-                }
-                if(second_leaf.full_path() != full_path) {
-                        cout << "Paths unequal!" << endl;
-                        cout << "  1=" << full_path << endl;
-                        cout << "  2=" << second_leaf.full_path() << endl;
-                        ret++;
-                }
+	Leaf second_leaf(password, base_name, dir_name);
+	int ret = 0;
+	if(second_leaf.key() != key) {
+	    cout << "Key mismatch" << endl;
+	    ret++;
+	} else if(second_leaf.payload() != message) {
+	    cout << "Payload mismatch" << endl;
+	    ret++;
+	}
+	if(second_leaf.full_path() != full_path) {
+	    cout << "Paths unequal!" << endl;
+	    cout << "  1=" << full_path << endl;
+	    cout << "  2=" << second_leaf.full_path() << endl;
+	    ret++;
+	}
 
-                second_leaf.erase();
-                Leaf third_leaf(password, base_name, dir_name);
-                if(third_leaf.key() != "" || third_leaf.payload() != "") {
-                        cout << "Failed to remove leaf." << endl;
-                        ret++;
-                }        
+	second_leaf.erase();
+	Leaf third_leaf(password, base_name, dir_name);
+	if(third_leaf.key() != "" || third_leaf.payload() != "") {
+	    cout << "Failed to remove leaf." << endl;
+	    ret++;
+	}        
         
-                return ret;
-        }
+	return ret;
+    }
 }
 
 
 
 int main(int argc, char *argv[])
 {
-        cout << "Testing leaf.cpp" << endl;
+    cout << "Testing leaf.cpp" << endl;
         
-        mode(Verbose, false);
-        mode(Testing, true);
-        mode(ReadOnly, false);
+    mode(Verbose, false);
+    mode(Testing, true);
+    mode(ReadOnly, false);
         
-        int err_count = 0;
-        vector_string messages = test_text();
-        err_count = count_if(messages.begin(), messages.end(), test_leaf);
+    int err_count = 0;
+    vector_string messages = test_text();
+    err_count = count_if(messages.begin(), messages.end(), test_leaf);
 
-        if(err_count)
-                cout << "Errors (" << err_count << ") in test!!" << endl;
-        else
-                cout << "All tests passed!" << endl;
-        return 0 != err_count;
+    if(err_count)
+	cout << "Errors (" << err_count << ") in test!!" << endl;
+    else
+	cout << "All tests passed!" << endl;
+    return 0 != err_count;
 }
-
-
-
