@@ -18,7 +18,11 @@
 */
 
 
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
 #include <boost/program_options.hpp>
+#include <boost/serialization/map.hpp>
+#include <boost/serialization/string.hpp>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -29,6 +33,7 @@
 #include <termios.h>
 #include <unistd.h>
 
+#include "base64.h"
 #include "srd.h"
 
 namespace BPO = boost::program_options;
@@ -78,12 +83,24 @@ namespace {
 	     "for key KEY or else begin with two spaces of indent (which are "
 	     "disgarded during the input) for data (payload) portion associated "
 	     "with the most recent key line.")
+	    ("export-as-url", BPO::value<string>(),
+	     "Produce a URL of the form srd://d/ url, the tail of which (after the \"d/\") "
+	     "is an appropriately escaped representation of an srd record.  Prompts for two "
+	     "passwords: the db password (to read the record) and a URL password (to decrypt "
+	     "the URL).  Also takes matching flags to narrow selection of records.  Write URL "
+	     "to file arg.  If file is \"-\", write to stdout.")
+	    ("import-url", BPO::value<string>(),
+	     "Import URL arg, which is either the URL itself or the name of a file.  Requests "
+	     "two passwords, the local db password and the URL password.  "
+	     "If a record with the same key exists in the current db, offer to concatenate the "
+	     "records or to cancel the operation.  If the URL represents multiple records, the action "
+	     "is atomic and does not take effect until after all user interaction.")
 	    ("validate,V",
 	     "Confirm that all records are loadable and consistent")
 	    ("checksum",
-	     "Compute database checksum (keys and payload)")
+	     "Compute and display whole database checksum (all keys and payloads together)")
 	    ("checksum-by-key",
-	     "Compute database checksum by key, restrictable by matching options");
+	     "Compute and display database checksum by key, restrictable by matching options");
 
 	BPO::options_description matching("Matching options");
 	matching.add_options()
@@ -363,6 +380,59 @@ namespace {
 	    }
 
 	}
+    };
+
+
+    /*
+      A visitor that exports its (key, payload) pairs to a URL.
+    */
+    class LeafURLExporter : public LeafVisitor {
+
+    public:
+	LeafURLExporter(const string& filename) : filename_(filename) {};
+
+	void operator()(const LeafProxyMap &lpm) const {
+	    string url_password = get_password("Enter URL password:  ");
+	    string url_password2 = get_password("Retype URL password:  ");
+	    if(url_password != url_password2) {
+		cerr << "Passwords did not match." << endl;
+		return;
+	    }
+	    map<string, string> to_export;
+	    LeafProxyMap::LPM_Set leaves = lpm.as_set();
+	    for(const LeafProxy& leaf_proxy : leaves) {
+		to_export[leaf_proxy.key()] = leaf_proxy.payload();
+		if(mode(Verbose))
+		    cout << leaf_proxy.key() << endl;
+	    }
+
+	    ostringstream big_text_stream;
+	    boost::archive::text_oarchive oa(big_text_stream);
+	    const unsigned char version = 0;
+	    oa & version;
+	    oa & to_export;
+	    string big_text(big_text_stream.str());
+	    string plain_text = compress(big_text);
+	    string cipher_text = encrypt(plain_text, url_password);
+	    string url("srd://d/"); // 'd' indicates version.
+	    url += base64_encode(cipher_text);
+	    if("-" == filename_)
+		cout << url << endl;
+	    else {
+		ofstream fs(filename_.c_str(), ios::out | ios::binary);
+		if(!fs.is_open()) {
+		    char *err_str = strerror(errno);
+		    ostringstream oss(string("Failed to open file \""));
+		    oss << filename_ << "\" for writing: " << err_str;
+		    throw(runtime_error(oss.str()));
+		}
+		fs.write(url.data(), url.size());
+		fs.close();
+	    }
+	}
+
+    private:
+	const string filename_;
     };
 
 
@@ -780,10 +850,10 @@ int main(int argc, char *argv[])
     else
 	passwd = get_password();
         
-    // do something
+    // Do something.
     if(options.count("create") > 0)
 	if(do_create(passwd))
-	    return 1; // password mismatch
+	    return 1; // Password mismatch.
 
     if(options.count("validate") > 0)
 	return(do_validate(passwd));
@@ -859,6 +929,11 @@ int main(int argc, char *argv[])
 	lv = new LeafDeleteVisitor(root);
     } else if(options.count("checksum-by-key")) {
 	lv = new LeafChecksumVisitor();
+	if(0 == match_key.size())
+	    match_key.push_back(""); // match all keys if no match requested
+    } else if(options.count("export-as-url")) {
+	string filename(options["export-as-url"].as<string>());
+	lv = new LeafURLExporter(filename);
 	if(0 == match_key.size())
 	    match_key.push_back(""); // match all keys if no match requested
     } else {

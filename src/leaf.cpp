@@ -17,8 +17,6 @@
   along with srd.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
-
 #include <assert.h>
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
@@ -28,11 +26,8 @@
 
 #include "srd.h"
 
-
 using namespace srd;
 using namespace std;
-
-
 
 /*
   If newly created, just decide what our filename is and we're done.

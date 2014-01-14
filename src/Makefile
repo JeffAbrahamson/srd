@@ -2,6 +2,7 @@
 CC = g++ -ggdb3 -Wall -std=c++0x
 
 SRC = 			\
+	base64.cpp	\
 	compress.cpp	\
 	crypt.cpp	\
 	file.cpp	\
@@ -67,6 +68,7 @@ libpysrd.so : $(OBJECT) python.o
 		$(OBJECT) -lpython2.6 -lboost_python $(LIBS)
 
 TESTS = 			\
+	base64_test		\
 	compress_test		\
 	crypt_test 		\
 	file_test 		\

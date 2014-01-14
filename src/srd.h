@@ -561,14 +561,12 @@ namespace srd {
     };
 
 
-
     /* ************************************************************ */
     /* FileUtil */
 
     void file_create(const std::string &filename);
     bool file_exists(const std::string &filename);
     void file_rm(const std::string &filename);
-        
 }
 
 
