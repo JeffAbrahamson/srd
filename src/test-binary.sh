@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Test that a database we have previously written is still readable
-# and produces the resuls we expect.
+# and produces the results we expect.
 
 pass=binary-regression-test-db
 tmp_file=test_$pass
