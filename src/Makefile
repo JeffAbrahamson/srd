@@ -90,7 +90,7 @@ test : $(TESTS)
 	$(CC) -o $@ $^ $(LIBS)
 	-./$@
 
-clean :
+clean : clean-test
 	rm -f $(OBJECT) *.o *~ srd TAGS *_test
 
 clean-test :
