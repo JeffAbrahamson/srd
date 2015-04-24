@@ -5,9 +5,19 @@ installed, even though you've installed g++.
   libpstreams-dev
   libbz2-dev
   libcrypto++-dev
-  libcrypto++8
-  libboost1.40-dev
+  libcrypto++9
+  libboost-all-dev
+
+If that last line (-all-dev) feels too heavy, the following may be
+enough:
+
+  libboost-dev
   libboost-program-options-dev
-  libboost-program-options1.40.0
+  libboost-program-options
   libboost-serialization-dev
-  libboost-serialization1.40.0
+  libboost-serialization
+
+I say "may" because the exact package names and dependencies change
+over time, and I don't verify this README each time I compile the
+package.  If you find a bug in the above, please let me know and I'm
+happy to fix.
