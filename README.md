@@ -24,7 +24,8 @@ first to discover a bug in the conversion process.
 When converting, the software first tries to read files as protobufs,
 which leads to harmless but noisy errors like these:
 
-````libprotobuf ERROR google/protobuf/message_lite.cc:123] Can't parse message of type "srd.LeafData" because it is missing required fields: key, payload
+````
+libprotobuf ERROR google/protobuf/message_lite.cc:123] Can't parse message of type "srd.LeafData" because it is missing required fields: key, payload
 ````
 
 This is unfortunate and, in retrospect, could have been avoided.  But
