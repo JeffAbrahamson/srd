@@ -51,6 +51,10 @@ namespace {
 	general.add_options()
 	    ("help,h",
 	     "Produce help message")
+	    ("convert",
+	     "Convert to new file format.  This is the only option you\n"
+	     "should mean to use in this version.  Be sure to back up\n"
+	     "your srd data before converting.\n")
 	    ("read-only,R",
 	     "Read-only, do not persist data")
 	    ("database-dir", BPO::value<string>(),
@@ -747,6 +751,49 @@ namespace {
 
 
     /*
+      Instantiate the root and force conversion.
+      Return zero if all is well, non-zero otherwise.
+      The user should backup his srd/ directory before
+      running this.
+    */
+    bool do_convert(const string &password)
+    {
+	try {
+	    Root root(password, "");
+	    try {
+		root.validate(true);
+		root.modified = true;
+		std::for_each(root.begin(), root.end(),
+			      [root]
+			      (srd::LeafProxyMap::LeafProxyMapInternalType::value_type val)
+			      mutable {
+				  val.second.validate(true);
+				  val.second.force_load_modify();
+			      });
+	    }
+	    catch(runtime_error &e) {
+		cout << "Validation failed: forced validation failed." << endl;
+		cout << e.what() << endl;
+		return 1;
+	    }
+	}
+	catch(runtime_error &e) {
+	    cout << "Validation failed:  root did not instantiate." << endl;
+	    cout << e.what() << endl;
+	    return 1;
+	}
+	catch(exception &e) {
+	    cout << "exc: " << e.what() << endl;
+	}
+	catch(...) {
+	    cout << "catch all error" << endl;
+	    return 1;
+	}
+	return 0;
+    }
+
+
+    /*
       Instantiate the root and force validation.
       Return zero if all is well, non-zero otherwise.
     */
@@ -817,6 +864,7 @@ namespace {
 */
 int main(int argc, char *argv[])
 {
+    GOOGLE_PROTOBUF_VERIFY_VERSION;
     BPO::variables_map options;
     try {
 	options = parse_options(argc, argv);
@@ -855,6 +903,8 @@ int main(int argc, char *argv[])
 	if(do_create(passwd))
 	    return 1; // Password mismatch.
 
+    if(options.count("convert") > 0)
+	return(do_convert(passwd));
     if(options.count("validate") > 0)
 	return(do_validate(passwd));
 
@@ -945,5 +995,6 @@ int main(int argc, char *argv[])
     do_match(root, match_key, match_data, match_or, match_exact, disjunction,
 	     *string_matcher(match_case_sensitive), lv);
     delete lv;
+    google::protobuf::ShutdownProtobufLibrary();
     return 0;
 }

@@ -105,15 +105,37 @@ void Root::load()
 	plain_text = decrypt(file_contents(), password);
     }
     string big_text = decompress(plain_text);
-    istringstream big_text_stream(big_text);
-    boost::archive::text_iarchive ia(big_text_stream);
-    ia & *this;
+    RootData root_data;
+    if(!root_data.ParseFromString(big_text)) {
+	if(!getenv("SRD_TEST_PROTOBUF_ONLY")) {
+	    // Assume that if we fail to deserialize, then it's the old format.
+	    // Unless we are testing in preparation to abandon the old format.
+	    istringstream big_text_stream(big_text);
+	    boost::archive::text_iarchive ia(big_text_stream);
+	    ia & *this;
 
-    for_each(leaf_names.begin(),
-	     leaf_names.end(),
-	     boost::bind(&Root::instantiate_leaf_proxy, this, _1));
-    assert(size() == leaf_names.size());
-    leaf_names.clear();
+	    for_each(leaf_names.begin(),
+		     leaf_names.end(),
+		     boost::bind(&Root::instantiate_leaf_proxy, this, _1));
+	    assert(size() == leaf_names.size());
+	    leaf_names.clear();
+	    validate();
+	    return;
+	}
+	// When we retire the old Boost format, we'll throw an error
+	// instead of the above block.  We'll also be able to delete
+	// class LeafProxyPersit.
+	cerr << "Failed to deserialize root." << endl;
+	throw(runtime_error("Failed to deserialize root"));
+    }
+    // TODO(jeff@purple.com): It's a kludge to capture this in the lambda closure.
+    for_each(root_data.keys().begin(),
+	     root_data.keys().end(),
+	     [root_data, this](RootData_KeyData key) mutable {
+		 (*this)[key.proxy_name()] = LeafProxy(password, key.proxy_name(), "");
+		 (*this)[key.proxy_name()].key_cache(key.cached_key());
+	     });
+    assert(size() == root_data.keys_size());
     validate();
 }
 
@@ -289,15 +311,20 @@ void Root::commit()
     validate();
     if(!modified || mode(ReadOnly))
 	return;
+
+    RootData root_data;
     for_each(begin(),
 	     end(),
-	     boost::bind(&Root::populate_leaf_names, this, _1));
-    assert(size() == leaf_names.size());
-
-    ostringstream big_text_stream;
-    boost::archive::text_oarchive oa(big_text_stream);
-    oa & *this;
-    string big_text(big_text_stream.str());
+	     [&root_data](LeafProxyMapInternalType::value_type val) mutable {
+		 RootData_KeyData* key_data = root_data.add_keys();
+		 key_data->set_proxy_name(val.first);
+		 key_data->set_cached_key(val.second.key());
+	     });
+    string big_text;
+    if(!root_data.SerializeToString(&big_text)) {
+	cerr << "Failed to serialize root." << endl;
+	throw(runtime_error("Failed to serialize root."));
+    }
     string plain_text = compress(big_text);
     string cipher_text = encrypt(plain_text, password);
     file_contents(cipher_text);

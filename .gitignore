@@ -8,3 +8,5 @@ srd-from-so
 *~
 srd-test-*
 TAGS
+*.pb.cc
+*.pb.h

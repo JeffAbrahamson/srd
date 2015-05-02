@@ -35,6 +35,8 @@
 #include <string>
 #include <vector>
 
+#include "leaf.pb.h"
+#include "root.pb.h"
 
 namespace srd {
 
@@ -208,18 +210,22 @@ namespace srd {
 	void validate();
 	bool is_loaded() const { return m_loaded; };
                                 
+	// Briefly make this public for use in convert.
+	// A hack, but better than adding infrastructure to re-write the db.
+	bool m_modified;
+
     private:
 	friend class boost::serialization::access;
 	template<class Archive>
 	void serialize(Archive &ar, const unsigned int version);
 	void load();
-                
+
 	const std::string m_password;
-	bool m_modified;
+	//bool m_modified;
 	// m_loaded is true if the leaf has been loaded from its underlying file
 	// or if the leaf is new (and perhaps hasn't been persisted yet).
 	bool m_loaded;
-                
+
 	std::string m_node_key;
 	std::string m_node_payload;
     };
@@ -306,6 +312,8 @@ namespace srd {
 	void erase();
 
 	void validate(bool force_load = false) const;
+	// Temp function for do_convert().
+	void force_load_modify() { init_leaf(); the_leaf->m_modified = true; }
 
     private:
 
@@ -508,6 +516,10 @@ namespace srd {
 	void validate(bool force_load = false) const;
 	void checksum(bool force_load = false) const;
 
+	// Briefly make this public for use in convert.
+	// A hack, but better than adding infrastructure to re-write the db.
+	bool modified;
+	
     private:
 
 	void load();
@@ -537,7 +549,7 @@ namespace srd {
 	// Data members
 
 	const std::string password;
-	bool modified;
+	//bool modified;
 	bool valid;     // if false, all operations except deletion should fail
     };
 

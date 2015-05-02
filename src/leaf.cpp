@@ -23,6 +23,7 @@
 #include <boost/serialization/string.hpp>
 #include <string>
 #include <sstream>
+#include <stdlib.h>
 
 #include "srd.h"
 
@@ -46,7 +47,8 @@ Leaf::Leaf(const string &pass,
            const string base_name,
            const string dir_name,
            const bool do_load)
-    : m_password(pass), m_modified(false), m_loaded(false)
+    : //m_password(pass), m_modified(false), m_loaded(false)
+    m_modified(false), m_password(pass), m_loaded(false)
 {
     basename(base_name);    // If empty, will be computed for us
     dirname(dir_name);      // If empty, will be computed for us
@@ -103,9 +105,24 @@ void Leaf::load()
 	cout << "Loading leaf:  " << basename() << endl;
     string plain_text = decrypt(file_contents(), m_password);
     string big_text = decompress(plain_text);
-    istringstream big_text_stream(big_text);
-    boost::archive::text_iarchive ia(big_text_stream);
-    ia & *this;
+    LeafData leaf_data;
+    if(!leaf_data.ParseFromString(big_text)) {
+	if(!getenv("SRD_TEST_PROTOBUF_ONLY")) {
+	    // Assume that if we fail to deserialize, then it's the old format.
+	    // Unless we are testing in preparation to abandon the old format.
+	    istringstream big_text_stream(big_text);
+	    boost::archive::text_iarchive ia(big_text_stream);
+	    ia & *this;
+	    m_loaded = true;
+	    return;
+	}
+	// When we retire the old Boost format, we'll throw an error
+	// instead of the above block.
+	cerr << "Failed to deserialize leaf." << endl;
+	throw(runtime_error("Failed to deserialize leaf"));
+    }
+    m_node_key = leaf_data.key();
+    m_node_payload = leaf_data.payload();
     m_loaded = true;
 }
 
@@ -119,10 +136,14 @@ void Leaf::commit()
     validate();
     if(!m_modified || mode(ReadOnly))
 	return;
-    ostringstream big_text_stream;
-    boost::archive::text_oarchive oa(big_text_stream);
-    oa & *this;
-    string big_text(big_text_stream.str());
+    LeafData leaf_data;
+    leaf_data.set_key(m_node_key);
+    leaf_data.set_payload(m_node_payload);
+    string big_text;
+    if(!leaf_data.SerializeToString(&big_text)) {
+	cerr << "Failed to serialize leaf." << endl;
+	throw(runtime_error("Failed to serialize leaf."));
+    }
     string plain_text = compress(big_text);
     string cipher_text = encrypt(plain_text, m_password);
     file_contents(cipher_text);
