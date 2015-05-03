@@ -1,11 +1,12 @@
 This is a list of some packages you're likely to need on a debian /
 ubuntu system in order to compile srd but that may not already be
-installed, even though you've installed g++.
+installed, even though you've installed clang.
 
   libpstreams-dev
   libbz2-dev
   libcrypto++-dev
   libcrypto++9
+  libprotobuf-dev
   libboost-all-dev
 
 If that last line (-all-dev) feels too heavy, the following may be
@@ -14,8 +15,6 @@ enough:
   libboost-dev
   libboost-program-options-dev
   libboost-program-options
-  libboost-serialization-dev
-  libboost-serialization
 
 I say "may" because the exact package names and dependencies change
 over time, and I don't verify this README each time I compile the
