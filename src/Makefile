@@ -28,7 +28,6 @@ OBJECT = $(SRC:%.cpp=%.o)
 
 LIBS = 				\
 	-lboost_program_options	\
-	-lboost_serialization	\
 	-lbz2			\
 	-lcrypto++		\
 	-lprotobuf		\
@@ -44,7 +43,7 @@ all : srd test TAGS
 %.pb.h %.pb.cc : %.proto
 	protoc --cpp_out=. $<
 
-srd : main.o $(HEADER) $(OBJECT) Makefile
+srd : $(HEADER) main.o $(OBJECT) Makefile
 	$(CC) -o srd main.o $(OBJECT) $(LIBS)
 
 ############################################################
@@ -94,7 +93,7 @@ test : $(TESTS)
 	-./$@
 
 clean : clean-test
-	rm -f $(OBJECT) *.o *~ srd TAGS *_test
+	rm -f $(OBJECT) *.o *~ srd TAGS *_test $(PROTOBUF_C) $(PROTOBUF_H)
 
 clean-test :
 	rm -rf srd-test-*/ test_[0-9]*\.[0-9]*
