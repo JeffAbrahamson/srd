@@ -1,4 +1,4 @@
-# This is a release version of srd.
+# This is the release branch of srd.
 
 srd is a secure rolodesk, which is a bit of a retro name for an
 encrypted set of notes.  In modern parlance, it might be called a

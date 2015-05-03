@@ -18,11 +18,7 @@
 */
 
 
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
 #include <boost/program_options.hpp>
-#include <boost/serialization/map.hpp>
-#include <boost/serialization/string.hpp>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -51,10 +47,6 @@ namespace {
 	general.add_options()
 	    ("help,h",
 	     "Produce help message")
-	    ("convert",
-	     "Convert to new file format.  This is the only option you\n"
-	     "should mean to use in this version.  Be sure to back up\n"
-	     "your srd data before converting.\n")
 	    ("read-only,R",
 	     "Read-only, do not persist data")
 	    ("database-dir", BPO::value<string>(),
@@ -87,6 +79,7 @@ namespace {
 	     "for key KEY or else begin with two spaces of indent (which are "
 	     "disgarded during the input) for data (payload) portion associated "
 	     "with the most recent key line.")
+#if LATER_URL_EXPORT
 	    ("export-as-url", BPO::value<string>(),
 	     "Produce a URL of the form srd://d/ url, the tail of which (after the \"d/\") "
 	     "is an appropriately escaped representation of an srd record.  Prompts for two "
@@ -99,6 +92,7 @@ namespace {
 	     "If a record with the same key exists in the current db, offer to concatenate the "
 	     "records or to cancel the operation.  If the URL represents multiple records, the action "
 	     "is atomic and does not take effect until after all user interaction.")
+#endif  // LATER_URL_EXPORT
 	    ("validate,V",
 	     "Confirm that all records are loadable and consistent")
 	    ("checksum",
@@ -386,7 +380,7 @@ namespace {
 	}
     };
 
-
+#if LATER_URL_EXPORT
     /*
       A visitor that exports its (key, payload) pairs to a URL.
     */
@@ -410,11 +404,6 @@ namespace {
 		    cout << leaf_proxy.key() << endl;
 	    }
 
-	    ostringstream big_text_stream;
-	    boost::archive::text_oarchive oa(big_text_stream);
-	    const unsigned char version = 0;
-	    oa & version;
-	    oa & to_export;
 	    string big_text(big_text_stream.str());
 	    string plain_text = compress(big_text);
 	    string cipher_text = encrypt(plain_text, url_password);
@@ -438,7 +427,7 @@ namespace {
     private:
 	const string filename_;
     };
-
+#endif	// LATER_URL_EXPORT
 
     /*
       Utility function to provide a reference to a StringMatcher (via operator*).
@@ -748,51 +737,6 @@ namespace {
 	return 0;
     }
 
-
-
-    /*
-      Instantiate the root and force conversion.
-      Return zero if all is well, non-zero otherwise.
-      The user should backup his srd/ directory before
-      running this.
-    */
-    bool do_convert(const string &password)
-    {
-	try {
-	    Root root(password, "");
-	    try {
-		root.validate(true);
-		root.modified = true;
-		std::for_each(root.begin(), root.end(),
-			      [root]
-			      (srd::LeafProxyMap::LeafProxyMapInternalType::value_type val)
-			      mutable {
-				  val.second.validate(true);
-				  val.second.force_load_modify();
-			      });
-	    }
-	    catch(runtime_error &e) {
-		cout << "Validation failed: forced validation failed." << endl;
-		cout << e.what() << endl;
-		return 1;
-	    }
-	}
-	catch(runtime_error &e) {
-	    cout << "Validation failed:  root did not instantiate." << endl;
-	    cout << e.what() << endl;
-	    return 1;
-	}
-	catch(exception &e) {
-	    cout << "exc: " << e.what() << endl;
-	}
-	catch(...) {
-	    cout << "catch all error" << endl;
-	    return 1;
-	}
-	return 0;
-    }
-
-
     /*
       Instantiate the root and force validation.
       Return zero if all is well, non-zero otherwise.
@@ -903,8 +847,6 @@ int main(int argc, char *argv[])
 	if(do_create(passwd))
 	    return 1; // Password mismatch.
 
-    if(options.count("convert") > 0)
-	return(do_convert(passwd));
     if(options.count("validate") > 0)
 	return(do_validate(passwd));
 
@@ -981,11 +923,13 @@ int main(int argc, char *argv[])
 	lv = new LeafChecksumVisitor();
 	if(0 == match_key.size())
 	    match_key.push_back(""); // match all keys if no match requested
+#if LATER_URL_EXPORT
     } else if(options.count("export-as-url")) {
 	string filename(options["export-as-url"].as<string>());
 	lv = new LeafURLExporter(filename);
 	if(0 == match_key.size())
 	    match_key.push_back(""); // match all keys if no match requested
+#endif  // LATER_URL_EXPORT
     } else {
 	lv = new LeafPrintVisitor(options.count("keys-only") > 0,
 				  options.count("full-display") > 0,

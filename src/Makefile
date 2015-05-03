@@ -84,19 +84,14 @@ TESTS = 			\
 
 test : $(TESTS)
 	./test.sh
-	SRD_TEST_PROTOBUF_ONLY=1 ./test.sh
 	./test-passwd.sh
-	SRD_TEST_PROTOBUF_ONLY=1 ./test-passwd.sh
 	./test-delete.sh
-	SRD_TEST_PROTOBUF_ONLY=1 ./test-delete.sh
 	./test-binary.sh
 	./test-key-change.sh
-	SRD_TEST_PROTOBUF_ONLY=1 ./test-key-change.sh
 
 %_test : %_test.o test_text.o mode.o $(OBJECT)
 	$(CC) -o $@ $^ $(LIBS)
 	-./$@
-	SRD_TEST_PROTOBUF_ONLY=1 ./$@
 
 clean : clean-test
 	rm -f $(OBJECT) *.o *~ srd TAGS *_test

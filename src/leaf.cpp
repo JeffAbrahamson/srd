@@ -18,11 +18,7 @@
 */
 
 #include <assert.h>
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/serialization/string.hpp>
 #include <string>
-#include <sstream>
 #include <stdlib.h>
 
 #include "srd.h"
@@ -47,8 +43,7 @@ Leaf::Leaf(const string &pass,
            const string base_name,
            const string dir_name,
            const bool do_load)
-    : //m_password(pass), m_modified(false), m_loaded(false)
-    m_modified(false), m_password(pass), m_loaded(false)
+    : m_password(pass), m_modified(false), m_loaded(false)
 {
     basename(base_name);    // If empty, will be computed for us
     dirname(dir_name);      // If empty, will be computed for us
@@ -107,17 +102,6 @@ void Leaf::load()
     string big_text = decompress(plain_text);
     LeafData leaf_data;
     if(!leaf_data.ParseFromString(big_text)) {
-	if(!getenv("SRD_TEST_PROTOBUF_ONLY")) {
-	    // Assume that if we fail to deserialize, then it's the old format.
-	    // Unless we are testing in preparation to abandon the old format.
-	    istringstream big_text_stream(big_text);
-	    boost::archive::text_iarchive ia(big_text_stream);
-	    ia & *this;
-	    m_loaded = true;
-	    return;
-	}
-	// When we retire the old Boost format, we'll throw an error
-	// instead of the above block.
 	cerr << "Failed to deserialize leaf." << endl;
 	throw(runtime_error("Failed to deserialize leaf"));
     }
@@ -178,16 +162,4 @@ void Leaf::validate()
     assert(m_password.size() > 0);
     assert(basename().size() > 0);
     assert(dirname().size() > 0);
-}
-
-
-
-/*
-  Serialize or deserialize according to context.
-*/
-template<class Archive>
-void Leaf::serialize(Archive &ar, const unsigned int version)
-{
-    ar & m_node_key;
-    ar & m_node_payload;
 }

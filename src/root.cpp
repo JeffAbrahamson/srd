@@ -20,10 +20,6 @@
 
 
 #include <algorithm>
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/bind.hpp>
-#include <boost/serialization/vector.hpp>
 #include <functional>
 #include <stdlib.h>
 #include <sstream>
@@ -107,24 +103,6 @@ void Root::load()
     string big_text = decompress(plain_text);
     RootData root_data;
     if(!root_data.ParseFromString(big_text)) {
-	if(!getenv("SRD_TEST_PROTOBUF_ONLY")) {
-	    // Assume that if we fail to deserialize, then it's the old format.
-	    // Unless we are testing in preparation to abandon the old format.
-	    istringstream big_text_stream(big_text);
-	    boost::archive::text_iarchive ia(big_text_stream);
-	    ia & *this;
-
-	    for_each(leaf_names.begin(),
-		     leaf_names.end(),
-		     boost::bind(&Root::instantiate_leaf_proxy, this, _1));
-	    assert(size() == leaf_names.size());
-	    leaf_names.clear();
-	    validate();
-	    return;
-	}
-	// When we retire the old Boost format, we'll throw an error
-	// instead of the above block.  We'll also be able to delete
-	// class LeafProxyPersit.
 	cerr << "Failed to deserialize root." << endl;
 	throw(runtime_error("Failed to deserialize root"));
     }
@@ -138,35 +116,6 @@ void Root::load()
     assert(size() == root_data.keys_size());
     validate();
 }
-
-
-
-/*
-  Kludge.  In order to persist the keys of the leaf_proxy_map leaves,
-  we copy them to a vector and persist that instead.  Here we
-  reinstantiate the map from the vector elements.
-*/
-void Root::instantiate_leaf_proxy(LeafProxyPersist &proxy_info)
-{
-    (*this)[proxy_info.proxy_name] = LeafProxy(password, proxy_info.proxy_name, "");
-    (*this)[proxy_info.proxy_name].key_cache(proxy_info.cached_key);
-}
-
-
-
-/*
-  Kludge.  In order to persist the keys of the leaf_proxy_map leaves,
-  we copy them to a vector and persist that instead.
-*/
-void Root::populate_leaf_names(LeafProxyMap::value_type &val)
-{
-    LeafProxyPersist lpp;
-    lpp.proxy_name = val.first;
-    lpp.cached_key = val.second.key();
-    leaf_names.push_back(lpp);
-}
-
-
 
 
 
@@ -329,7 +278,6 @@ void Root::commit()
     string cipher_text = encrypt(plain_text, password);
     file_contents(cipher_text);
 
-    leaf_names.clear();
     validate();
     if(mode(Verbose))
 	cout << "root committed, size=" << size() << endl;
@@ -353,7 +301,6 @@ void Root::validate(bool force_load) const
 	assert((*it).first == (*it).second.basename());
 	(*it).second.validate(force_load);
     }
-    assert(leaf_names.size() == 0);
 }
 
 
@@ -375,12 +322,4 @@ void Root::checksum(bool force_load) const
 	text.append(value);
     }
     cout << message_digest(text) << endl;
-}
-
-
-
-template<class Archive>
-void Root::serialize(Archive &ar, const unsigned int version)
-{
-    ar & leaf_names;
 }
