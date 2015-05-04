@@ -49,7 +49,7 @@ using namespace std;
   The name of the root node must be determinable solely by the password.
 */
 Root::Root(const string &pass, const string dir_name, const bool create)
-    : password(pass), modified(false), valid(true)
+    : modified(false), password(pass), valid(true)
 {
     string base_name(pass);
     for(int i = 0; i < 30; i++)

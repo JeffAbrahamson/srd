@@ -67,8 +67,19 @@ fi
 
 ./srd -T $pass -f ''> $tmp_file
 cmp --quiet $result_file $tmp_file
-if [ 0 = $? ]; then 
+if [ 0 = $? ]; then
     echo Binary match failed \($tmp_file vs $result_file\)
+    exit 1;
+fi
+
+# Confirm that file format conversion works.
+echo Converting database.
+./srd -T $pass --convert
+echo Comparing converted database.
+./srd -T $pass -f ''> $tmp_file
+cmp --quiet $result_file $tmp_file
+if [ 0 = $? ]; then
+    echo Binary match failed on converted db \($tmp_file vs $result_file\)
     exit 1;
 fi
 
