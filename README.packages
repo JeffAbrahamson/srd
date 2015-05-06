@@ -9,6 +9,12 @@ installed, even though you've installed clang.
   libprotobuf-dev
   libboost-all-dev
 
+You'll also need at least these tools.
+
+  make
+  clang
+  protobuf-compiler
+
 If that last line (-all-dev) feels too heavy, the following may be
 enough:
 
