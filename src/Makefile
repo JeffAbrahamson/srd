@@ -1,5 +1,6 @@
-CC = clang++ -ggdb3 -Wall -std=c++0x
+#CC = clang++ -ggdb3 -Wall -std=c++0x
 #CC = g++ -ggdb3 -Wall -std=c++0x
+CC = g++ -ggdb3 -Wall -std=c++14
 
 PROTOBUF_SRC = 		\
 	root.proto	\

@@ -17,16 +17,12 @@
   along with srd.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
-
 #include "srd.h"
 
-
+#include <iostream>
 
 using namespace srd;
 using namespace std;
-
-
 
 /*
   Return leaf proxies for all leaves whose key matches pattern.

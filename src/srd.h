@@ -27,6 +27,7 @@
 #include <assert.h>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/interprocess/sync/file_lock.hpp>
+#include <iostream>
 #include <map>
 #include <set>
 #include <string>
