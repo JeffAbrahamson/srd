@@ -20,6 +20,7 @@
 
 
 #include <boost/interprocess/sync/file_lock.hpp>
+#include <boost/date_time/posix_time/conversion.hpp>
 #include <string>
 
 #include "srd.h"
@@ -62,7 +63,8 @@ Lock::Lock(const string &filename)
     }
         
     const int wait_delay = 2;                 // seconds in the future to try again on fail
-    ptime timeout = from_time_t(time(0) + wait_delay);
+    boost::posix_time::ptime timeout = 
+            from_time_t(time(0) + wait_delay);
     while(!m_lock->timed_lock(timeout)) {
 	cout << "Waiting on file lock..." << endl;
 	timeout = from_time_t(time(0) + 1);

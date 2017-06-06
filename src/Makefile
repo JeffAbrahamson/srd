@@ -11,21 +11,21 @@ PROTOBUF_H = $(PROTOBUF_SRC:%.proto=%.pb.h)
 
 SRC = 			\
 	$(PROTOBUF_C)	\
-	base64.cpp	\
-	compress.cpp	\
-	crypt.cpp	\
-	file.cpp	\
-	file_util.cpp	\
-	leaf.cpp	\
-	leaf_proxy.cpp	\
-	leaf_proxy_map.cpp \
-	lock.cpp	\
-	mode.cpp	\
-	root.cpp	\
+	base64.cc	\
+	compress.cc	\
+	crypt.cc	\
+	file.cc		\
+	file_util.cc	\
+	leaf.cc		\
+	leaf_proxy.cc	\
+	leaf_proxy_map.cc \
+	lock.cc		\
+	mode.cc		\
+	root.cc		\
 
 HEADER = srd.h $(PROTOBUF_H)
 
-OBJECT = $(SRC:%.cpp=%.o)
+OBJECT = $(SRC:%.cc=%.o)
 
 LIBS = 				\
 	-lboost_program_options	\
@@ -35,10 +35,10 @@ LIBS = 				\
 
 all : srd test TAGS
 
-%.o : %.cpp %.h
+%.o : %.cc %.h
 	$(CC) -c -fpic -o $@ $<
 
-%.o : %.cpp
+%.o : %.cc
 	$(CC) -c -fpic -o $@ $<
 
 %.pb.h %.pb.cc : %.proto
@@ -62,7 +62,7 @@ srd-from-so :
 #
 ############################################################
 
-python.o : python.cpp
+python.o : python.cc
 	$(CC) -c -fpic -o $@ -I/usr/include/python2.6 $<
 
 libpysrd.so : $(OBJECT) python.o
@@ -99,8 +99,8 @@ clean : clean-test
 clean-test :
 	rm -rf srd-test-*/ test_[0-9]*\.[0-9]*
 
-TAGS : *cpp *h
-	etags *cpp *h
+TAGS : *cc *h
+	etags *cc *h
 
 
 
