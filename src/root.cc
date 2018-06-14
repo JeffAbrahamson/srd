@@ -105,7 +105,7 @@ void Root::load() {
                  LeafProxy(password, key.proxy_name(), "");
              (*this)[key.proxy_name()].key_cache(key.cached_key());
            });
-  assert(size() == root_data.keys_size());
+  assert(size() == static_cast<unsigned int>(root_data.keys_size()));
   validate();
 }
 

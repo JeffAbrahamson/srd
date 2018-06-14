@@ -28,7 +28,7 @@ HEADER = srd.h $(PROTOBUF_H)
 OBJECT = $(SRC:%.cc=%.o)
 
 LIBS = 				\
-	-lboost_program_options	\
+	-lboost_program_options \
 	-lbz2			\
 	-lcrypto++		\
 	-lprotobuf		\
