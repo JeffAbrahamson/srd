@@ -45,7 +45,7 @@ int test_exists(const string dir, const string base, bool expect_exists) {
     if (expect_exists == my_file.exists())
       return 0;
     return 1;
-  } catch (exception e) {
+  } catch (const exception& e) {
     cerr << dir << "/" << base << ":  " << e.what() << endl;
     return 1;
   }
@@ -66,7 +66,7 @@ int test_file(string message) {
       cout << "File write + read not identity!" << endl;
       ret++;
     }
-  } catch (runtime_error e) {
+  } catch (const runtime_error& e) {
     cerr << e.what() << endl;
     ret++;
   } catch (...) {

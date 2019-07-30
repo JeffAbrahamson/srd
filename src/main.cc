@@ -238,7 +238,7 @@ bool change_password(const string &password) {
   }
   try {
     Root new_root = old_root.change_password(passwd);
-  } catch (runtime_error e) {
+  } catch (const runtime_error& e) {
     cerr << "Failed to create new database:  a database identified by this "
             "password already exists."
          << endl;
@@ -675,7 +675,7 @@ bool do_create(const string &password) {
   try {
     // Simply cause creation.  Will fail if root already exists.
     Root(password, "", true);
-  } catch (runtime_error e) {
+  } catch (const runtime_error& e) {
     cerr << "Failed to create new database:  a database identified by this "
             "password already exists."
          << endl;
@@ -695,16 +695,16 @@ bool do_validate(const string &password) {
     Root root(password, "");
     try {
       root.validate(true);
-    } catch (runtime_error &e) {
+    } catch (const runtime_error &e) {
       cout << "Validation failed: forced validation failed." << endl;
       cout << e.what() << endl;
       return 1;
     }
-  } catch (runtime_error &e) {
+  } catch (const runtime_error &e) {
     cout << "Validation failed:  root did not instantiate." << endl;
     cout << e.what() << endl;
     return 1;
-  } catch (exception &e) {
+  } catch (const exception &e) {
     cout << "exc: " << e.what() << endl;
   } catch (...) {
     cout << "catch all error" << endl;
@@ -723,12 +723,12 @@ bool do_checksum(const string &password) {
     Root root(password, "");
     try {
       root.checksum(true);
-    } catch (runtime_error &e) {
+    } catch (const runtime_error &e) {
       cout << "Failed to compute checksum." << endl;
       cout << e.what() << endl;
       return 1;
     }
-  } catch (runtime_error &e) {
+  } catch (const runtime_error &e) {
     cout << "Checksum failed:  root did not instantiate." << endl;
     cout << e.what() << endl;
     return 1;
@@ -748,9 +748,9 @@ int main(int argc, char *argv[]) {
   BPO::variables_map options;
   try {
     options = parse_options(argc, argv);
-  } catch (help_exception) {
+  } catch (const help_exception&) {
     return 0; // User asked for help, done
-  } catch (exception &e) {
+  } catch (const exception &e) {
     // Something went wrong.  Say so and exit with error.
     cerr << e.what() << endl;
     // Options aren't available, so be verbose to be clear.
