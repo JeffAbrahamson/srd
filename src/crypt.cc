@@ -141,15 +141,15 @@ string srd::message_digest(const string &message, bool filesystem_safe) {
 */
 string srd::pseudo_random_string(int length) {
   CryptoPP::AutoSeededRandomPool rng;
-  byte random_bytes[length];
+  CryptoPP::byte random_bytes[length];
   rng.GenerateBlock(random_bytes, length);
   string rand_str;
   copy(random_bytes, random_bytes + length, back_inserter(rand_str));
   return rand_str;
 }
 
-typedef byte crypto_key_type[CryptoPP::CIPHER::DEFAULT_KEYLENGTH];
-typedef byte crypto_iv_type[CryptoPP::CIPHER::BLOCKSIZE];
+typedef CryptoPP::byte crypto_key_type[CryptoPP::CIPHER::DEFAULT_KEYLENGTH];
+typedef CryptoPP::byte crypto_iv_type[CryptoPP::CIPHER::BLOCKSIZE];
 
 namespace {
 
