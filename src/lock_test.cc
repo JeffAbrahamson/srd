@@ -19,6 +19,8 @@
 
 #include "srd.h"
 
+#include <sstream>
+
 using namespace srd;
 using namespace std;
 
