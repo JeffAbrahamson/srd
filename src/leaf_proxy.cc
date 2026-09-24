@@ -73,21 +73,31 @@ LeafProxy::LeafProxy(const LeafProxy &other)
   other gets destroyed and so writes itself.
 */
 LeafProxy &LeafProxy::operator=(const LeafProxy &other) {
-  password = other.password;
+  // Read everything from other before releasing our own leaf, which
+  // is other's if this is self-assignment.
+  string new_password = other.password;
+  string new_base_name, new_dir_name;
   if (other.the_leaf) {
     // If we've loaded the leaf, use its location
     // information, since it may have been computed at
     // instantiation time.
-    input_base_name = other.the_leaf->basename();
-    input_dir_name = other.the_leaf->dirname();
+    new_base_name = other.the_leaf->basename();
+    new_dir_name = other.the_leaf->dirname();
   } else {
     // Otherwise, what we have will surely work.
-    input_base_name = other.input_base_name;
-    input_dir_name = other.input_dir_name;
+    new_base_name = other.input_base_name;
+    new_dir_name = other.input_dir_name;
   }
-  valid = other.valid;
-  cached_key = other.cached_key;
-  the_leaf = NULL;
+  bool new_valid = other.valid;
+  string new_cached_key = other.cached_key;
+
+  // Release (and so commit) the leaf we had, as destruction would.
+  delete_leaf();
+  password = new_password;
+  input_base_name = new_base_name;
+  input_dir_name = new_dir_name;
+  valid = new_valid;
+  cached_key = new_cached_key;
 
   validate();
   return *this;
@@ -230,8 +240,8 @@ void LeafProxy::erase() {
   if (!the_leaf)
     // Initialize without loading
     the_leaf = new Leaf(password, input_base_name, input_dir_name, false);
-  the_leaf->erase();
-  the_leaf = NULL;
+  the_leaf->erase(); // Marks it unmodified, so deleting won't rewrite it.
+  delete_leaf();
   validate();
   if (mode(Verbose))
     cout << "leaf erased" << endl;
