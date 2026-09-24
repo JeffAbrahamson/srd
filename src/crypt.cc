@@ -166,7 +166,7 @@ void init_key_iv(const string password, crypto_key_type &key,
 
   bzero(iv, CryptoPP::CIPHER::BLOCKSIZE);
   string iv_string = message_digest(password);
-  size_t iv_len = min(static_cast<size_t>(CryptoPP::CIPHER::DEFAULT_KEYLENGTH),
+  size_t iv_len = min(static_cast<size_t>(CryptoPP::CIPHER::BLOCKSIZE),
                       iv_string.size());
   memcpy(iv, iv_string.c_str(), iv_len);
 }
