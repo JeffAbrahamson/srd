@@ -1,6 +1,12 @@
-#CC = clang++ -ggdb3 -Wall -Wextra -std=c++20
-#CC = g++ -ggdb3 -Wall -Wextra -std=c++20
-CC = g++ -ggdb3 -Wall -Wextra -std=c++20
+#CC = clang++ -ggdb3 -Wall -Wextra -std=c++20 $(EXTRA_FLAGS)
+#CC = g++ -ggdb3 -Wall -Wextra -std=c++20 $(EXTRA_FLAGS)
+CC = g++ -ggdb3 -Wall -Wextra -std=c++20 $(EXTRA_FLAGS)
+
+# Run the tests under AddressSanitizer and UndefinedBehaviorSanitizer.
+# Objects built with and without sanitizers can't be mixed, so this
+# cleans before and after.
+SANITIZE = -fsanitize=address,undefined -fno-sanitize-recover=undefined \
+	-fno-omit-frame-pointer
 
 PROTOBUF_SRC = 		\
 	root.proto	\
@@ -110,6 +116,11 @@ test : srd $(TESTS)
 %_test : %_test.o test_text.o mode.o $(OBJECT)
 	$(CC) -o $@ $^ $(LIBS)
 	./$@
+
+test-sanitize :
+	$(MAKE) clean
+	$(MAKE) EXTRA_FLAGS="$(SANITIZE)" test
+	$(MAKE) clean
 
 clean : clean-test
 	rm -f $(OBJECT) *.o *.dep *~ srd TAGS *_test $(PROTOBUF_C) $(PROTOBUF_H)
