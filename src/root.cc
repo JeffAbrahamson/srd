@@ -316,7 +316,7 @@ void Root::validate(bool force_load) const {
 /*
   Checksum all keys and payloads together.
 */
-void Root::checksum(bool force_load) const {
+void Root::checksum() const {
   validate(true);
   // Sort on content alone, so that the checksum doesn't depend on the
   // (random) file names of records that share a key.

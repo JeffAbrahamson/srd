@@ -125,7 +125,7 @@ int test_lengths() {
 }
 }
 
-int main(int argc, char *argv[]) {
+int main() {
   cout << "Testing crypt.cpp" << endl;
 
   mode(Verbose, false);

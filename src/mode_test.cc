@@ -29,7 +29,7 @@ int check_mode(Mode m, bool b);
 /*
   Mode is awfully simple...
 */
-int main(int argc, char *argv[]) {
+int main() {
   cout << "Testing mode.cpp" << endl;
 
   int error_count = 0;

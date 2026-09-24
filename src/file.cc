@@ -227,17 +227,21 @@ time_pair File::modtime(const bool silent) {
     cerr << "  " << strerror(errno) << endl;
     throw(runtime_error("File::modtime() failed to stat file"));
   }
-  if (S_ISLNK(stat_buf.st_mode))
-    // At issue is that the view from different hosts
-    // could be different, depending on whether the link
-    // always exists and whether it points to the same
-    // place all the time.  If the underlying directory is
-    // a symlink, all should be well.
-    cout << full_path() << " is a symbolic link, odd things could happen."
-         << endl;
-  else if (!S_ISREG(stat_buf.st_mode))
-    cout << full_path() << " is not a regular file, odd things could happen."
-         << endl;
+  // stat() follows symbolic links, so ask lstat() about the file itself.
+  struct stat lstat_buf;
+  if (!silent && 0 == lstat(full_path().c_str(), &lstat_buf)) {
+    if (S_ISLNK(lstat_buf.st_mode))
+      // At issue is that the view from different hosts
+      // could be different, depending on whether the link
+      // always exists and whether it points to the same
+      // place all the time.  If the underlying directory is
+      // a symlink, all should be well.
+      cerr << full_path() << " is a symbolic link, odd things could happen."
+           << endl;
+    else if (!S_ISREG(lstat_buf.st_mode))
+      cerr << full_path()
+           << " is not a regular file, odd things could happen." << endl;
+  }
 
 #if defined __USE_MISC || defined __USE_XOPEN2K8
   return time_pair(stat_buf.st_mtim.tv_sec, stat_buf.st_mtim.tv_nsec);

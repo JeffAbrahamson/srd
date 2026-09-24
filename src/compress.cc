@@ -59,7 +59,7 @@ string srd::compress(const string &in_buf) {
                                      const_cast<char *>(in_buf.c_str()),
                                      in_buf.size(),
                                      1, // blockSize100k, in the range 1..9
-                                     (const bool)mode(Verbose),
+                                     mode(Verbose) ? 1 : 0, // verbosity
                                      0 // workFactor
                                      );
   string the_error;

@@ -29,7 +29,7 @@ using namespace std;
 
 namespace {}
 
-int main(int argc, char *argv[]) {
+int main() {
   cout << "Testing file_util.cpp" << endl;
 
   mode(Verbose, false);

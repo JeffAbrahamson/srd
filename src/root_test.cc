@@ -331,7 +331,7 @@ int test_root_change_password() {
 }
 }
 
-int main(int argc, char *argv[]) {
+int main() {
   cout << "Testing root.cpp" << endl;
 
   mode(Verbose, false);

@@ -84,7 +84,7 @@ int test_leaf(const string message) {
 }
 }
 
-int main(int argc, char *argv[]) {
+int main() {
   cout << "Testing leaf.cpp" << endl;
 
   mode(Verbose, false);

@@ -84,7 +84,7 @@ int test_leaf_proxy(const string message) {
 }
 }
 
-int main(int argc, char *argv[]) {
+int main() {
   cout << "Testing leaf_proxy.cpp" << endl;
 
   mode(Verbose, false);

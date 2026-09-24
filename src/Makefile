@@ -1,6 +1,6 @@
-#CC = clang++ -ggdb3 -Wall -std=c++20
-#CC = g++ -ggdb3 -Wall -std=c++20
-CC = g++ -ggdb3 -Wall -std=c++20
+#CC = clang++ -ggdb3 -Wall -Wextra -std=c++20
+#CC = g++ -ggdb3 -Wall -Wextra -std=c++20
+CC = g++ -ggdb3 -Wall -Wextra -std=c++20
 
 PROTOBUF_SRC = 		\
 	root.proto	\

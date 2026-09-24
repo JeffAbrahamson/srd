@@ -298,21 +298,6 @@ string get_password(const string prompt) {
 }
 
 /*
-  Authenticate once, then permit multiple queries.
-  If we implement this, we'll need to do a bit more work
-  to protect against leaves being modified externally.
-  In addition, the root currently protects itself by emitting
-  a warning about what has happened and then throwing (and
-  so exiting).  That's perhaps fine for the unlikely scenario
-  in a CLI program, but not so much if we are going to be persistant.
-  Cf. issue #1.
-*/
-void do_shell(const string &password) {
-  // ################
-  cout << "do_shell() not yet implemented." << endl;
-}
-
-/*
   Change password.
 
   If successful, remove old database (root and its leaves).
@@ -941,7 +926,7 @@ bool do_checksum(const string &password) {
   try {
     Root root(password, "");
     try {
-      root.checksum(true);
+      root.checksum();
     } catch (const exception &e) {
       cout << "Failed to compute checksum." << endl;
       cout << e.what() << endl;
@@ -1017,10 +1002,6 @@ int run(int argc, char *argv[]) {
   if (options.count("checksum") > 0)
     return (do_checksum(passwd));
 
-  if (options.count("shell")) {
-    do_shell(passwd);
-    return 0;
-  }
   if (options.count("passwd"))
     return change_password(passwd);
   if (options.count("import")) {

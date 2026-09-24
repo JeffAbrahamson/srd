@@ -83,7 +83,7 @@ enum Mode {
 };
 
 void mode(const Mode m, const bool new_state);
-const bool mode(const Mode m);
+bool mode(const Mode m);
 
 /* ************************************************************ */
 /* types */
@@ -346,47 +346,37 @@ private:
 
 // Helper classes for abstracting string match
 struct StringMatcher {
-  // virtual const bool operator()(const std::string &in_a, const std::string
-  // &in_b) const = 0;
-  virtual const bool operator()(const std::string &in_a,
-                                const std::string &in_b) const {
-    std::cerr << "():  Fail base" << std::endl;
-    return false;
-  };
-  // virtual const bool contains(const std::string &in_a, const std::string
-  // &in_b) const = 0;
-  virtual const bool contains(const std::string &in_a,
-                              const std::string &in_b) const {
-    std::cerr << "contains:  Fail base" << std::endl;
-    return false;
-  };
-  // virtual const int id() const { return 1; };
+  virtual ~StringMatcher() {}
+  // Return true if in_a and in_b match.
+  virtual bool operator()(const std::string &in_a,
+                          const std::string &in_b) const = 0;
+  // Return true if in_a contains in_b.
+  virtual bool contains(const std::string &in_a,
+                        const std::string &in_b) const = 0;
 };
 
 struct IdentStringMatcher : public StringMatcher {
-  virtual const bool operator()(const std::string &in_a,
-                                const std::string &in_b) const {
+  bool operator()(const std::string &in_a,
+                  const std::string &in_b) const override {
     return in_a == in_b;
   }
-  virtual const bool contains(const std::string &in_a,
-                              const std::string &in_b) const {
+  bool contains(const std::string &in_a,
+                const std::string &in_b) const override {
     return in_a.find(in_b) != std::string::npos;
   }
-  // virtual const int id() const { return 2; };
 };
 
 struct UpperStringMatcher : public StringMatcher {
-  virtual const bool operator()(const std::string &in_a,
-                                const std::string &in_b) const {
+  bool operator()(const std::string &in_a,
+                  const std::string &in_b) const override {
     return boost::algorithm::to_upper_copy(in_a) ==
            boost::algorithm::to_upper_copy(in_b);
   }
-  virtual const bool contains(const std::string &in_a,
-                              const std::string &in_b) const {
+  bool contains(const std::string &in_a,
+                const std::string &in_b) const override {
     return boost::algorithm::to_upper_copy(in_a).find(
                boost::algorithm::to_upper_copy(in_b)) != std::string::npos;
   }
-  // virtual const int id() const { return 3; };
 };
 
 class LeafProxyMap {
@@ -489,7 +479,7 @@ public:
   Root change_password(const std::string &new_password);
   void commit();
   void validate(bool force_load = false) const;
-  void checksum(bool force_load = false) const;
+  void checksum() const;
 
 private:
   void load();

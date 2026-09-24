@@ -60,7 +60,7 @@ bool lock_is_free(const string &dir) {
 
 } // namespace
 
-int main(int argc, char *argv[]) {
+int main() {
   cout << "Testing lock.cc" << endl;
 
   mode(Verbose, false);

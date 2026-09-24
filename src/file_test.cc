@@ -145,7 +145,7 @@ int test_dir_is_writeable(const string dir, const bool result_expected) {
 }
 }
 
-int main(int argc, char *argv[]) {
+int main() {
   cout << "Testing file.cpp" << endl;
 
   mode(Verbose, false);

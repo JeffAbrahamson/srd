@@ -107,7 +107,7 @@ int test_corrupt() {
 
 }  // namespace
 
-int main(int argc, char *argv[]) {
+int main() {
   cout << "Testing compress.cpp" << endl;
 
   mode(Verbose, false);
