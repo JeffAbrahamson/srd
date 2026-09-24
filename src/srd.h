@@ -39,7 +39,7 @@ namespace srd {
 /* Compression */
 
 std::string compress(const std::string &);
-std::string decompress(const std::string &, unsigned int = 0);
+std::string decompress(const std::string &);
 
 /* ************************************************************ */
 /* Encryption */

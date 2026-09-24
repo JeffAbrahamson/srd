@@ -141,10 +141,9 @@ string srd::message_digest(const string &message, bool filesystem_safe) {
 */
 string srd::pseudo_random_string(int length) {
   CryptoPP::AutoSeededRandomPool rng;
-  CryptoPP::byte random_bytes[length];
-  rng.GenerateBlock(random_bytes, length);
-  string rand_str;
-  copy(random_bytes, random_bytes + length, back_inserter(rand_str));
+  string rand_str(length, '\0');
+  rng.GenerateBlock(reinterpret_cast<CryptoPP::byte *>(rand_str.data()),
+                    length);
   return rand_str;
 }
 

@@ -57,6 +57,54 @@ int test_compress(const string message) {
   return ret;
 }
 
+/*
+  Large records used to overflow the stack.  Highly compressible data
+  was worst, since decompression guessed 5x the compressed size and
+  retried recursively, doubling each time.
+  Return number of errors that occur.
+*/
+int test_large() {
+  int ret = 0;
+  string compressible(50 * 1000 * 1000, 'a');
+  if (decompress(compress(compressible)) != compressible) {
+    cout << "Failed to round-trip a large compressible message." << endl;
+    ret++;
+  }
+  string incompressible = pseudo_random_string(10 * 1000 * 1000);
+  if (decompress(compress(incompressible)) != incompressible) {
+    cout << "Failed to round-trip a large incompressible message." << endl;
+    ret++;
+  }
+  if (!decompress(compress(string())).empty()) {
+    cout << "Failed to round-trip an empty message." << endl;
+    ret++;
+  }
+  return ret;
+}
+
+/*
+  Corrupt input must throw domain_error, which callers treat as a
+  damaged record.
+  Return number of errors that occur.
+*/
+int test_corrupt() {
+  int ret = 0;
+  string compressed = compress(test_text()[0]);
+  vector<pair<string, string>> cases = {
+      {"truncated", compressed.substr(0, compressed.size() / 2)},
+      {"garbage", string("not bzip2 data at all")},
+      {"empty", string()}};
+  for (const auto &[name, data] : cases) {
+    try {
+      decompress(data);
+      cout << "Decompressing " << name << " data did not throw." << endl;
+      ret++;
+    } catch (const domain_error &) {
+    }
+  }
+  return ret;
+}
+
 }  // namespace
 
 int main(int argc, char *argv[]) {
@@ -68,6 +116,8 @@ int main(int argc, char *argv[]) {
   int err_count = 0;
   vector_string messages = test_text();
   err_count = count_if(messages.begin(), messages.end(), test_compress);
+  err_count += test_large();
+  err_count += test_corrupt();
 
   if (err_count)
     cout << "Errors (" << err_count << ") in test!!" << endl;
