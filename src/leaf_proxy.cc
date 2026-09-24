@@ -204,11 +204,15 @@ void LeafProxy::print_payload(const string &pattern) const {
 */
 string LeafProxy::basename() const {
   validate();
-  // If the leaf is loaded, we can return the basename.  If not,
-  // don't load just to compute the name.  Rather, init without
-  // loading, compute the name, and then toss the pointer.
+  // If the leaf is loaded, we can return the basename.  If not, and
+  // we were given the name, return that:  Root::validate() asks for
+  // every record's name, and building a Leaf costs a stat() or more.
+  // Otherwise, don't load just to compute the name.  Rather, init
+  // without loading, compute the name, and then toss the pointer.
   if (the_leaf)
     return the_leaf->basename();
+  if (!input_base_name.empty())
+    return input_base_name;
   init_leaf(false);
   string out_base_name(the_leaf->basename());
   delete_leaf();
