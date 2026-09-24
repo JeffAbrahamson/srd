@@ -30,7 +30,7 @@ if ! ./srd -T $pass -V; then
     exit 1;
 fi
 test_dir=srd-test-0000-$LOGNAME
-sacrificial_file=$(ls -t $test_dir/ | tail -1)
+sacrificial_file=$(ls -t $test_dir/ | grep -v "^lock$" | tail -1)
 rm $test_dir/$sacrificial_file
 
 echo

@@ -23,11 +23,12 @@
 #include <algorithm>
 #include <assert.h>
 #include <boost/algorithm/string/case_conv.hpp>
-#include <boost/interprocess/sync/file_lock.hpp>
 #include <iostream>
 #include <map>
 #include <set>
 #include <string>
+#include <sys/types.h>
+#include <utility>
 #include <vector>
 
 #include "leaf.pb.h"
@@ -122,7 +123,7 @@ public:
 
   std::string full_path() { return dirname() + "/" + basename(); }
 
-  void file_contents(std::string &data, bool lock = true);
+  void file_contents(const std::string &data);
   std::string file_contents();
 
   time_pair modtime(const bool silent = true);
@@ -138,7 +139,7 @@ protected:
   time_pair m_time(const bool silent = true);
 
 private:
-  void file_contents_sub(std::string &data);
+
 
   std::string m_dir_name;
   std::string m_base_name;
@@ -502,16 +503,32 @@ private:
 /* ************************************************************ */
 /* Lock */
 
+/*
+  An exclusive lock on a database directory.  Hold it from reloading
+  the root through writing it back, so that concurrent srd processes
+  can't lose each other's changes.
+
+  Loading the root takes the lock too, briefly, so that no record
+  disappears between reading the root and validating it.  Record
+  contents are read later without it; every file is replaced by an
+  atomic rename, so those reads always see whole files.
+
+  Re-entrant within a process:  the lock is released when the
+  outermost Lock is destroyed.  In read-only mode, an existing lock
+  file is respected but none is created.
+*/
 class Lock {
 
 public:
-  Lock(const std::string &filename);
+  explicit Lock(const std::string &dir_name);
   ~Lock();
+  Lock(const Lock &) = delete;
+  Lock &operator=(const Lock &) = delete;
 
 private:
   std::string m_filename; /* Name of the lock file */
-  bool m_must_remove;
-  boost::interprocess::file_lock *m_lock;
+  bool m_held;
+  std::pair<dev_t, ino_t> m_id; /* Identity of the lock file */
 };
 
 /* ************************************************************ */

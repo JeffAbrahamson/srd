@@ -22,6 +22,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include "srd.h"

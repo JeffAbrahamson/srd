@@ -96,6 +96,7 @@ test : srd $(TESTS)
 	./test-validate.sh
 	./test-duplicates.sh
 	./test-large.sh
+	./test-concurrency.sh
 	./test-tty.py
 
 %_test : %_test.o test_text.o mode.o $(OBJECT)

@@ -19,7 +19,6 @@
 
 #include <assert.h>
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/interprocess/sync/file_lock.hpp>
 #include <errno.h>
 #include <fcntl.h>
 #include <fstream>
@@ -111,25 +110,10 @@ string File::basename() {
   Set the contents of the file.
   The file need not yet exist.
 
-  Only this function, when calling itself recursively, should set
-  lock = false.  Otherwise, just set data.
-
+  This doesn't lock:  the replacement is atomic, and callers that
+  read, modify and rewrite hold the database Lock.
 */
-void File::file_contents(string &data, bool lock) {
-  string lock_filename = full_path() + ".lck";
-  if (lock) {
-    Lock L(lock_filename);
-    file_contents_sub(data);
-  } else
-    file_contents_sub(data);
-}
-
-/*
-  Do the guts of setting the contents of a file.
-  Abstracted to a separate function to permit RAII
-  lock.
-*/
-void File::file_contents_sub(string &data) {
+void File::file_contents(const string &data) {
   string filename = full_path();
   string filename_new = filename + ".new";
 

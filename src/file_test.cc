@@ -18,7 +18,6 @@
 */
 
 #include <algorithm>
-#include <boost/interprocess/sync/file_lock.hpp>
 #include <cerrno>
 #include <iostream>
 #include <stdexcept>

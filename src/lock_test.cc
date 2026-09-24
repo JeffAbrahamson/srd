@@ -19,35 +19,89 @@
 
 #include "srd.h"
 
-#include <sstream>
+#include <fcntl.h>
+#include <filesystem>
+#include <iostream>
+#include <stdlib.h>
+#include <sys/file.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 using namespace srd;
 using namespace std;
 
+namespace {
+
+int err_count = 0;
+
+void check(bool ok, const string &what) {
+  if (!ok) {
+    cout << "Failed:  " << what << endl;
+    err_count++;
+  }
+}
+
+/*
+  Return true if another process could take the lock in dir right now.
+  Must be another process:  flock() locks belong to open file
+  descriptions, so a probe from this process would say nothing about
+  what other processes see.
+*/
+bool lock_is_free(const string &dir) {
+  pid_t pid = fork();
+  if (0 == pid) {
+    int fd = open((dir + "/lock").c_str(), O_RDONLY);
+    _exit(fd >= 0 && 0 == flock(fd, LOCK_EX | LOCK_NB) ? 0 : 1);
+  }
+  int status;
+  waitpid(pid, &status, 0);
+  return WIFEXITED(status) && 0 == WEXITSTATUS(status);
+}
+
+} // namespace
+
 int main(int argc, char *argv[]) {
-  cout << "Testing file_util.cpp" << endl;
+  cout << "Testing lock.cc" << endl;
 
   mode(Verbose, false);
   mode(Testing, true);
+  mode(ReadOnly, false);
 
-  int err_count = 0;
+  char dir_template[] = "/tmp/srd-lock-test-XXXXXX";
+  string dir = mkdtemp(dir_template);
 
-  ostringstream tmp_name_s;
-  tmp_name_s << "/tmp/srd-" << getpid() << "-" << time(0) << "XXXXXX";
-  string tmp_name(tmp_name_s.str());
+  {
+    Lock outer(dir);
+    check(!lock_is_free(dir), "lock excludes other processes");
+    {
+      // Same directory by another path:  must not deadlock.
+      Lock inner(dir + "/.");
+      check(!lock_is_free(dir), "re-entrant lock held");
+    }
+    check(!lock_is_free(dir), "lock still held after inner release");
+  }
+  check(lock_is_free(dir), "lock released");
+  check(filesystem::exists(dir + "/lock"), "lock file persists");
 
-  /*
-    lock tmp file
-    confirm exists
-    unlock
-    confirm doesn't exist
+  mode(ReadOnly, true);
+  {
+    Lock read_only(dir);
+    check(!lock_is_free(dir), "existing lock respected when read-only");
+  }
+  check(lock_is_free(dir), "read-only lock released");
+  char empty_template[] = "/tmp/srd-lock-test-XXXXXX";
+  string empty_dir = mkdtemp(empty_template);
+  {
+    Lock read_only(empty_dir);
+    check(!filesystem::exists(empty_dir + "/lock"),
+          "no lock file created when read-only");
+  }
+  filesystem::remove(empty_dir);
 
-    create temp file
-    lock tmp file
-    confirm exists
-    unlock
-    confirm exists
-  */
-
+  filesystem::remove_all(dir);
+  if (err_count)
+    cout << "Errors (" << err_count << ") in test!!" << endl;
+  else
+    cout << "All tests passed!" << endl;
   return 0 != err_count;
 }

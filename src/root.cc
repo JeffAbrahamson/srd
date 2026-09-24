@@ -88,11 +88,11 @@ void Root::load() {
     mode(ReadOnly, true);
   }
   clear(); // Drop existing LeafProxy's, if any
-  string plain_text;
-  {
-    Lock L(full_path() + ".lck");
-    plain_text = decrypt(file_contents(), password);
-  }
+  // Lock, so that no other process removes a record between our
+  // reading the root and validating it.  (Re-entrant:  callers that
+  // go on to modify the root already hold it.)
+  Lock lock(dirname());
+  string plain_text = decrypt(file_contents(), password);
   string big_text = decompress(plain_text);
   RootData root_data;
   if (!root_data.ParseFromString(big_text)) {
@@ -135,9 +135,12 @@ Root::~Root() {
 */
 void Root::add_leaf(const string &key, const string &payload,
                     const bool do_commit) {
-  validate();
+  // Reload before validating:  if another process has removed a
+  // record, our stale copy of the root would fail validation.
+  Lock lock(dirname());
   if (exists() && underlying_is_modified())
     load();
+  validate();
   LeafProxy proxy(password, "", dirname());
   proxy.set(key, payload);
   (*this)[proxy.basename()] = proxy;
@@ -171,9 +174,12 @@ LeafProxy Root::get_leaf(const string &proxy_key) {
 */
 void Root::set_leaf(const string &proxy_key, const string &key,
                     const string &payload) {
-  validate();
+  // Reload before validating:  if another process has removed a
+  // record, our stale copy of the root would fail validation.
+  Lock lock(dirname());
   if (exists() && underlying_is_modified())
     load();
+  validate();
   iterator it = find(proxy_key);
   if (end() == it)
     throw(runtime_error("Key not found."));
@@ -191,16 +197,22 @@ void Root::set_leaf(const string &proxy_key, const string &key,
   file.
 */
 void Root::rm_leaf(const string &proxy_key) {
-  validate();
+  // Reload before validating:  if another process has removed a
+  // record, our stale copy of the root would fail validation.
+  Lock lock(dirname());
   if (exists() && underlying_is_modified())
     load();
+  validate();
   iterator it = find(proxy_key);
   if (end() == it)
     throw(runtime_error("Key not found."));
-  it->second.erase();
+  // Commit the root before removing the record's file, so that the
+  // root on disk never refers to a missing file.
+  LeafProxy doomed(it->second);
   erase(it);
   modified = true;
   commit();
+  doomed.erase();
   validate();
 }
 
@@ -220,9 +232,12 @@ void Root::rm_leaf(const string &proxy_key) {
   generates an existing root object.
 */
 Root Root::change_password(const std::string &new_password) {
-  validate();
+  // Reload before validating:  if another process has removed a
+  // record, our stale copy of the root would fail validation.
+  Lock lock(dirname());
   if (exists() && underlying_is_modified())
     load();
+  validate();
   Root new_root(new_password, dirname(), true);
   for (const_iterator it = begin(); it != end(); it++)
     new_root.add_leaf((*it).second.key(), (*it).second.payload(), false);
@@ -249,6 +264,14 @@ void Root::commit() {
   validate();
   if (!modified || mode(ReadOnly))
     return;
+  Lock lock(dirname());
+  // Pending changes were made against the root as we last read it.
+  // If another process has rewritten it since, writing ours would
+  // silently discard theirs.  (Callers that modify the root hold the
+  // lock from reload to commit, so this shouldn't happen.)
+  if (exists() && underlying_is_modified())
+    throw(runtime_error("Refusing to overwrite changes another srd made "
+                        "to the database."));
 
   RootData root_data;
   for_each(begin(), end(),
@@ -265,6 +288,7 @@ void Root::commit() {
   string plain_text = compress(big_text);
   string cipher_text = encrypt(plain_text, password);
   file_contents(cipher_text);
+  modified = false;
 
   validate();
   if (mode(Verbose))

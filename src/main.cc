@@ -811,6 +811,9 @@ bool do_import(const string &password, const string &filename) {
   }
 
   Root root(password, "");
+  // Hold the lock across the whole batch, so that no other srd can
+  // change the root between our first add and the commit.
+  Lock lock(root.dirname());
   for (vector<pair<string, string>>::const_iterator it = incoming.begin();
        it != incoming.end(); ++it)
     root.add_leaf(it->first, it->second, false);
