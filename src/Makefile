@@ -93,6 +93,7 @@ test : srd $(TESTS)
 	./test-edit.sh
 	./test-write-failure.sh
 	./test-errors.sh
+	./test-tty.py
 
 %_test : %_test.o test_text.o mode.o $(OBJECT)
 	$(CC) -o $@ $^ $(LIBS)

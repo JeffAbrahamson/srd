@@ -192,22 +192,95 @@ string read_secret_line() {
   return line;
 }
 
+/*
+  Turn off terminal echo while a password is typed, and make sure it
+  comes back on.
+
+  Only ECHO is cleared.  The terminal stays in canonical mode, so the
+  user's line editing (erase, kill, werase, ...) works as usual.
+
+  If a signal would kill us mid-prompt, restore the terminal first, so
+  the user's shell isn't left without echo.  On ^Z, restore it, stop,
+  and turn echo off again when continued.  Signals that were ignored
+  when we started stay ignored.
+
+  The signal handlers need the terminal settings, hence file statics.
+  Only one instance may exist at a time.
+*/
+termios g_echo_termios, g_noecho_termios;
+
+void set_handler(int sig, void (*handler)(int)) {
+  struct sigaction sa = {};
+  sa.sa_handler = handler;
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = SA_RESTART;
+  sigaction(sig, &sa, nullptr);
+}
+
+void on_fatal_signal(int sig) {
+  tcsetattr(STDIN_FILENO, TCSANOW, &g_echo_termios);
+  set_handler(sig, SIG_DFL);
+  raise(sig); // Delivered, and fatal, once this handler returns.
+}
+
+void on_stop_signal(int sig) {
+  int saved_errno = errno;
+  tcsetattr(STDIN_FILENO, TCSANOW, &g_echo_termios);
+  set_handler(sig, SIG_DFL);
+  sigset_t unblock;
+  sigemptyset(&unblock);
+  sigaddset(&unblock, sig);
+  sigprocmask(SIG_UNBLOCK, &unblock, nullptr);
+  raise(sig); // We stop here until continued.
+  set_handler(sig, on_stop_signal);
+  tcsetattr(STDIN_FILENO, TCSANOW, &g_noecho_termios);
+  errno = saved_errno;
+}
+
+class NoEchoTerminal {
+public:
+  NoEchoTerminal() {
+    m_active = isatty(STDIN_FILENO) && 0 == tcgetattr(STDIN_FILENO,
+                                                         &g_echo_termios);
+    if (!m_active)
+      return;
+    g_noecho_termios = g_echo_termios;
+    g_noecho_termios.c_lflag &= ~ECHO;
+    for (size_t i = 0; i < num_signals; ++i) {
+      sigaction(signals[i], nullptr, &m_old_actions[i]);
+      if (SIG_IGN != m_old_actions[i].sa_handler)
+        set_handler(signals[i],
+                    SIGTSTP == signals[i] ? on_stop_signal : on_fatal_signal);
+    }
+    tcsetattr(STDIN_FILENO, TCSANOW, &g_noecho_termios);
+  }
+  ~NoEchoTerminal() {
+    if (!m_active)
+      return;
+    tcsetattr(STDIN_FILENO, TCSANOW, &g_echo_termios);
+    for (size_t i = 0; i < num_signals; ++i)
+      sigaction(signals[i], &m_old_actions[i], nullptr);
+  }
+  NoEchoTerminal(const NoEchoTerminal &) = delete;
+  NoEchoTerminal &operator=(const NoEchoTerminal &) = delete;
+
+private:
+  static constexpr int signals[] = {SIGHUP, SIGINT, SIGQUIT, SIGTERM,
+                                    SIGTSTP};
+  static constexpr size_t num_signals = sizeof(signals) / sizeof(signals[0]);
+  bool m_active;
+  struct sigaction m_old_actions[num_signals];
+};
+
 string get_password(const string prompt) {
   // We read with read(2), not cin, so cin won't flush cout for us.
   cout << prompt << flush;
 
-  // Get pass phrase without echoing it
-  termios before, after;
-  tcgetattr(STDIN_FILENO, &before);
-  after = before;
-  after.c_lflag &=
-      (~ICANON);            // Disable canonical mode, including line buffering
-  after.c_lflag &= (~ECHO); // Don't echo characters
-  tcsetattr(STDIN_FILENO, TCSANOW, &after);
-
-  string pass_phrase = read_secret_line();
-
-  tcsetattr(STDIN_FILENO, TCSANOW, &before);
+  string pass_phrase;
+  {
+    NoEchoTerminal no_echo;
+    pass_phrase = read_secret_line();
+  }
   cout << endl;
 
   // Iterate hash (arbitrarily) 50 times.  Motivated by gpg's behavior.
