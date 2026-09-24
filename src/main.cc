@@ -73,10 +73,11 @@ BPO::variables_map parse_options(int argc, char *argv[]) {
           "database and mistyping the password.")(
           "import", BPO::value<string>(),
           "Import a text file.  The format is the same as that output "
-          "by -f:  each line must either be \"[KEY]\" "
-          "for key KEY or else begin with two spaces of indent (which are "
-          "disgarded during the input) for data (payload) portion associated "
-          "with the most recent key line.")
+          "by -f:  a line \"[KEY]\" starts a record with key KEY, and each "
+          "following line, less its two spaces of indent, is a line of that "
+          "record's data (payload).  An empty line is an empty line of data.  "
+          "Keys that already exist are pointed out before confirming; "
+          "import never replaces a record.")
               ("validate,V",
                "Confirm that all records are loadable and consistent")(
                   "checksum", "Compute and display whole database checksum "
