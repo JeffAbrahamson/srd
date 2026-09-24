@@ -246,11 +246,7 @@ bool change_password(const string &password) {
   try {
     Root new_root = old_root.change_password(passwd);
   } catch (const runtime_error& e) {
-    cerr << "Failed to create new database:  a database identified by this "
-            "password already exists."
-         << endl;
-    if (mode(Verbose))
-      cerr << "  ==> " << e.what() << endl;
+    cerr << "Failed to change password:  " << e.what() << endl;
     return 1;
   }
   return 0;
@@ -928,10 +924,8 @@ int run(int argc, char *argv[]) {
     do_shell(passwd);
     return 0;
   }
-  if (options.count("passwd")) {
-    change_password(passwd);
-    return 0;
-  }
+  if (options.count("passwd"))
+    return change_password(passwd);
   if (options.count("import")) {
     string filename = options["import"].as<string>();
     do_import(passwd, filename);

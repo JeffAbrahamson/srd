@@ -49,7 +49,8 @@ Root::Root(const string &pass, const string dir_name, const bool create)
   if (exists() == create) {
     // i.e., if exists() != !create
     if (create)
-      throw(runtime_error("Can't create existing root."));
+      throw(runtime_error(
+          "A database identified by this password already exists."));
     throw(runtime_error("Root doesn't exist.  (Incorrect password?)"));
   }
   if (!is_writeable())
@@ -207,10 +208,13 @@ void Root::rm_leaf(const string &proxy_key) {
   Change the password associated with this root and all its leaves.
 
   First make a new root and, for each leaf in the old root, add it to
-  the new root.  Once the new root is complete and persisted, walk the
-  old root and remove its leaves (and so the underlying files).
-  Finally, remove the old root and mark it invalid so that any further
-  operations on it will fail.
+  the new root.  Once the new root is complete and persisted, remove
+  the old root's file, then its leaves, and mark it invalid so that
+  any further operations on it will fail.
+
+  The old root goes before its leaves so that an interruption leaves
+  at worst some unreferenced leaf files, never an old root that
+  refers to missing leaves.
 
   Return the new root.  Will throw runtime_error if the new password
   generates an existing root object.
@@ -223,13 +227,17 @@ Root Root::change_password(const std::string &new_password) {
   for (const_iterator it = begin(); it != end(); it++)
     new_root.add_leaf((*it).second.key(), (*it).second.payload(), false);
   new_root.commit();
+  validate();
+  valid = false;
+  rm();
+  if (exists())
+    throw(runtime_error("The new database is complete, but the old one "
+                        "could not be removed."));
   while (!empty()) {
     iterator it = begin();
     (*it).second.erase();
     erase(it);
   }
-  validate();
-  valid = false;
   new_root.validate();
   return new_root;
 }

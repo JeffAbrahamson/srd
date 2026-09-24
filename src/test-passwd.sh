@@ -20,10 +20,35 @@ if [ 0 != $? ]; then
     exit 1;
 fi
 
+db_dir=srd-test-0000-$LOGNAME
+files_before=$(ls $db_dir | wc -l)
+
 # With -T, this is hard-coded to change from $pass to ${pass}2, which is $pass2
 ./srd -T $pass --passwd
 if [ 0 != $? ]; then
     echo Password change failed.
+    exit 1;
+fi
+
+# The old database, root included, should be gone.
+files_after=$(ls $db_dir | wc -l)
+if [ $files_before != $files_after ]; then
+    echo "Old database not removed:  $files_before files before, $files_after after."
+    exit 1;
+fi
+results=$(./srd -T $pass -m '' 2>&1)
+if [ 1 != $? ] || [ "$results" != "srd:  Root doesn't exist.  (Incorrect password?)" ]; then
+    echo "Old password should no longer open anything:  $results"
+    exit 1;
+fi
+
+# A password change that fails must say so in the exit status.  Here
+# the new password's database already exists.
+pass3=$(date +%s.%N)
+./srd -T ${pass3}2 --create -m '' > /dev/null
+./srd -T $pass3 --create -m '' > /dev/null
+if ./srd -T $pass3 --passwd 2> /dev/null; then
+    echo "Failed password change exited 0."
     exit 1;
 fi
 
