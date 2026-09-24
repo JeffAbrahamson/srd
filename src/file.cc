@@ -198,20 +198,16 @@ string File::file_contents() {
   m_modtime = modtime(false);
 
   ifstream fs(full_path().c_str(), ios::in | ios::binary | ios::ate);
-  if (!fs.is_open()) {
-    ostringstream oss(string("Failed to open file \""));
-    oss << full_path() << "\" for reading.";
-    throw(runtime_error(oss.str()));
-  }
+  if (!fs.is_open())
+    throw(runtime_error("Failed to open file \"" + full_path() +
+                        "\" for reading."));
   size_t size = fs.tellg();
-  if (0 == size)
-    return string();
-  char *data = new char[size];
+  string data(size, '\0');
   fs.seekg(0, ios::beg);
-  fs.read(data, size);
-  fs.close();
-  string data_str(data, size);
-  return data_str;
+  fs.read(data.data(), size);
+  if (static_cast<size_t>(fs.gcount()) != size)
+    throw(runtime_error("Failed to read file \"" + full_path() + "\"."));
+  return data;
 }
 
 /*
