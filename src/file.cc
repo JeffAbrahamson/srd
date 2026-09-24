@@ -23,6 +23,7 @@
 #include <fcntl.h>
 #include <fstream>
 #include <iostream>
+#include <pwd.h>
 #include <stdexcept>
 #include <sstream>
 #include <stdlib.h>
@@ -42,10 +43,39 @@ namespace {
 
 string base_dir;
 
+/*
+  Return the user's home directory:  $HOME, or failing that, the
+  password database's idea of it.
+*/
+string home_dir() {
+  const char *home = getenv("HOME");
+  if (home && *home)
+    return home;
+  const struct passwd *pw = getpwuid(getuid());
+  if (pw && pw->pw_dir && *pw->pw_dir)
+    return pw->pw_dir;
+  throw(runtime_error("Can't find your home directory.  "
+                      "Set HOME or use --database-dir."));
+}
+
+/*
+  Return the user's login name:  $LOGNAME, or failing that, the
+  password database's idea of it, or failing that, the numeric uid.
+*/
+string login_name() {
+  const char *logname = getenv("LOGNAME");
+  if (logname && *logname)
+    return logname;
+  const struct passwd *pw = getpwuid(getuid());
+  if (pw && pw->pw_name && *pw->pw_name)
+    return pw->pw_name;
+  return to_string(getuid());
+}
+
 string &get_base_dir() {
   // Make sure it's hard to set after first use
   if (base_dir.empty())
-    base_dir = string(getenv("HOME")) + "/srd/";
+    base_dir = home_dir() + "/srd/";
   return base_dir;
 }
 }
@@ -77,7 +107,7 @@ string File::dirname() {
     // Test mode only affects what directory we generate, if asked.
     if (mode(Testing)) {
       ostringstream spath;
-      spath << "srd-test-0000-" << getenv("LOGNAME");
+      spath << "srd-test-0000-" << login_name();
       m_dir_name = spath.str();
     } else
       m_dir_name = get_base_dir();

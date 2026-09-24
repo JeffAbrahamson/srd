@@ -23,6 +23,10 @@ status=$?
 [ "$results" = "srd:  Root doesn't exist.  (Incorrect password?)" ] ||
     fail "Wrong password:  unexpected output:  $results"
 
+# LOGNAME names the test database directory; srd must cope without it.
+env -u LOGNAME ./srd -T other-$pass --create -m '' > /dev/null 2>&1 ||
+    fail "Failed with LOGNAME unset."
+
 # srd's resource limits are inherited by the editor, which shows that
 # srd turned core dumps off.
 cat > $spy <<'EOF'
