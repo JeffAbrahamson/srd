@@ -19,6 +19,7 @@
 
 #include "srd.h"
 
+#include <algorithm>
 #include <iostream>
 
 using namespace srd;
@@ -129,11 +130,16 @@ LeafProxyMap::filter_keys_or_payloads(const vector_string &patterns,
   return results;
 }
 
-LeafProxyMap::LPM_Set LeafProxyMap::as_set() const {
-  set<LeafProxy, less<LeafProxy>> s;
-  for (LeafProxyMap::const_iterator it = begin(); it != end(); it++) {
-    LeafProxy lp = it->second;
-    s.insert(it->second);
-  }
-  return s;
+/*
+  Return all leaf proxies sorted by key.  The sort is stable, so
+  records with the same key stay in (arbitrary but repeatable) proxy
+  name order.
+*/
+LeafProxyMap::LeafProxyList LeafProxyMap::sorted_by_key() const {
+  LeafProxyList leaves;
+  leaves.reserve(size());
+  for (const_iterator it = begin(); it != end(); it++)
+    leaves.push_back(it->second);
+  stable_sort(leaves.begin(), leaves.end());
+  return leaves;
 }

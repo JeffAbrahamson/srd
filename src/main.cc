@@ -394,8 +394,8 @@ public:
     */
     bool full_display_on =
         ((full_display && lpm.size() > 1) || (!keys_only && 1 == lpm.size()));
-    LeafProxyMap::LPM_Set leaves = lpm.as_set();
-    for (LeafProxyMap::LPM_Set::iterator it = leaves.begin();
+    LeafProxyMap::LeafProxyList leaves = lpm.sorted_by_key();
+    for (LeafProxyMap::LeafProxyList::const_iterator it = leaves.begin();
          it != leaves.end(); ++it) {
       (*it).print_key();
       if (full_display_on)
@@ -444,7 +444,7 @@ private:
 };
 
 /*
-  A visitor that prints the results of a search.
+  A visitor that prints each record's key and a checksum of its payload.
 */
 class LeafChecksumVisitor : public LeafVisitor {
 
@@ -452,13 +452,15 @@ public:
   LeafChecksumVisitor(){};
 
   void operator()(const LeafProxyMap &lpm) const {
-    LeafProxyMap::LPM_Set leaves = lpm.as_set();
-    for (LeafProxyMap::LPM_Set::iterator it = leaves.begin();
-         it != leaves.end(); ++it) {
-      cout << "[" << (*it).key() << "]";
-      cout << "  ";
-      cout << message_digest((*it).payload()) << endl;
-    }
+    // Sort on content alone, so that the output doesn't depend on the
+    // (random) file names of records that share a key.
+    vector<pair<string, string>> lines;
+    for (LeafProxyMap::const_iterator it = lpm.begin(); it != lpm.end(); ++it)
+      lines.emplace_back(it->second.key(),
+                         message_digest(it->second.payload()));
+    sort(lines.begin(), lines.end());
+    for (const auto &[key, digest] : lines)
+      cout << "[" << key << "]  " << digest << endl;
   }
 };
 
@@ -479,7 +481,7 @@ public:
       return;
     }
     map<string, string> to_export;
-    LeafProxyMap::LPM_Set leaves = lpm.as_set();
+    LeafProxyMap::LeafProxyList leaves = lpm.sorted_by_key();
     for (const LeafProxy &leaf_proxy : leaves) {
       to_export[leaf_proxy.key()] = leaf_proxy.payload();
       if (mode(Verbose))

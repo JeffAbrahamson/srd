@@ -221,12 +221,10 @@ int test_root_doubles(const map<string, string> &text) {
 bool confirm_ordering(Root &root) {
   int errors = 0;
   string last_key; // any key is >= ""
-  LeafProxyMap::LPM_Set leaves = root.as_set();
+  LeafProxyMap::LeafProxyList leaves = root.sorted_by_key();
   assert(leaves.size() == root.size());
-  for (LeafProxyMap::LPM_Set::iterator it = leaves.begin(); it != leaves.end();
+  for (LeafProxyMap::LeafProxyList::const_iterator it = leaves.begin(); it != leaves.end();
        it++) {
-    // std::set iterators are const, since we can't modify
-    // set elements.
     const string key((*it).key());
     if (key < last_key)
       errors++;

@@ -427,8 +427,10 @@ public:
                                        const bool exact,
                                        const StringMatcher &in_matcher);
 
-  typedef std::set<LeafProxy, std::less<LeafProxy>> LPM_Set;
-  LPM_Set as_set() const;
+  // All the leaf proxies, sorted by key.  Records may share a key, so
+  // this is a list, not a set.
+  typedef std::vector<LeafProxy> LeafProxyList;
+  LeafProxyList sorted_by_key() const;
 
   /* Functions that proxy to the_map. */
   void clear() { the_map.clear(); }

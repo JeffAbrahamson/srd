@@ -134,7 +134,7 @@ fi
 
 # Confirm that we can checksum the database
 results=$(./srd -T $pass --checksum)
-expected="jDYZanlcjxWIcTfrt8bZgcK7zTlVr6Fln/WKa9r6vS0="
+expected="MRKh0xZxCCKWqQvwdaH9DoPNjwCJ6We/ZPFPrkEBW+w="
 if [ "$results" != "$expected" ]; then
     echo Checksum test failed.
     exit 1;

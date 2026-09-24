@@ -294,14 +294,18 @@ void Root::validate(bool force_load) const {
 */
 void Root::checksum(bool force_load) const {
   validate(true);
-  LeafProxyMap::LPM_Set leaves = this->as_set();
+  // Sort on content alone, so that the checksum doesn't depend on the
+  // (random) file names of records that share a key.
+  vector<pair<string, string>> records;
+  for (const_iterator it = begin(); it != end(); ++it)
+    records.emplace_back(it->second.key(), it->second.payload());
+  sort(records.begin(), records.end());
+  // Length-prefix each field, so that no two different databases hash
+  // the same text:  ("ab", "c") and ("a", "bc") differ.
   string text;
-  for (LeafProxyMap::LPM_Set::iterator it = leaves.begin(); it != leaves.end();
-       ++it) {
-    string key = (*it).key();
-    string value = (*it).payload();
-    text.append(key);
-    text.append(value);
+  for (const auto &[key, payload] : records) {
+    text += to_string(key.size()) + ":" + key;
+    text += to_string(payload.size()) + ":" + payload;
   }
   cout << message_digest(text) << endl;
 }
