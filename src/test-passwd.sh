@@ -152,7 +152,7 @@ if [ "$results" != "$expected" ]; then
 fi
 
 results=$(echo y | ./srd -T $pass2 --import test.d/import-test)
-expected=$(cat test.d/output/import-yes)
+expected=$(cat test.d/output/import-yes-existing)
 if [ "$results" != "$expected" ]; then
     echo Import with positive response failed.
     exit 1;

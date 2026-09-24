@@ -23,6 +23,7 @@
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <set>
 #include <signal.h>
 #include <stdexcept>
 #include <stdio.h>
@@ -795,11 +796,22 @@ bool do_import(const string &password, const string &filename) {
     cout << "Import abandonned." << endl;
     return false;
   }
+
+  // Point out keys that will end up on more than one record.  Import
+  // never replaces a record.
+  Root root(password, "");
+  set<string> existing_keys;
+  for (LeafProxyMap::const_iterator it = root.begin(); it != root.end(); ++it)
+    existing_keys.insert(it->second.key());
+  set<string> seen_keys;
   cout << "Found " << incoming.size() << " keys:" << endl;
-  for (vector<pair<string, string>>::const_iterator it = incoming.begin();
-       it != incoming.end(); ++it) {
-    cout << "\t" << it->first << endl;
-    // cout << "payload:" << endl << it->second << endl;
+  for (const auto &[key, payload] : incoming) {
+    cout << "\t" << key;
+    if (existing_keys.count(key))
+      cout << "  (already exists)";
+    else if (!seen_keys.insert(key).second)
+      cout << "  (repeated in file)";
+    cout << endl;
   }
   cout << "Import?  (yes/no)  ";
   string response;
@@ -810,13 +822,11 @@ bool do_import(const string &password, const string &filename) {
     return false;
   }
 
-  Root root(password, "");
   // Hold the lock across the whole batch, so that no other srd can
   // change the root between our first add and the commit.
   Lock lock(root.dirname());
-  for (vector<pair<string, string>>::const_iterator it = incoming.begin();
-       it != incoming.end(); ++it)
-    root.add_leaf(it->first, it->second, false);
+  for (const auto &[key, payload] : incoming)
+    root.add_leaf(key, payload, false);
   root.commit();
   return true;
 }
@@ -824,55 +834,46 @@ bool do_import(const string &password, const string &filename) {
 /*
   Read and parse the import file.
 
+  The format is what -f prints:  a line "[KEY]" starts a record, and
+  each following line, less its two-space indent, is a line of that
+  record's payload.  An empty line is an empty payload line whose
+  indent an editor stripped as trailing whitespace.  A record may have
+  no payload lines.
+
   Return a vector of (key, payload) pairs.
   On error (or empty file), return an empty vector.
 */
 vector<pair<string, string>> import_read_file(const string filename) {
-  vector<pair<string, string>> incoming = vector<pair<string, string>>();
-  ifstream fs(filename.c_str(), ios::in | ios::binary | ios::ate);
+  ifstream fs(filename.c_str(), ios::in | ios::binary);
   if (!fs.is_open()) {
     cerr << "Failed to open \"" << filename << "\" for reading." << endl;
     return vector<pair<string, string>>();
   }
-  size_t size = fs.tellg();
-  if (0 == size) {
-    cout << "File is empty." << endl;
-    return vector<pair<string, string>>();
-  }
-  fs.seekg(0, ios::beg);
 
+  vector<pair<string, string>> incoming;
+  const string prefix("  ");
   string line;
-  string key;
-  ostringstream payload;
-  string prefix("  ");
   long line_num = 0;
   while (getline(fs, line)) {
     ++line_num;
-    int len = line.size();
-    if ('[' == line[0] && ']' == line[len - 1]) {
-      if (payload.str().size() > 0) {
-        incoming.push_back(pair<string, string>(key, payload.str()));
-        key = "";
-        payload.str("");
-        payload.clear();
-      }
-      key = line.substr(1, len - 2);
+    if (line.size() >= 2 && '[' == line.front() && ']' == line.back()) {
+      incoming.emplace_back(line.substr(1, line.size() - 2), string());
+    } else if (incoming.empty()) {
+      cerr << "Error at line " << line_num
+           << ": expected a [KEY] line before any data." << endl;
+      return vector<pair<string, string>>();
+    } else if (line.empty()) {
+      incoming.back().second += "\n";
+    } else if (0 != line.compare(0, prefix.size(), prefix)) {
+      cerr << "Error at line " << line_num << ": expected two space indent."
+           << endl;
+      return vector<pair<string, string>>();
     } else {
-      if (line[0] != ' ' || line[1] != ' ') {
-        cerr << "Error at line " << line_num << ": expected two space indent."
-             << endl;
-        return vector<pair<string, string>>();
-      }
-      payload << line.substr(2, len - 1) << endl;
+      incoming.back().second += line.substr(prefix.size()) + "\n";
     }
   }
-  // Urgh, don't repeat this
-  if (payload.str().size() > 0) {
-    incoming.push_back(pair<string, string>(key, payload.str()));
-    key = "";
-    payload.str("");
-    payload.clear();
-  }
+  if (0 == line_num)
+    cout << "File is empty." << endl;
   return incoming;
 }
 
