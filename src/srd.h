@@ -135,9 +135,6 @@ public:
   bool is_writeable();
   bool dir_is_writeable();
 
-protected:
-  time_pair m_time(const bool silent = true);
-
 private:
 
 
@@ -170,7 +167,6 @@ private:
 */
 class Leaf : public File {
 public:
-  Leaf() { assert(0); }; // seemingly needed by serialize()
   Leaf(const std::string &password, const std::string base_name = std::string(),
        const std::string dir_name = std::string(), const bool do_load = true);
   virtual ~Leaf();
@@ -303,27 +299,6 @@ private:
   // This means that the root must persist the cached key value.
   std::string cached_key;
   mutable Leaf *the_leaf;
-};
-
-/*
-  A helper object for finding leaves (via LeafProxy's) that
-  match given criteria.
-
-  We are relatively simple, supporting only conjunction
-  against key and/or conjunction against payload.
-*/
-class LeafMatcher {
-
-public:
-  LeafMatcher(const srd::vector_string &, const srd::vector_string &,
-              bool conj);
-
-  bool operator()(LeafProxy &);
-
-private:
-  srd::vector_string key;
-  srd::vector_string payload;
-  bool conjunction;
 };
 
 /* ************************************************************ */

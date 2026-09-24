@@ -50,7 +50,7 @@ all : srd test TAGS
 
 # Nothing can compile before the protobuf headers exist.  (After the
 # first build, the .dep files record this too.)
-$(OBJECT) main.o python.o test_text.o $(TESTS:%=%.o) : $(PROTOBUF_H)
+$(OBJECT) main.o test_text.o $(TESTS:%=%.o) : $(PROTOBUF_H)
 
 -include $(wildcard *.dep)
 
@@ -74,14 +74,6 @@ srd-from-so :
 	$(CC) -o srd-from-so main.o -L. -lsrd $(LIBS)
 #
 ############################################################
-
-python.o : python.cc
-	$(CC) -c -fpic -o $@ -I/usr/include/python2.6 $<
-
-libpysrd.so : $(OBJECT) python.o
-	$(CC) -shared -Wl,-soname,libpysrd.so -o pysrd.so	\
-		python.o					\
-		$(OBJECT) -lpython2.6 -lboost_python $(LIBS)
 
 TESTS = 			\
 	base64_test		\

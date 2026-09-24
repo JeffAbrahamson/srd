@@ -36,7 +36,6 @@
 #include <termios.h>
 #include <unistd.h>
 
-#include "base64.h"
 #include "srd.h"
 
 namespace BPO = boost::program_options;
@@ -78,28 +77,6 @@ BPO::variables_map parse_options(int argc, char *argv[]) {
           "for key KEY or else begin with two spaces of indent (which are "
           "disgarded during the input) for data (payload) portion associated "
           "with the most recent key line.")
-#if LATER_URL_EXPORT
-          ("export-as-url", BPO::value<string>(),
-           "Produce a URL of the form srd://d/ url, the tail of which (after "
-           "the \"d/\") "
-           "is an appropriately escaped representation of an srd record.  "
-           "Prompts for two "
-           "passwords: the db password (to read the record) and a URL password "
-           "(to decrypt "
-           "the URL).  Also takes matching flags to narrow selection of "
-           "records.  Write URL "
-           "to file arg.  If file is \"-\", write to stdout.")(
-              "import-url", BPO::value<string>(),
-              "Import URL arg, which is either the URL itself or the name of a "
-              "file.  Requests "
-              "two passwords, the local db password and the URL password.  "
-              "If a record with the same key exists in the current db, offer "
-              "to concatenate the "
-              "records or to cancel the operation.  If the URL represents "
-              "multiple records, the action "
-              "is atomic and does not take effect until after all user "
-              "interaction.")
-#endif // LATER_URL_EXPORT
               ("validate,V",
                "Confirm that all records are loadable and consistent")(
                   "checksum", "Compute and display whole database checksum "
@@ -450,54 +427,6 @@ public:
   }
 };
 
-#if LATER_URL_EXPORT
-/*
-  A visitor that exports its (key, payload) pairs to a URL.
-*/
-class LeafURLExporter : public LeafVisitor {
-
-public:
-  LeafURLExporter(const string &filename) : filename_(filename){};
-
-  void operator()(const LeafProxyMap &lpm) const {
-    string url_password = get_password("Enter URL password:  ");
-    string url_password2 = get_password("Retype URL password:  ");
-    if (url_password != url_password2) {
-      cerr << "Passwords did not match." << endl;
-      return;
-    }
-    map<string, string> to_export;
-    LeafProxyMap::LeafProxyList leaves = lpm.sorted_by_key();
-    for (const LeafProxy &leaf_proxy : leaves) {
-      to_export[leaf_proxy.key()] = leaf_proxy.payload();
-      if (mode(Verbose))
-        cout << leaf_proxy.key() << endl;
-    }
-
-    string big_text(big_text_stream.str());
-    string plain_text = compress(big_text);
-    string cipher_text = encrypt(plain_text, url_password);
-    string url("srd://d/"); // 'd' indicates version.
-    url += base64_encode(cipher_text);
-    if ("-" == filename_)
-      cout << url << endl;
-    else {
-      ofstream fs(filename_.c_str(), ios::out | ios::binary);
-      if (!fs.is_open()) {
-        char *err_str = strerror(errno);
-        ostringstream oss(string("Failed to open file \""));
-        oss << filename_ << "\" for writing: " << err_str;
-        throw(runtime_error(oss.str()));
-      }
-      fs.write(url.data(), url.size());
-      fs.close();
-    }
-  }
-
-private:
-  const string filename_;
-};
-#endif // LATER_URL_EXPORT
 
 /*
   Utility function to provide a reference to a StringMatcher (via operator*).
@@ -1064,13 +993,6 @@ int run(int argc, char *argv[]) {
     lv = new LeafChecksumVisitor();
     if (0 == match_key.size())
       match_key.push_back(""); // match all keys if no match requested
-#if LATER_URL_EXPORT
-  } else if (options.count("export-as-url")) {
-    string filename(options["export-as-url"].as<string>());
-    lv = new LeafURLExporter(filename);
-    if (0 == match_key.size())
-      match_key.push_back(""); // match all keys if no match requested
-#endif                         // LATER_URL_EXPORT
   } else {
     lv = new LeafPrintVisitor(
         options.count("keys-only") > 0, options.count("full-display") > 0,
