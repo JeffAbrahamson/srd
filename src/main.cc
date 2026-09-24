@@ -908,49 +908,42 @@ bool do_create(const string &password) {
   Return zero if all is well, non-zero otherwise.
 */
 bool do_validate(const string &password) {
+  // Catch std::exception, not just runtime_error:  corrupt data can
+  // surface as other types (bzip2 integrity errors are domain_error).
   try {
     Root root(password, "");
     try {
       root.validate(true);
-    } catch (const runtime_error &e) {
+    } catch (const exception &e) {
       cout << "Validation failed: forced validation failed." << endl;
       cout << e.what() << endl;
       return 1;
     }
-  } catch (const runtime_error &e) {
+  } catch (const exception &e) {
     cout << "Validation failed:  root did not instantiate." << endl;
     cout << e.what() << endl;
-    return 1;
-  } catch (const exception &e) {
-    cout << "exc: " << e.what() << endl;
-  } catch (...) {
-    cout << "catch all error" << endl;
     return 1;
   }
   return 0;
 }
 
 /*
-  Instantiate the root and force validation.
+  Instantiate the root and print a checksum of all records.
   Return zero if all is well, non-zero otherwise.
 */
 bool do_checksum(const string &password) {
-  // this is still do_validate()
   try {
     Root root(password, "");
     try {
       root.checksum(true);
-    } catch (const runtime_error &e) {
+    } catch (const exception &e) {
       cout << "Failed to compute checksum." << endl;
       cout << e.what() << endl;
       return 1;
     }
-  } catch (const runtime_error &e) {
+  } catch (const exception &e) {
     cout << "Checksum failed:  root did not instantiate." << endl;
     cout << e.what() << endl;
-    return 1;
-  } catch (...) {
-    cout << "catch all error" << endl;
     return 1;
   }
   return 0;
