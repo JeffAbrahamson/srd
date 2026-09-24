@@ -21,6 +21,7 @@
 #include <iostream>
 #include <string>
 #include <stdlib.h>
+#include <stdexcept>
 
 #include "srd.h"
 
@@ -72,7 +73,16 @@ Leaf::Leaf(const string &pass, const string base_name, const string dir_name,
   Serialize, compress, encrypt, and persist to the file whose name we know
   from construction time.
 */
-Leaf::~Leaf() { commit(); }
+Leaf::~Leaf() {
+  // Callers commit explicitly; this is a safety net.  A destructor
+  // must not throw, so on failure we can only complain.
+  try {
+    commit();
+  } catch (const exception &e) {
+    cerr << "Error:  failed to save a record, recent changes may be lost:  "
+         << e.what() << endl;
+  }
+}
 
 /*
   Load ourselves from the file.

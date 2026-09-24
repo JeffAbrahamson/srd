@@ -22,11 +22,14 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <memory>
 #include <signal.h>
 #include <stdexcept>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/prctl.h>
+#include <sys/resource.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <termios.h>
@@ -714,7 +717,8 @@ bool do_import(const string &password, const string &filename) {
   Root root(password, "");
   for (vector<pair<string, string>>::const_iterator it = incoming.begin();
        it != incoming.end(); ++it)
-    root.add_leaf(it->first, it->second, false); // commit at end of scope
+    root.add_leaf(it->first, it->second, false);
+  root.commit();
   return true;
 }
 
@@ -789,9 +793,10 @@ bool do_create(const string &password) {
       return 1;
     }
   }
+  unique_ptr<Root> root;
   try {
-    // Simply cause creation.  Will fail if root already exists.
-    Root(password, "", true);
+    // Will fail if root already exists.
+    root = make_unique<Root>(password, "", true);
   } catch (const runtime_error& e) {
     cerr << "Failed to create new database:  a database identified by this "
             "password already exists."
@@ -800,6 +805,7 @@ bool do_create(const string &password) {
       cerr << "  ==> " << e.what() << endl;
     return 1;
   }
+  root->commit();
   return 0;
 }
 
@@ -855,13 +861,27 @@ bool do_checksum(const string &password) {
   }
   return 0;
 }
+
+/*
+  Keep secrets out of core dumps.  Errors used to end in abort(), and
+  a core file would then hold the password digest and decrypted
+  records.  PR_SET_DUMPABLE also stops other processes of the same
+  user from attaching with ptrace.
+*/
+void disable_core_dumps() {
+  struct rlimit no_core = {0, 0};
+  if (setrlimit(RLIMIT_CORE, &no_core))
+    perror("Warning:  failed to disable core dumps");
+#ifdef __linux__
+  if (prctl(PR_SET_DUMPABLE, 0, 0, 0, 0))
+    perror("Warning:  failed to mark process non-dumpable");
+#endif
 }
 
 /*
   Do that thing that we do.
 */
-int main(int argc, char *argv[]) {
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
+int run(int argc, char *argv[]) {
   BPO::variables_map options;
   try {
     options = parse_options(argc, argv);
@@ -987,6 +1007,23 @@ int main(int argc, char *argv[]) {
   do_match(root, match_key, match_data, match_or, match_exact, disjunction,
            *string_matcher(match_case_sensitive), lv);
   delete lv;
-  google::protobuf::ShutdownProtobufLibrary();
   return 0;
+}
+}
+
+int main(int argc, char *argv[]) {
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+  disable_core_dumps();
+  int ret;
+  try {
+    ret = run(argc, argv);
+  } catch (const exception &e) {
+    cerr << "srd:  " << e.what() << endl;
+    ret = 1;
+  } catch (...) {
+    cerr << "srd:  unexpected error" << endl;
+    ret = 1;
+  }
+  google::protobuf::ShutdownProtobufLibrary();
+  return ret;
 }

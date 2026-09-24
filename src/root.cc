@@ -56,8 +56,8 @@ Root::Root(const string &pass, const string dir_name, const bool create)
     mode(ReadOnly, true);
   if (!exists()) {
     if (mode(ReadOnly)) {
-      cerr << "Refusing to create new root node while read-only." << endl;
-      throw("No persistence permitted while read-only.");
+      throw(runtime_error(
+          "Refusing to create new root node while read-only."));
     }
     cout << "Root node does not exist, will create." << endl;
     if (mode(Verbose))
@@ -111,11 +111,20 @@ void Root::load() {
 
 /*
   Serialize and persist the node before destruction.
+
+  This is a safety net: callers should commit() explicitly, which
+  reports failure by throwing.  A destructor must not throw (it may run
+  while another exception unwinds), so here we can only complain.
 */
 Root::~Root() {
-  if (valid) {
+  if (!valid)
+    return;
+  try {
     validate();
     commit();
+  } catch (const exception &e) {
+    cerr << "Error:  failed to save the index, recent changes may be lost:  "
+         << e.what() << endl;
   }
 }
 
@@ -168,8 +177,11 @@ void Root::set_leaf(const string &proxy_key, const string &key,
   if (end() == it)
     throw(runtime_error("Key not found."));
   LeafProxy &proxy = it->second;
-  if (proxy.set(key, payload))
+  if (proxy.set(key, payload)) {
+    // The key changed, and the root caches keys.
     modified = true;
+    commit();
+  }
   validate();
 }
 
