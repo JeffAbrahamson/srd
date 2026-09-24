@@ -35,11 +35,18 @@ LIBS = 				\
 
 all : srd test TAGS
 
-%.o : %.cc %.h
-	$(CC) -c -fpic -o $@ $<
-
+# -MMD -MP has the compiler write each object's header dependencies
+# to a .dep file, included below, so that changing a header rebuilds
+# everything that includes it.  (Not the usual .d, which would catch
+# the test.d directory.)
 %.o : %.cc
-	$(CC) -c -fpic -o $@ $<
+	$(CC) -MMD -MP -MF $*.dep -c -fpic -o $@ $<
+
+# Nothing can compile before the protobuf headers exist.  (After the
+# first build, the .dep files record this too.)
+$(OBJECT) main.o python.o test_text.o $(TESTS:%=%.o) : $(PROTOBUF_H)
+
+-include $(wildcard *.dep)
 
 %.pb.h %.pb.cc : %.proto
 	protoc --cpp_out=. $<
@@ -105,7 +112,7 @@ test : srd $(TESTS)
 	./$@
 
 clean : clean-test
-	rm -f $(OBJECT) *.o *~ srd TAGS *_test $(PROTOBUF_C) $(PROTOBUF_H)
+	rm -f $(OBJECT) *.o *.dep *~ srd TAGS *_test $(PROTOBUF_C) $(PROTOBUF_H)
 
 clean-test :
 	rm -rf srd-test-*/ test_[0-9]*\.[0-9]*
