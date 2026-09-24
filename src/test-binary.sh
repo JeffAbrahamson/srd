@@ -40,18 +40,18 @@ if [ 1 == $regen ]; then
 
     echo Importing...
     echo yes | ./srd -T $pass --create --import $tmp_file > /dev/null
+    # srd's output is sorted by key, so compare sorted.
     ./srd -T $pass -f ''> $tmp_file.2
-    cmp --quiet $tmp_file $tmp_file.2
-    if [ 0 = $? ]; then
+    if ! cmp --quiet <(sort $tmp_file) <(sort $tmp_file.2); then
 	echo "Failed to generate database correctly."
 	exit 1
     fi
-    rm $tmp_file.2
-    
+
     db_name=srd-test-0000-$LOGNAME
-    rm -rf $db_dest $result_file
+    rm -f $db_tgz $result_file
     tar czf $db_tgz $db_name/
-    mv $tmp_file $result_file
+    mv $tmp_file.2 $result_file
+    rm $tmp_file
 fi
 
 make clean-test
@@ -66,8 +66,7 @@ if [ 0 != $? ]; then
 fi
 
 LOGNAME=jeff ./srd -T $pass -f ''> $tmp_file
-cmp --quiet $result_file $tmp_file
-if [ 0 = $? ]; then 
+if ! cmp --quiet $result_file $tmp_file; then
     echo Binary match failed \($tmp_file vs $result_file\)
     exit 1;
 fi

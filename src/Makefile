@@ -82,16 +82,18 @@ TESTS = 			\
 	mode_test 		\
 	root_test 		\
 
-test : $(TESTS)
+test : srd $(TESTS)
 	./test.sh
+	./test-case.sh
 	./test-passwd.sh
 	./test-delete.sh
 	./test-binary.sh
 	./test-key-change.sh
+	./test-readonly.sh
 
 %_test : %_test.o test_text.o mode.o $(OBJECT)
 	$(CC) -o $@ $^ $(LIBS)
-	-./$@
+	./$@
 
 clean : clean-test
 	rm -f $(OBJECT) *.o *~ srd TAGS *_test $(PROTOBUF_C) $(PROTOBUF_H)
