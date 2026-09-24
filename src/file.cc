@@ -21,6 +21,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/interprocess/sync/file_lock.hpp>
 #include <errno.h>
+#include <fcntl.h>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
@@ -132,17 +133,43 @@ void File::file_contents_sub(string &data) {
   string filename = full_path();
   string filename_new = filename + ".new";
 
-  ofstream fs(filename_new.c_str(), ios::out | ios::binary);
-  if (!fs.is_open()) {
-    char *err_str = strerror(errno);
-    ostringstream oss(string("Failed to open file \""));
-    oss << filename_new << "\" for writing: " << err_str;
-    throw(runtime_error(oss.str()));
+  // Write the new contents beside the old and rename over them, so
+  // that the file is always either entirely old or entirely new.  Any
+  // failure before the rename leaves the old file untouched.
+  int fd = open(filename_new.c_str(),
+                O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW, 0600);
+  if (-1 == fd)
+    throw(runtime_error("Failed to open \"" + filename_new +
+                        "\" for writing:  " + strerror(errno)));
+  auto fail = [&filename_new](const string &what) {
+    string err = what + " \"" + filename_new + "\":  " + strerror(errno);
+    unlink(filename_new.c_str());
+    throw(runtime_error(err));
+  };
+  try {
+    file_write_all(fd, data, filename_new);
+  } catch (...) {
+    close(fd);
+    unlink(filename_new.c_str());
+    throw;
   }
-  fs.write(data.data(), data.size());
-  fs.close();
+  // Make sure the data is on disk before the rename can expose it.
+  if (fsync(fd)) {
+    close(fd);
+    fail("Failed to sync");
+  }
+  if (close(fd))
+    fail("Failed to close");
+  if (rename(filename_new.c_str(), filename.c_str()))
+    fail("Failed to rename");
 
-  rename(filename_new.c_str(), filename.c_str()); // guaranteed atomic
+  // Persist the rename itself.
+  int dir_fd = open(dirname().c_str(), O_RDONLY | O_DIRECTORY);
+  if (-1 == dir_fd || fsync(dir_fd))
+    cerr << "Warning:  failed to sync directory " << dirname() << ":  "
+         << strerror(errno) << endl;
+  if (-1 != dir_fd)
+    close(dir_fd);
   m_modtime = modtime(false);
 }
 

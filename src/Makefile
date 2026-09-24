@@ -91,6 +91,7 @@ test : srd $(TESTS)
 	./test-key-change.sh
 	./test-readonly.sh
 	./test-edit.sh
+	./test-write-failure.sh
 
 %_test : %_test.o test_text.o mode.o $(OBJECT)
 	$(CC) -o $@ $^ $(LIBS)
