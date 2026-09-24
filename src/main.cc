@@ -167,8 +167,34 @@ BPO::variables_map parse_options(int argc, char *argv[]) {
   return opt_map;
 }
 
+/*
+  Read a line from stdin, without its newline.
+
+  Read a byte at a time with read(2), so that no copy of the line is
+  left in a stdio or iostream buffer, and nothing past the newline is
+  consumed, so later reads from cin see the rest of the input.
+  Reserve space up front so that growing the string doesn't leave
+  copies behind (short of an absurdly long line).
+*/
+string read_secret_line() {
+  string line;
+  line.reserve(4096);
+  char c;
+  while (true) {
+    ssize_t n = read(STDIN_FILENO, &c, 1);
+    if (n < 0 && EINTR == errno)
+      continue;
+    if (n <= 0 || '\n' == c)
+      break;
+    line.push_back(c);
+  }
+  c = 0;
+  return line;
+}
+
 string get_password(const string prompt) {
-  cout << prompt;
+  // We read with read(2), not cin, so cin won't flush cout for us.
+  cout << prompt << flush;
 
   // Get pass phrase without echoing it
   termios before, after;
@@ -179,22 +205,21 @@ string get_password(const string prompt) {
   after.c_lflag &= (~ECHO); // Don't echo characters
   tcsetattr(STDIN_FILENO, TCSANOW, &after);
 
-  const int pass_len = 10240; // arbitrary, hopefully long enough
-  char pass_phrase[pass_len];
-  cin.getline(pass_phrase, pass_len);
+  string pass_phrase = read_secret_line();
 
   tcsetattr(STDIN_FILENO, TCSANOW, &before);
   cout << endl;
 
   // Iterate hash (arbitrarily) 50 times.  Motivated by gpg's behavior.
-  string digest(pass_phrase);
-  for (int i = 0; i < 50; i++)
-    digest = message_digest(digest, false);
-
-  // Clear original pass phrase to minimize risk of seeing it in a swap or core
-  // image
-  bzero(pass_phrase, sizeof(pass_len));
-
+  // Wipe the pass phrase and each intermediate digest when done with
+  // it, to minimize the risk of seeing them in a swap or core image.
+  string digest = message_digest(pass_phrase, false);
+  explicit_bzero(pass_phrase.data(), pass_phrase.size());
+  for (int i = 1; i < 50; i++) {
+    string next = message_digest(digest, false);
+    explicit_bzero(digest.data(), digest.size());
+    digest.swap(next);
+  }
   return digest;
 }
 
