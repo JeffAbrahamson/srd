@@ -90,6 +90,7 @@ test : srd $(TESTS)
 	./test-binary.sh
 	./test-key-change.sh
 	./test-readonly.sh
+	./test-edit.sh
 
 %_test : %_test.o test_text.o mode.o $(OBJECT)
 	$(CC) -o $@ $^ $(LIBS)

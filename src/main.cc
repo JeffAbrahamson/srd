@@ -18,13 +18,17 @@
 */
 
 #include <boost/program_options.hpp>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <signal.h>
 #include <stdexcept>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <termios.h>
 #include <unistd.h>
 
@@ -507,6 +511,124 @@ void user_add(Root &root) {
 }
 
 /*
+  A private scratch directory in which to edit a record in the clear.
+  mkdtemp() creates it mode 0700, so neither the record nor any swap
+  or backup files the editor writes beside it are visible to other
+  users.  Everything in it is removed on destruction.
+*/
+class PrivateTempDir {
+public:
+  PrivateTempDir() {
+    string pattern =
+        (std::filesystem::temp_directory_path() / "srd-XXXXXX").string();
+    vector<char> buf(pattern.begin(), pattern.end());
+    buf.push_back('\0');
+    if (!mkdtemp(buf.data()))
+      throw(runtime_error(string("Failed to create temporary directory:  ") +
+                          strerror(errno)));
+    m_path = buf.data();
+  }
+  ~PrivateTempDir() {
+    std::error_code ec;
+    std::filesystem::remove_all(m_path, ec);
+    if (ec)
+      cerr << "Failed to remove " << m_path << ":  " << ec.message() << endl;
+  }
+  PrivateTempDir(const PrivateTempDir &) = delete;
+  PrivateTempDir &operator=(const PrivateTempDir &) = delete;
+
+  const string &path() const { return m_path; }
+
+private:
+  string m_path;
+};
+
+/*
+  Keep srd alive while the editor runs, so that we always get to
+  remove the plaintext copy of the record.
+
+  Like system(), ignore SIGINT and SIGQUIT: a ^C typed in the editor
+  goes to the whole foreground process group.  Block SIGHUP and
+  SIGTERM: if one arrives, it is delivered when this object is
+  destroyed, which must be after the temporary directory is removed.
+
+  The editor itself gets the original signal handling back via
+  restore() before exec.
+*/
+class EditorSignalGuard {
+public:
+  EditorSignalGuard() {
+    struct sigaction ignore = {};
+    ignore.sa_handler = SIG_IGN;
+    sigemptyset(&ignore.sa_mask);
+    sigaction(SIGINT, &ignore, &m_old_int);
+    sigaction(SIGQUIT, &ignore, &m_old_quit);
+    sigset_t block;
+    sigemptyset(&block);
+    sigaddset(&block, SIGHUP);
+    sigaddset(&block, SIGTERM);
+    sigprocmask(SIG_BLOCK, &block, &m_old_mask);
+  }
+  ~EditorSignalGuard() { restore(); }
+  EditorSignalGuard(const EditorSignalGuard &) = delete;
+  EditorSignalGuard &operator=(const EditorSignalGuard &) = delete;
+
+  // Async-signal-safe, so callable in the child between fork and exec.
+  void restore() const {
+    sigaction(SIGINT, &m_old_int, nullptr);
+    sigaction(SIGQUIT, &m_old_quit, nullptr);
+    sigprocmask(SIG_SETMASK, &m_old_mask, nullptr);
+  }
+
+private:
+  struct sigaction m_old_int, m_old_quit;
+  sigset_t m_old_mask;
+};
+
+/*
+  Run the user's $EDITOR on filename and wait for it.
+  Return true if it exited successfully.
+
+  EDITOR may carry arguments ("emacs -nw"), so, as git does, let the
+  shell split it, but pass the filename as a positional parameter so
+  that the shell never parses it.
+*/
+bool run_editor(const string &filename, const EditorSignalGuard &guard) {
+  const char *editor = getenv("EDITOR");
+  if (!editor || !*editor) {
+    cerr << "EDITOR is not defined, we'll try vi." << endl;
+    editor = "vi";
+  }
+  string command = string(editor) + " \"$@\"";
+
+  pid_t pid = fork();
+  if (pid < 0) {
+    perror("Failed to start editor");
+    return false;
+  }
+  if (0 == pid) {
+    guard.restore();
+    execl("/bin/sh", "sh", "-c", command.c_str(), "sh", filename.c_str(),
+          static_cast<char *>(nullptr));
+    _exit(127);
+  }
+  int status;
+  while (waitpid(pid, &status, 0) < 0) {
+    if (EINTR != errno) {
+      perror("Failed waiting for editor");
+      return false;
+    }
+  }
+  if (WIFEXITED(status) && 0 == WEXITSTATUS(status))
+    return true;
+  if (WIFEXITED(status))
+    cerr << "Editor exited with status " << WEXITSTATUS(status) << "." << endl;
+  else
+    cerr << "Editor terminated abnormally." << endl;
+  return false;
+}
+
+/*
   Call the user's $EDITOR on key/payload.
   Return true if modified, false otherwise.
 */
@@ -515,29 +637,24 @@ bool user_edit(string &key, string &payload) {
   sdata << "[" << key << "]" << endl << payload;
   string data = sdata.str();
 
-  ostringstream sfilename;
-  sfilename << "srd-temp-" << getenv("LOGNAME") << "-" << getpid() << "-";
-  sfilename << message_digest(key, true);
-  File fdata(sfilename.str(), "/tmp");
-  fdata.file_contents(data);
+  // Declaration order matters: the directory must be removed before
+  // the guard lets any pending SIGHUP or SIGTERM through.
+  EditorSignalGuard guard;
+  PrivateTempDir dir;
+  string filename = dir.path() + "/record";
+  file_create_private(filename, data);
 
-  // Probably should fork and exec to avoid shell layer in system()
-  char *editor = getenv("EDITOR");
-  if (!editor) {
-    cerr << "EDITOR is not defined, we'll try vi." << endl;
-    editor = (char *)"vi";
-  }
-  ostringstream scommand;
-  scommand << editor << " " << fdata.full_path();
-  int ret = system(scommand.str().c_str());
-  if (ret) {
-    perror("Failure executing editor");
-    fdata.rm();
+  if (!run_editor(filename, guard))
+    return false;
+
+  ifstream fs(filename, ios::in | ios::binary);
+  if (!fs.is_open()) {
+    cerr << "Failed to read back the edited record." << endl;
     return false;
   }
-
-  string new_data = fdata.file_contents();
-  fdata.rm();
+  ostringstream new_data_ss;
+  new_data_ss << fs.rdbuf();
+  string new_data = new_data_ss.str();
   if (new_data == data)
     return false;
   size_t pos = new_data.find_first_of('\n');

@@ -22,6 +22,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string.h>
+#include <unistd.h>
 
 #include "srd.h"
 
@@ -38,6 +39,47 @@ void srd::file_create(const string &fn) {
     throw(runtime_error(string("Failed to create ") + fn + " :  " +
                         strerror(errno)));
   close(fd);
+}
+
+/*
+  Write all of data to fd, retrying on short writes and EINTR.
+  The filename is only for error messages.
+*/
+void srd::file_write_all(int fd, const string &data, const string &fn) {
+  const char *p = data.data();
+  size_t remaining = data.size();
+  while (remaining > 0) {
+    ssize_t n = write(fd, p, remaining);
+    if (n < 0) {
+      if (EINTR == errno)
+        continue;
+      throw(runtime_error(string("Failed to write ") + fn + " :  " +
+                          strerror(errno)));
+    }
+    p += n;
+    remaining -= n;
+  }
+}
+
+/*
+  Create a new file that only its owner may read or write, and fill
+  it with data.  It is an error if the file already exists or is a
+  symbolic link, so we can't be tricked into writing elsewhere.
+*/
+void srd::file_create_private(const string &fn, const string &data) {
+  int fd = open(fn.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0600);
+  if (-1 == fd)
+    throw(runtime_error(string("Failed to create ") + fn + " :  " +
+                        strerror(errno)));
+  try {
+    file_write_all(fd, data, fn);
+  } catch (...) {
+    close(fd);
+    throw;
+  }
+  if (close(fd))
+    throw(runtime_error(string("Failed to close ") + fn + " :  " +
+                        strerror(errno)));
 }
 
 /*
