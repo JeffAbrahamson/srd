@@ -1,18 +1,17 @@
 This is a list of some packages you're likely to need on a debian /
 ubuntu system in order to compile srd but that may not already be
-installed, even though you've installed clang.
+installed, even though you've installed a compiler.
 
   libpstreams-dev
   libbz2-dev
   libcrypto++-dev
-  libcrypto++9
   libprotobuf-dev
   libboost-all-dev
 
 You'll also need at least these tools.
 
   make
-  clang
+  g++ (13 or later, for C++20)
   protobuf-compiler
 
 If that last line (-all-dev) feels too heavy, the following may be
@@ -26,3 +25,5 @@ I say "may" because the exact package names and dependencies change
 over time, and I don't verify this README each time I compile the
 package.  If you find a bug in the above, please let me know and I'm
 happy to fix.
+
+The tests (make test) also use perl and python3.

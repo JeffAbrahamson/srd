@@ -47,45 +47,70 @@ a reasonable password.
 <h2>File Overview</h2>
 
 <p>
-The principle entry point for the program is <b>main.cpp</b>.  In other
-words, it contains <tt>main()</tt>.  It handles option parsing.
+The principle entry point for the program is <b>main.cc</b>.  In other
+words, it contains <tt>main()</tt>.  It handles option parsing,
+password entry, and running the user's editor.
 Everything else is (at least conceptually) library.
 </p>
 
 <p>
-The index object is <b>root.cpp</b>.  It is tested by <b>root_test.cpp</b>.
+The index object is <b>root.cc</b>.  It is tested by <b>root_test.cc</b>.
 </p>
 
 <p>
 The root's main data structure is a leaf_proxy_map (implemented in
-<b>leaf_proxy_map.cpp</b>, tested by <b>leaf_proxy_test.cpp</b>).  The
+<b>leaf_proxy_map.cc</b>, tested by <b>leaf_proxy_test.cc</b>).  The
 leaf_proxy_map is also the abstraction by which we return search
 results, facilitating searching on existing results.  Said differently
 the root is a leaf_proxy_map with persistence.
 </p>
 
-<p> A leaf proxy (<b>leaf_proxy.cpp</b>) represents a leaf without
+<p> A leaf proxy (<b>leaf_proxy.cc</b>) represents a leaf without
 loading the data.  Once we load the file, the leaf proxy contains a
-pointer to the leaf (<b>leaf.cpp</b>, tested in <b>leaf_test.cpp</b>).
-<i>(I need to remember the name for this design pattern and mention it
-here.  I realized recently that I use design patterns quite
-extensively, but I somehow managed not to remember most of their names.)</i>
+pointer to the leaf (<b>leaf.cc</b>, tested in <b>leaf_test.cc</b>).
+This is the <i>virtual proxy</i> pattern:  a stand-in that loads the
+real object on first use.
 </p>
 
 
-<p> The file <b>compress.cpp</b> (tested by <b>compress_test.cpp</b>) and
-<b>crypt.cpp</b> (tested by <b>crypt_test.cpp</b>) are mixins that
-handle compression/decompression and encryption/decryption
-respectively.
-File operations are abstracted in the mixin class <b>file.cpp</b> (tested by
-<b>file_test.cpp</b>).  <b>mode.cpp</b> (tested in
-<b>mode_test.cpp</b>) isolates a bit of global state: verbose mode and
-test mode.
+<p> The files <b>compress.cc</b> (tested by <b>compress_test.cc</b>) and
+<b>crypt.cc</b> (tested by <b>crypt_test.cc</b>) handle
+compression/decompression and encryption/decryption respectively.
+File operations are abstracted in the mixin class <b>file.cc</b> (tested by
+<b>file_test.cc</b>), with a few free functions in <b>file_util.cc</b>
+(tested by <b>file_util_test.cc</b>).  <b>mode.cc</b> (tested in
+<b>mode_test.cc</b>) isolates a bit of global state: verbose mode,
+test mode, and read-only mode.
 </p>
 
 <p>
-Many of the tests require text to manipulate.  The file <b>test_text.cpp</b>
+<b>lock.cc</b> (tested by <b>lock_test.cc</b>) provides the database
+lock:  a file named <tt>lock</tt> in the database directory, taken with
+<tt>flock()</tt> and never removed.  Anything that reads the root,
+changes it, and writes it back holds the lock throughout, so that
+concurrent srd processes can't lose each other's changes.  Every file
+is replaced by an atomic rename, so reading a record needs no lock.
+</p>
+
+<p>
+Many of the tests require text to manipulate.  The file <b>test_text.cc</b>
 provides that text.
+</p>
+
+<h2>Testing</h2>
+
+<p>
+<tt>make test</tt> builds and runs the unit tests (<b>*_test.cc</b>),
+then the end-to-end tests:  shell scripts (<b>test*.sh</b>) that drive
+the srd binary in test mode (<tt>-T</tt>, which takes the password on
+the command line and uses a database directory under the current
+directory), and <b>test-tty.py</b>, which types passwords at srd on a
+pseudo-terminal.  Any failure stops the build.
+</p>
+
+<p>
+<tt>make test-sanitize</tt> runs the same tests with AddressSanitizer
+and UndefinedBehaviorSanitizer.
 </p>
 </article>
 

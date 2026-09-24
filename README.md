@@ -53,66 +53,71 @@ srd <options> [key-match-pattern]
 Allowed options:
 
 General options:
-  -h [ --help ]         Produce help message
-  -R [ --read-only ]    Read-only, do not persist data
-  --database-dir arg    Name of directory to use for database instead of 
-			default
-  -v [ --verbose ]      Emit debugging information
+  -h [ --help ]                   Produce help message
+  -R [ --read-only ]              Read-only, do not persist data
+  --database-dir arg              Name of directory to use for database instead
+                                  of default
+  -v [ --verbose ]                Emit debugging information
 
 Actions (if none, then match):
-  -e [ --edit ]         Edit record
-  -x [ --delete ]       Delete the results of an (exact) key match.  
-			Conceptually -E -m arg, can be used with -mDd.
-  -X [ --delete-all ]   Delete all matches.  Conceptually equivalent to -m arg,
-			can be used with -mDd.  If more than one match, will 
-			request confirmation.
-  -p [ --passwd ]       Change password (no other options permitted)
-  --create              Create database.  The database is identified by a hash 
-			of the password, so --create distinguishes between 
-			creating a new database and mistyping the password.
-  --import arg          Import a text file.  The format is the same as that 
-			output by -f:  each line must either be "[KEY]" for key
-			KEY or else begin with two spaces of indent (which are 
-			disgarded during the input) for data (payload) portion 
-			associated with the most recent key line.
-  -V [ --validate ]     Confirm that all records are loadable and consistent
-  --checksum            Compute database checksum (keys and payload)
-  --checksum-by-key     Compute database checksum by key, restrictable by 
-			matching options
+  -e [ --edit ]                   Edit record
+  -x [ --delete ]                 Delete the results of an (exact) key match.  
+                                  Conceptually -E -m arg, can be used with 
+                                  -mDd.
+  -X [ --delete-all ]             Delete all matches.  Conceptually equivalent 
+                                  to -m arg, can be used with -mDd.  If more 
+                                  than one match, will request confirmation.
+  -p [ --passwd ]                 Change password (no other options permitted)
+  --create                        Create database.  The database is identified 
+                                  by a hash of the password, so --create 
+                                  distinguishes between creating a new database
+                                  and mistyping the password.
+  --import arg                    Import a text file.  The format is the same 
+                                  as that output by -f:  a line "[KEY]" starts 
+                                  a record with key KEY, and each following 
+                                  line, less its two spaces of indent, is a 
+                                  line of that record's data (payload).  An 
+                                  empty line is an empty line of data.  Keys 
+                                  that already exist are pointed out before 
+                                  confirming; import never replaces a record.
+  -V [ --validate ]               Confirm that all records are loadable and 
+                                  consistent
+  --checksum                      Compute and display whole database checksum 
+                                  (all keys and payloads together)
+  --checksum-by-key               Compute and display database checksum by key,
+                                  restrictable by matching options
 
 Matching options:
-  -m [ --match-key ] arg         Restrict to records whose keys match
-  -D [ --match-data-or-key ] arg Restrict to records whose key or data match
-  -d [ --match-data ] arg        Restrict to records whose data match all 
-				 patterns (cf. -J)
-  -E [ --exact-match ]           Exact key match
-  -i [ --ignore-case ]           Match without case.  (Does not affect 
-				 -g,--grep.)
-  -J [ --disjunction ]           When matching multiple patterns against 
-				 payloads with -d, --match-data, use inclusive 
-				 or (any hit is sufficient)
+  -m [ --match-key ] arg          Restrict to records whose keys match
+  -D [ --match-data-or-key ] arg  Restrict to records whose key or data match
+  -d [ --match-data ] arg         Restrict to records whose data match all 
+                                  patterns (cf. -J)
+  -E [ --exact-match ]            Exact key match
+  -i [ --ignore-case ]            Match without case.  (Does not affect 
+                                  -g,--grep.)
+  -J [ --disjunction ]            When matching multiple patterns against 
+                                  payloads with -d, --match-data, use inclusive
+                                  or (any hit is sufficient)
 
 Display options:
-  -k [ --keys-only ]     Display keys only (default true if multiple matches, 
-			 false for single match)
-  -f [ --full-display ]  Display full data (default true for single match, 
-			 false for multiple matches)
-  -g [ --grep ] arg      Output filter for data
+  -k [ --keys-only ]              Display keys only (default true if multiple 
+                                  matches, false for single match)
+  -f [ --full-display ]           Display full data (default true for single 
+                                  match, false for multiple matches)
+  -g [ --grep ] arg               Output filter for data
 
 Test options (don't use outside regression tests):
-  -T [ --TEST ] arg     Test mode, use local data directory, specify password 
-			on commandline
+  -T [ --TEST ] arg               Test mode, use local data directory, specify 
+                                  password on commandline
 ````
 
 ## Known issues / bugs
 
-The code may not be thread-safe.  Indeed, it assumes a single event
-stream, where it is impossible, say, to edit two leaves at the same
-time.  (The conflict here is at the level of the root, since each
-editor risks re-persisting the root differently.)  There are some
-checks to avoid this happening, but no regtests rigorously confirm
-that this always works.  Peer review and suggestions welcome.
-Cf. issues #26, #27 (both closed).
+Several srd processes may use one database at once:  a lock in the
+database directory serializes changes to the index, so they can't
+lose each other's records (test-concurrency.sh checks this).  What
+isn't detected is two people editing the *same* record at the same
+time:  the later save wins.  Cf. issues #26, #27 (both closed).
 
 ## File format conversion
 
