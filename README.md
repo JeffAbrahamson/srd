@@ -61,28 +61,28 @@ General options:
 
 Actions (if none, then match):
   -e [ --edit ]                   Edit record
-  -x [ --delete ]                 Delete the results of an (exact) key match.  
-                                  Conceptually -E -m arg, can be used with 
+  -x [ --delete ]                 Delete the results of an (exact) key match.
+                                  Conceptually -E -m arg, can be used with
                                   -mDd.
-  -X [ --delete-all ]             Delete all matches.  Conceptually equivalent 
-                                  to -m arg, can be used with -mDd.  If more 
+  -X [ --delete-all ]             Delete all matches.  Conceptually equivalent
+                                  to -m arg, can be used with -mDd.  If more
                                   than one match, will request confirmation.
   -p [ --passwd ]                 Change password (no other options permitted)
-  --create                        Create database.  The database is identified 
-                                  by a hash of the password, so --create 
+  --create                        Create database.  The database is identified
+                                  by a hash of the password, so --create
                                   distinguishes between creating a new database
                                   and mistyping the password.
-  --import arg                    Import a text file.  The format is the same 
-                                  as that output by -f:  a line "[KEY]" starts 
-                                  a record with key KEY, and each following 
-                                  line, less its two spaces of indent, is a 
-                                  line of that record's data (payload).  An 
-                                  empty line is an empty line of data.  Keys 
-                                  that already exist are pointed out before 
+  --import arg                    Import a text file.  The format is the same
+                                  as that output by -f:  a line "[KEY]" starts
+                                  a record with key KEY, and each following
+                                  line, less its two spaces of indent, is a
+                                  line of that record's data (payload).  An
+                                  empty line is an empty line of data.  Keys
+                                  that already exist are pointed out before
                                   confirming; import never replaces a record.
-  -V [ --validate ]               Confirm that all records are loadable and 
+  -V [ --validate ]               Confirm that all records are loadable and
                                   consistent
-  --checksum                      Compute and display whole database checksum 
+  --checksum                      Compute and display whole database checksum
                                   (all keys and payloads together)
   --checksum-by-key               Compute and display database checksum by key,
                                   restrictable by matching options
@@ -90,24 +90,24 @@ Actions (if none, then match):
 Matching options:
   -m [ --match-key ] arg          Restrict to records whose keys match
   -D [ --match-data-or-key ] arg  Restrict to records whose key or data match
-  -d [ --match-data ] arg         Restrict to records whose data match all 
+  -d [ --match-data ] arg         Restrict to records whose data match all
                                   patterns (cf. -J)
   -E [ --exact-match ]            Exact key match
-  -i [ --ignore-case ]            Match without case.  (Does not affect 
+  -i [ --ignore-case ]            Match without case.  (Does not affect
                                   -g,--grep.)
-  -J [ --disjunction ]            When matching multiple patterns against 
+  -J [ --disjunction ]            When matching multiple patterns against
                                   payloads with -d, --match-data, use inclusive
                                   or (any hit is sufficient)
 
 Display options:
-  -k [ --keys-only ]              Display keys only (default true if multiple 
+  -k [ --keys-only ]              Display keys only (default true if multiple
                                   matches, false for single match)
-  -f [ --full-display ]           Display full data (default true for single 
+  -f [ --full-display ]           Display full data (default true for single
                                   match, false for multiple matches)
   -g [ --grep ] arg               Output filter for data
 
 Test options (don't use outside regression tests):
-  -T [ --TEST ] arg               Test mode, use local data directory, specify 
+  -T [ --TEST ] arg               Test mode, use local data directory, specify
                                   password on commandline
 ````
 

@@ -20,9 +20,11 @@
 #include <algorithm>
 #include <cerrno>
 #include <iostream>
+#include <stdlib.h>
 #include <stdexcept>
 #include <string>
 #include <cstring>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <vector>
 
@@ -98,8 +100,8 @@ int test_modified() {
   if (err_count)
     cout << "Unmodified file looks modified in test_modified()." << endl;
 
-  sleep(1); // Apparently we can do this in less than a nanosecond if we don't
-            // sleep
+  // The replacement may have the same size, contents and timestamp on a
+  // coarse filesystem.  Its inode still identifies it as a different file.
   contents = "This is a test.";
   f1.file_contents(contents);
   int err2 = (f2.underlying_is_modified() ? 0 : 1); // Now it has been modified
@@ -169,16 +171,43 @@ int main() {
 
   err_count += test_modified();
 
-  err_count += test_is_writeable("/tmp", ".", true);
-  err_count += test_is_writeable("/var/log", ".",
-                                 false); // or else your system is strange...
-  err_count += test_is_writeable("/dev", "null", true);
-  err_count += test_is_writeable("/var/log", "syslog", false);
+  // Use permissions we control rather than assuming anything about
+  // /dev or /var/log, which varies in containers and test runners.
+  char permission_template[] = "/tmp/srd-file-test-XXXXXX";
+  const char *created_dir = mkdtemp(permission_template);
+  if (!created_dir) {
+    cerr << "Failed to create permission-test directory." << endl;
+    err_count++;
+  } else {
+    string permission_dir(created_dir);
+    string writable_file = permission_dir + "/writable";
+    string read_only_file = permission_dir + "/read-only";
+    string read_only_dir = permission_dir + "/read-only-dir";
+    file_create(writable_file);
+    file_create(read_only_file);
+    mkdir(read_only_dir.c_str(), 0700);
 
-  // or else your system is strange...
-  err_count += test_dir_is_writeable("/tmp", true);
-  err_count += test_dir_is_writeable("/dev", false);
-  err_count += test_dir_is_writeable("/var/log", false);
+    err_count += test_is_writeable(permission_dir, "writable", true);
+    err_count += test_is_writeable(permission_dir, "missing", true);
+    err_count += test_dir_is_writeable(permission_dir, true);
+
+    // Root can bypass ordinary permission bits, so only make these
+    // assertions when access(2) is subject to them.
+    if (0 != geteuid()) {
+      chmod(read_only_file.c_str(), 0400);
+      chmod(read_only_dir.c_str(), 0500);
+      err_count += test_is_writeable(permission_dir, "read-only", false);
+      err_count += test_is_writeable(read_only_dir, "missing", false);
+      err_count += test_dir_is_writeable(read_only_dir, false);
+      chmod(read_only_file.c_str(), 0600);
+      chmod(read_only_dir.c_str(), 0700);
+    }
+
+    unlink(writable_file.c_str());
+    unlink(read_only_file.c_str());
+    rmdir(read_only_dir.c_str());
+    rmdir(permission_dir.c_str());
+  }
 
   if (err_count)
     cout << "Errors (" << err_count << ") in test!!" << endl;
