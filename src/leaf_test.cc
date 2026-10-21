@@ -73,6 +73,19 @@ int test_leaf(const string message) {
     ret++;
   }
 
+  bool read_only_delete_rejected = false;
+  mode(ReadOnly, true);
+  try {
+    second_leaf.erase();
+  } catch (const runtime_error &) {
+    read_only_delete_rejected = true;
+  }
+  mode(ReadOnly, false);
+  if (!read_only_delete_rejected || !second_leaf.exists()) {
+    cout << "Read-only mode permitted leaf removal." << endl;
+    ret++;
+  }
+
   second_leaf.erase();
   Leaf third_leaf(password, base_name, dir_name);
   if (third_leaf.key() != "" || third_leaf.payload() != "") {

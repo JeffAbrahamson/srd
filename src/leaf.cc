@@ -140,6 +140,8 @@ void Leaf::commit() {
   try to repersist at destruction time.
 */
 void Leaf::erase() {
+  if (mode(ReadOnly))
+    throw(runtime_error("Database is read-only.  Delete not permitted."));
   validate();
   rm();
   m_modified = false;

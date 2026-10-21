@@ -24,6 +24,31 @@ if [ "$results" != "$expected" ]; then
     exit 1
 fi
 
+# Deletion must not bypass read-only mode.  This used to skip the root
+# commit but still remove the leaf, leaving the database corrupt.
+checksum=$(./srd -T $pass --checksum)
+if ./srd -T $pass -R -x 'Concord Hymn' > /dev/null 2>&1; then
+    echo Read-only single delete unexpectedly succeeded.
+    exit 1
+fi
+if [ "$(./srd -T $pass --checksum)" != "$checksum" ]; then
+    echo Read-only single delete changed the database.
+    exit 1
+fi
+
+if printf 'yes\n' | ./srd -T $pass -R -X '' > /dev/null 2>&1; then
+    echo Read-only multiple delete unexpectedly succeeded.
+    exit 1
+fi
+if [ "$(./srd -T $pass --checksum)" != "$checksum" ]; then
+    echo Read-only multiple delete changed the database.
+    exit 1
+fi
+./srd -T $pass --validate > /dev/null || {
+    echo Read-only delete left the database invalid.
+    exit 1
+}
+
 chmod 500 $dbdir
 results=$(./srd -T $pass -e 2>&1)
 expected='Opening database in read-only mode.
@@ -36,4 +61,3 @@ fi
 
 chmod 700 $dbdir
 rm -rf $dbdir
-

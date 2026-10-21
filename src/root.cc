@@ -220,6 +220,8 @@ void Root::set_leaf(const string &proxy_key, const string &key,
   file.
 */
 void Root::rm_leaf(const string &proxy_key) {
+  if (mode(ReadOnly))
+    throw(runtime_error("Database is read-only.  Delete not permitted."));
   // Reconcile or reject external changes while holding the database lock.
   Lock lock(dirname());
   refresh_for_update();
