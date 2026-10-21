@@ -40,22 +40,24 @@ using namespace std;
   The name of the root node must be determinable solely by the password.
 */
 Root::Root(const string &pass, const string dir_name, const bool create)
-    : password(pass), modified(false), valid(true) {
+    : password(pass), modified(false), valid(true), persisted(false) {
   string base_name(pass);
   for (int i = 0; i < 30; i++)
     base_name = message_digest(base_name, true);
   basename(base_name); // Must be reproducible from password alone
   dirname(dir_name);   // If empty, will be computed for us
-  if (exists() == create) {
+  bool already_exists = exists();
+  if (already_exists == create) {
     // i.e., if exists() != !create
     if (create)
       throw(runtime_error(
           "A database identified by this password already exists."));
     throw(runtime_error("Root doesn't exist.  (Incorrect password?)"));
   }
+  persisted = already_exists;
   if (!is_writeable())
     mode(ReadOnly, true);
-  if (!exists()) {
+  if (!already_exists) {
     if (mode(ReadOnly)) {
       throw(runtime_error(
           "Refusing to create new root node while read-only."));
@@ -93,6 +95,7 @@ void Root::load() {
   // go on to modify the root already hold it.)
   Lock lock(dirname());
   string plain_text = decrypt(file_contents(), password);
+  persisted = true;
   string big_text = decompress(plain_text);
   RootData root_data;
   if (!root_data.ParseFromString(big_text)) {
@@ -108,6 +111,30 @@ void Root::load() {
            });
   assert(size() == static_cast<unsigned int>(root_data.keys_size()));
   validate();
+}
+
+/*
+  Once the database lock is held, bring an unmodified root up to date
+  before changing it.  A root that used to exist but has disappeared
+  was removed deliberately (notably by a password change); it must
+  never be recreated from this process's stale in-memory copy.
+*/
+void Root::refresh_for_update() {
+  if (!persisted) {
+    if (exists())
+      throw(runtime_error("Refusing to overwrite a database another srd "
+                          "created."));
+    return;
+  }
+  if (!exists())
+    throw(runtime_error("Refusing to recreate a database another srd "
+                        "removed."));
+  if (!underlying_is_modified())
+    return;
+  if (modified)
+    throw(runtime_error("Refusing to overwrite changes another srd made "
+                        "to the database."));
+  load();
 }
 
 /*
@@ -135,11 +162,9 @@ Root::~Root() {
 */
 void Root::add_leaf(const string &key, const string &payload,
                     const bool do_commit) {
-  // Reload before validating:  if another process has removed a
-  // record, our stale copy of the root would fail validation.
+  // Reconcile or reject external changes while holding the database lock.
   Lock lock(dirname());
-  if (exists() && underlying_is_modified())
-    load();
+  refresh_for_update();
   validate();
   LeafProxy proxy(password, "", dirname());
   proxy.set(key, payload);
@@ -174,11 +199,9 @@ LeafProxy Root::get_leaf(const string &proxy_key) {
 */
 void Root::set_leaf(const string &proxy_key, const string &key,
                     const string &payload) {
-  // Reload before validating:  if another process has removed a
-  // record, our stale copy of the root would fail validation.
+  // Reconcile or reject external changes while holding the database lock.
   Lock lock(dirname());
-  if (exists() && underlying_is_modified())
-    load();
+  refresh_for_update();
   validate();
   iterator it = find(proxy_key);
   if (end() == it)
@@ -197,11 +220,9 @@ void Root::set_leaf(const string &proxy_key, const string &key,
   file.
 */
 void Root::rm_leaf(const string &proxy_key) {
-  // Reload before validating:  if another process has removed a
-  // record, our stale copy of the root would fail validation.
+  // Reconcile or reject external changes while holding the database lock.
   Lock lock(dirname());
-  if (exists() && underlying_is_modified())
-    load();
+  refresh_for_update();
   validate();
   iterator it = find(proxy_key);
   if (end() == it)
@@ -232,11 +253,9 @@ void Root::rm_leaf(const string &proxy_key) {
   generates an existing root object.
 */
 Root Root::change_password(const std::string &new_password) {
-  // Reload before validating:  if another process has removed a
-  // record, our stale copy of the root would fail validation.
+  // Reconcile or reject external changes while holding the database lock.
   Lock lock(dirname());
-  if (exists() && underlying_is_modified())
-    load();
+  refresh_for_update();
   validate();
   Root new_root(new_password, dirname(), true);
   for (const_iterator it = begin(); it != end(); it++)
@@ -248,6 +267,7 @@ Root Root::change_password(const std::string &new_password) {
   if (exists())
     throw(runtime_error("The new database is complete, but the old one "
                         "could not be removed."));
+  persisted = false;
   while (!empty()) {
     iterator it = begin();
     (*it).second.erase();
@@ -269,9 +289,17 @@ void Root::commit() {
   // If another process has rewritten it since, writing ours would
   // silently discard theirs.  (Callers that modify the root hold the
   // lock from reload to commit, so this shouldn't happen.)
-  if (exists() && underlying_is_modified())
-    throw(runtime_error("Refusing to overwrite changes another srd made "
-                        "to the database."));
+  if (persisted) {
+    if (!exists())
+      throw(runtime_error("Refusing to recreate a database another srd "
+                          "removed."));
+    if (underlying_is_modified())
+      throw(runtime_error("Refusing to overwrite changes another srd made "
+                          "to the database."));
+  } else if (exists()) {
+    throw(runtime_error("Refusing to overwrite a database another srd "
+                        "created."));
+  }
 
   RootData root_data;
   for_each(begin(), end(),
@@ -288,6 +316,7 @@ void Root::commit() {
   string plain_text = compress(big_text);
   string cipher_text = encrypt(plain_text, password);
   file_contents(cipher_text);
+  persisted = true;
   modified = false;
 
   validate();

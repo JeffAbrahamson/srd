@@ -96,7 +96,8 @@ void srd::set_base_dir(const std::string &in_dir) {
   Create a file if we know something about what to call it.
 */
 File::File(const string base_name, const string dir_name)
-    : m_dir_name(dir_name), m_base_name(base_name), m_dir_verified(false) {}
+    : m_dir_name(dir_name), m_base_name(base_name), m_dir_verified(false),
+      m_stamp_known(false) {}
 
 /*
   Return the name of the directory in which the file lives or will live.
@@ -184,7 +185,8 @@ void File::file_contents(const string &data) {
          << strerror(errno) << endl;
   if (-1 != dir_fd)
     close(dir_fd);
-  m_modtime = modtime(false);
+  m_stamp = file_stamp(false);
+  m_stamp_known = true;
 }
 
 /*
@@ -195,7 +197,8 @@ string File::file_contents() {
   // There is a race condition here, someone could modify the
   // file between our stat and our read.  The result would be a
   // reread later (if we ever need it).
-  m_modtime = modtime(false);
+  m_stamp = file_stamp(false);
+  m_stamp_known = true;
 
   ifstream fs(full_path().c_str(), ios::in | ios::binary | ios::ate);
   if (!fs.is_open())
@@ -215,7 +218,7 @@ string File::file_contents() {
   If silent is false, complain if the file looks odd,
   notably if it is not a regular file.
 */
-time_pair File::modtime(const bool silent) {
+File::FileStamp File::file_stamp(const bool silent) {
   struct stat stat_buf;
   int ret = stat(full_path().c_str(), &stat_buf);
   if (ret) {
@@ -240,10 +243,15 @@ time_pair File::modtime(const bool silent) {
   }
 
 #if defined __USE_MISC || defined __USE_XOPEN2K8
-  return time_pair(stat_buf.st_mtim.tv_sec, stat_buf.st_mtim.tv_nsec);
+  time_pair modified(stat_buf.st_mtim.tv_sec, stat_buf.st_mtim.tv_nsec);
 #else
-  return time_pair(stat_buf.st_mtime, stat_buf.st_mtimensec);
+  time_pair modified(stat_buf.st_mtime, stat_buf.st_mtimensec);
 #endif
+  return FileStamp{stat_buf.st_dev, stat_buf.st_ino, stat_buf.st_size, modified};
+}
+
+time_pair File::modtime(const bool silent) {
+  return file_stamp(silent).modified;
 }
 
 /*
@@ -251,10 +259,9 @@ time_pair File::modtime(const bool silent) {
   otherwise.
 */
 bool File::underlying_is_modified() {
-  time_pair mt(modtime());
-  if (mt > m_modtime)
-    return true;
-  return false;
+  if (!m_stamp_known)
+    throw(logic_error("Can't check a file that hasn't been read or written."));
+  return file_stamp() != m_stamp;
 }
 
 /*

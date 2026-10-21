@@ -136,7 +136,16 @@ public:
   bool dir_is_writeable();
 
 private:
+  struct FileStamp {
+    dev_t device;
+    ino_t inode;
+    off_t size;
+    time_pair modified;
 
+    bool operator==(const FileStamp &) const = default;
+  };
+
+  FileStamp file_stamp(const bool silent = true);
 
   std::string m_dir_name;
   std::string m_base_name;
@@ -145,9 +154,10 @@ private:
   // If false, we'll check and create if needed.
   bool m_dir_verified;
 
-  // When first we read the file, check it's mod time.
-  // If that changes. we'll know to reread.
-  time_pair m_modtime;
+  // Remember the file we read or wrote.  Writes replace files by
+  // rename, so identity as well as modification time matters.
+  bool m_stamp_known;
+  FileStamp m_stamp;
 };
 
 /* ************************************************************ */
@@ -458,11 +468,13 @@ public:
 
 private:
   void load();
+  void refresh_for_update();
 
   // Data members
   const std::string password;
   bool modified;
   bool valid; // if false, all operations except deletion should fail
+  bool persisted; // true once this root has been read from or written to disk
 };
 
 /* ************************************************************ */

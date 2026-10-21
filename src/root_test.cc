@@ -329,6 +329,32 @@ int test_root_change_password() {
   }
   return error_count;
 }
+
+/*
+  Two creators can both observe that a database is absent before
+  either commits.  Once one wins, the other must not overwrite it.
+*/
+int test_root_create_race() {
+  string password = pseudo_random_string(20);
+  Root first(password, "", true);
+  bool rejected = false;
+  {
+    Root second(password, "", true);
+    first.commit();
+    try {
+      second.commit();
+    } catch (const runtime_error &) {
+      rejected = true;
+    }
+    // The expected failed commit leaves second modified.  Prevent its
+    // destructor from making the same expected attempt again.
+    mode(ReadOnly, true);
+  }
+  mode(ReadOnly, false);
+  if (!rejected)
+    cout << "A second creator overwrote the new database." << endl;
+  return !rejected;
+}
 }
 
 int main() {
@@ -345,6 +371,7 @@ int main() {
   err_count += test_root_basic(password);
   err_count += test_root_singles(orderly_text());
   err_count += test_root_change_password();
+  err_count += test_root_create_race();
   err_count += test_ordering();
   map<string, string> doubles = case_text();
   err_count += test_root_singles(doubles);
