@@ -33,6 +33,20 @@ HEADER = srd.h $(PROTOBUF_H)
 
 OBJECT = $(SRC:%.cc=%.o)
 
+TESTS = 			\
+	base64_test		\
+	compress_test		\
+	crypt_test 		\
+	file_test 		\
+	file_util_test 		\
+	leaf_test 		\
+	leaf_proxy_test 	\
+	lock_test		\
+	mode_test 		\
+	root_test 		\
+
+TEST_OBJECTS := $(TESTS:%=%.o)
+
 LIBS = 				\
 	-lboost_program_options \
 	-lbz2			\
@@ -50,7 +64,7 @@ all : srd test TAGS
 
 # Nothing can compile before the protobuf headers exist.  (After the
 # first build, the .dep files record this too.)
-$(OBJECT) main.o test_text.o $(TESTS:%=%.o) : $(PROTOBUF_H)
+$(OBJECT) main.o test_text.o $(TEST_OBJECTS) : $(PROTOBUF_H)
 
 -include $(wildcard *.dep)
 
@@ -74,18 +88,6 @@ srd-from-so :
 	$(CC) -o srd-from-so main.o -L. -lsrd $(LIBS)
 #
 ############################################################
-
-TESTS = 			\
-	base64_test		\
-	compress_test		\
-	crypt_test 		\
-	file_test 		\
-	file_util_test 		\
-	leaf_test 		\
-	leaf_proxy_test 	\
-	lock_test		\
-	mode_test 		\
-	root_test 		\
 
 test : srd $(TESTS)
 	./test.sh
@@ -122,6 +124,5 @@ clean-test :
 
 TAGS : *cc *h
 	etags *cc *h
-
 
 
