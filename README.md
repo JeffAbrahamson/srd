@@ -13,7 +13,8 @@ minimal hacking.
 
 *srd changed file format in November 2026, to stronger encryption
  and password hashing.  It still reads the old format, and says so
- when it does; run `srd --upgrade` to convert.  See below.*
+ when it does; change the password (`srd --passwd`) to convert.  See
+ below.*
 
 *srd changed file format in May 2015.  See below if this affects you.
  You will know it affects you because you can't read your srd files
@@ -72,10 +73,6 @@ Actions (if none, then match):
                                   to -m arg, can be used with -mDd.  If more
                                   than one match, will request confirmation.
   -p [ --passwd ]                 Change password (no other options permitted)
-  --upgrade                       Convert a database in srd's old, weaker
-                                  format to the current one, keeping its
-                                  password (no other options permitted).
-                                  Changing the password also converts it.
   --create                        Create database.  The database is identified
                                   by a hash of the password, so --create
                                   distinguishes between creating a new database
@@ -157,13 +154,18 @@ listing was enough to test password guesses), and didn't detect
 changes to files.
 
 srd still reads format 1 databases, and prints a note when it does.
-To convert one, run
+To convert one, change its password:
 
 ```
-srd --upgrade
+srd --passwd
 ```
 
-and give its password.  Changing the password (`srd --passwd`) also
-converts it.  The conversion writes the new database before removing
-the old one.  If you use the database on several machines, upgrade
-on one and let the change sync; an older srd can't read format 2.
+srd converts only by changing the password, never keeping it:  copies
+of the format 1 files may outlive the conversion, in backups, in a
+sync service's history, or on another machine.  Their names alone
+make the password cheap to guess, and that password would open the
+converted database too.
+
+The conversion writes the new database before removing the old one.
+If you use the database on several machines, convert on one and let
+the change sync; an older srd can't read format 2.

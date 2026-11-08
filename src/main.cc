@@ -67,10 +67,6 @@ BPO::variables_map parse_options(int argc, char *argv[]) {
           "Conceptually equivalent to -m arg, can be used with -mDd.  "
           "If more than one match, will request confirmation.")(
           "passwd,p", "Change password (no other options permitted)")(
-          "upgrade",
-          "Convert a database in srd's old, weaker format to the current "
-          "one, keeping its password (no other options permitted).  "
-          "Changing the password also converts it.")(
           "create",
           "Create database.  The database is identified by a hash of the "
           "password, so --create distinguishes between creating a new "
@@ -326,28 +322,6 @@ bool change_password(const string &password) {
     cerr << "Failed to change password:  " << e.what() << endl;
     return 1;
   }
-  return 0;
-}
-
-/*
-  Rewrite a format 1 database in format 2, keeping its password.
-
-  Return 0 on success (including when there's nothing to do).
-  Return 1 on failure.
-*/
-bool do_upgrade(const string &password) {
-  try {
-    Root root(password, "");
-    if (Key::Format1 != root.format()) {
-      cout << "The database is already in the current format." << endl;
-      return 0;
-    }
-    root.upgrade(password);
-  } catch (const runtime_error &e) {
-    cerr << "Failed to upgrade the database:  " << e.what() << endl;
-    return 1;
-  }
-  cout << "Database upgraded." << endl;
   return 0;
 }
 
@@ -995,8 +969,6 @@ int run(int argc, char *argv[]) {
 
   if (options.count("passwd"))
     return change_password(passwd);
-  if (options.count("upgrade"))
-    return do_upgrade(passwd);
   if (options.count("import")) {
     string filename = options["import"].as<string>();
     do_import(passwd, filename);

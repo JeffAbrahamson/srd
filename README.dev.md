@@ -52,26 +52,27 @@ Format 2 (`header.cc`, and the libsodium half of `crypt.cc`):
 
 * `--checksum` and `--checksum-by-key` print keyed hashes, under a
   random key stored in the root, so the output can't be used to test
-  guesses at records' contents.  Password changes and `--upgrade`
-  keep the key, so checksums stay comparable across them.  (Roots
-  from before the key existed get one derived from the database key.)
+  guesses at records' contents.  Password changes keep the key, so
+  checksums stay comparable across them.  (Roots from before the key
+  existed get one derived from the database key.)
 
 * What isn't detected:  replacing a file with an older version of
   itself, or the whole directory with an older copy.  Detecting that
   would need state outside the directory or a root that changes on
   every edit, which the design criteria below rule out.
 
-Format 1, still read so that old databases can be upgraded:  the key
+Format 1, still read so that old databases can be converted:  the key
 is 50 rounds of unsalted SHA-256 of the passphrase (in test mode, the
 passphrase itself), the root's name is 30 more rounds, and files are
 AES-128-CBC with a fixed IV and no MAC.
 
 To open a database, srd tries format 2 if the directory has a header,
 then format 1.  New databases, including those made by a password
-change, are always format 2.  `--upgrade` (`Root::upgrade()`) is a
-password change to the same passphrase.  `test.d/format1-db.tgz` is
-a small format 1 database, made by srd before format 2, for testing
-the upgrade.
+change, are always format 2, so changing the password converts a
+format 1 database.  There's deliberately no way to convert and keep
+the password, which old copies of the format 1 files would make cheap
+to guess.  `test.d/format1-db.tgz` is a small format 1 database, made
+by srd before format 2, for testing the conversion.
 
 ## Design criteria
 

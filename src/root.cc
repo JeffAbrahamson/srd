@@ -42,19 +42,11 @@ using namespace std;
   passphrase (and, in format 2, the directory's header).
 */
 Root::Root(const string &passphrase, const string dir_name, const bool create)
-    : Root(passphrase, dir_name, create, false) {}
-
-/*
-  As above.  If replacing_format1, the format 1 database that
-  passphrase names may exist:  we're about to replace it.
-*/
-Root::Root(const string &passphrase, const string &dir_name, const bool create,
-           const bool replacing_format1)
     : modified(false), valid(true), persisted(false) {
   dirname(dir_name); // If empty, will be computed for us
   check_database_dir(dirname());
   if (create)
-    create_key(passphrase, replacing_format1);
+    create_key(passphrase);
   else
     find_key(passphrase);
   persisted = !create;
@@ -108,8 +100,11 @@ void Root::find_key(const string &passphrase) {
   }
   use_format1(passphrase);
   if (exists()) {
+    // Converting must change the passphrase:  copies of the old files
+    // (in backups or a sync service's history) make it cheap to
+    // guess, and would then open the converted database too.
     cerr << "Note:  this database is in srd's old, weaker format.  "
-            "srd --upgrade converts it."
+            "Change its password (srd --passwd) to convert it."
          << endl;
     return;
   }
@@ -122,11 +117,11 @@ void Root::find_key(const string &passphrase) {
 /*
   Set our key and name for a new format 2 database, creating the
   directory's header if need be.  Throw if passphrase already names a
-  database, in either format (except format 1, if replacing_format1).
+  database, in either format.
 */
-void Root::create_key(const string &passphrase, const bool replacing_format1) {
+void Root::create_key(const string &passphrase) {
   use_format1(passphrase);
-  if (exists() && !replacing_format1)
+  if (exists())
     throw(runtime_error(already_exists_message));
   Header header(dirname());
   const bool had_header = header.exists();
@@ -355,36 +350,18 @@ void Root::rm_leaf(const string &proxy_key) {
   at worst some unreferenced leaf files, never an old root that
   refers to missing leaves.
 
+  New databases are always format 2, so this is also how a format 1
+  database is converted.
+
   Return the new root.  Will throw runtime_error if the new password
   generates an existing root object.
 */
 Root Root::change_password(const std::string &new_passphrase) {
-  return copy_to(new_passphrase, false);
-}
-
-/*
-  Rewrite this format 1 database as format 2, as a password change
-  to the same passphrase.  New databases are always format 2.
-*/
-Root Root::upgrade(const std::string &passphrase) {
-  if (Key::Format1 != format())
-    throw(runtime_error("The database is already in the current format."));
-  if (format1_root_name(format1_password(passphrase)) != basename())
-    throw(logic_error("Upgrade with a passphrase that didn't open the root."));
-  return copy_to(passphrase, true);
-}
-
-/*
-  Copy this database to a new one that passphrase names, then remove
-  this one.  See change_password().
-*/
-Root Root::copy_to(const std::string &passphrase,
-                   const bool replacing_format1) {
   // Reconcile or reject external changes while holding the database lock.
   Lock lock(dirname());
   refresh_for_update();
   validate();
-  Root new_root(passphrase, dirname(), true, replacing_format1);
+  Root new_root(new_passphrase, dirname(), true);
   // Keep checksums comparable across the change.
   new_root.checksum_key = checksum_key;
   for (const_iterator it = begin(); it != end(); it++)
