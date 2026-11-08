@@ -27,6 +27,9 @@ results=$(./srd -T $pass -f '' 2>&1 > /dev/null)
     fail "Expected the format 1 notice, got:  $results"
 ./srd -T $pass -f '' 2> /dev/null | cmp -s $expected - ||
     fail "The format 1 fixture didn't read as expected."
+# Checksums survive the upgrade, so copies can be compared across it.
+checksum=$(./srd -T $pass --checksum 2> /dev/null)
+by_key=$(./srd -T $pass --checksum-by-key 2> /dev/null)
 
 ./srd -T $pass --upgrade > $tmp_file 2>&1 ||
     fail "Upgrade failed:  $(cat $tmp_file)"
@@ -42,6 +45,11 @@ for f in $old_files; do
     [ ! -e "$db_dir/$f" ] || fail "Format 1 file $f remains after upgrade."
 done
 
+[ "$(./srd -T $pass --checksum)" = "$checksum" ] ||
+    fail "The checksum changed on upgrade."
+[ "$(./srd -T $pass --checksum-by-key)" = "$by_key" ] ||
+    fail "Checksums by key changed on upgrade."
+
 results=$(./srd -T $pass --upgrade 2>&1)
 [ "$results" = "The database is already in the current format." ] ||
     fail "Second upgrade:  unexpected output:  $results"
@@ -52,6 +60,8 @@ tar xzf test.d/format1-db.tgz
 ./srd -T $pass --passwd > /dev/null 2>&1 || fail "Password change failed."
 ./srd -T ${pass}2 -f '' 2>&1 | cmp -s $expected - ||
     fail "The database after a password change reads differently."
+[ "$(./srd -T ${pass}2 --checksum)" = "$checksum" ] ||
+    fail "The checksum changed on password change."
 for f in $old_files; do
     [ ! -e "$db_dir/$f" ] ||
 	fail "Format 1 file $f remains after password change."

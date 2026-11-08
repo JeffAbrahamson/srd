@@ -50,6 +50,12 @@ Format 2 (`header.cc`, and the libsodium half of `crypt.cc`):
   file's role and name (`root:<name>`, `leaf:<name>`), so a file that
   is changed, truncated, or copied over another doesn't decrypt.
 
+* `--checksum` and `--checksum-by-key` print keyed hashes, under a
+  random key stored in the root, so the output can't be used to test
+  guesses at records' contents.  Password changes and `--upgrade`
+  keep the key, so checksums stay comparable across them.  (Roots
+  from before the key existed get one derived from the database key.)
+
 * What isn't detected:  replacing a file with an older version of
   itself, or the whole directory with an older copy.  Detecting that
   would need state outside the directory or a root that changes on

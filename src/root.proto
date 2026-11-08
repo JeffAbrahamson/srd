@@ -26,4 +26,8 @@ message RootData {
 	required bytes cached_key = 2;
     }
     repeated KeyData keys = 1;
+    // Key for --checksum and --checksum-by-key, so their output can't
+    // be used to test guesses at records' contents.  Kept across
+    // password changes.  Absent in roots written before it existed.
+    optional bytes checksum_key = 2;
 }

@@ -356,11 +356,14 @@ string srd::derive_subkey(const string &master_key, SubkeyId id) {
   return subkey;
 }
 
-string srd::keyed_name(const string &key, const string &label) {
+string srd::keyed_hash(string_view key, const string &message) {
   init_sodium();
+  if (key.size() < crypto_generichash_KEYBYTES_MIN ||
+      key.size() > crypto_generichash_KEYBYTES_MAX)
+    throw(logic_error("Hash key has the wrong size."));
   unsigned char hash[32];
-  crypto_generichash(hash, sizeof(hash), bytes(label), label.size(), bytes(key),
-                     key.size());
+  crypto_generichash(hash, sizeof(hash), bytes(message), message.size(),
+                     bytes(key), key.size());
   char hex[2 * sizeof(hash) + 1];
   sodium_bin2hex(hex, sizeof(hex), hash, sizeof(hash));
   return hex;
@@ -455,6 +458,17 @@ Key::~Key() { sodium_free(m_secret); }
 
 string_view Key::secret() const {
   return string_view(reinterpret_cast<const char *>(m_secret), m_size);
+}
+
+string Key::keyed_hash(const string &message) const {
+  // Format 1 secrets vary in length, and may be shorter than a hash
+  // key may be.  So hash the secret to a key of fixed size.
+  unsigned char key[32];
+  crypto_generichash(key, sizeof(key), m_secret, m_size, nullptr, 0);
+  string hash = srd::keyed_hash(
+      string_view(reinterpret_cast<const char *>(key), sizeof(key)), message);
+  sodium_memzero(key, sizeof(key));
+  return hash;
 }
 
 string Key::encrypt(const string &plain_text, const string &context) const {

@@ -104,8 +104,9 @@ enum SubkeyId : std::uint64_t {
 };
 std::string derive_subkey(const std::string &master_key, SubkeyId id);
 
-// A file name (64 hex digits) that only the holder of key can compute.
-std::string keyed_name(const std::string &key, const std::string &label);
+// A keyed hash (BLAKE2b) of message, as 64 hex digits:  for instance,
+// a file name that only the holder of key can compute.
+std::string keyed_hash(std::string_view key, const std::string &message);
 
 /*
   Authenticated encryption under a 32-byte key.  The context (for
@@ -147,6 +148,8 @@ public:
                       const std::string &context) const;
   std::string decrypt(const std::string &cipher_text,
                       const std::string &context) const;
+  // keyed_hash() under this key.
+  std::string keyed_hash(const std::string &message) const;
 
 private:
   std::string_view secret() const;
@@ -590,6 +593,8 @@ public:
   void commit();
   void validate(bool force_load = false) const;
   void checksum() const;
+  // A keyed hash of text, for checksums.
+  std::string checksum_of(const std::string &text) const;
 
 private:
   Root(const std::string &passphrase, const std::string &path,
@@ -604,6 +609,7 @@ private:
 
   // Data members
   KeyPtr db_key;
+  std::string checksum_key;
   bool modified;
   bool valid; // if false, all operations except deletion should fail
   bool persisted; // true once this root has been read from or written to disk

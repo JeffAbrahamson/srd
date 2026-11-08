@@ -132,26 +132,31 @@ if [ "$results" != "$expected" ]; then
     exit 1;
 fi
 
+# Checksums are keyed by a random key in the database, so their values
+# differ between databases.  Check their form and their consistency.
+# The expected files hold the keys, with checksums stripped.
+strip_checksums() { sed -E 's/  [0-9a-f]{64}$//'; }
+
 # Confirm that we can checksum the database
 results=$(./srd -T $pass --checksum)
-expected="MRKh0xZxCCKWqQvwdaH9DoPNjwCJ6We/ZPFPrkEBW+w="
-if [ "$results" != "$expected" ]; then
-    echo Checksum test failed.
+if ! echo "$results" | grep -qxE '[0-9a-f]{64}' ||
+	[ "$results" != "$(./srd -T $pass --checksum)" ]; then
+    echo "Checksum test failed:  $results"
     exit 1;
 fi
 
 # Confirm that we can checksum the database by key
-results=$(./srd -T $pass --checksum-by-key)
+by_key=$(./srd -T $pass --checksum-by-key)
 expected=$(cat test.d/output/checksum-by-key)
-if [ "$results" != "$expected" ]; then
+if [ "$(echo "$by_key" | strip_checksums)" != "$expected" ] ||
+       echo "$by_key" | grep -qvE '  [0-9a-f]{64}$'; then
     echo Checksum-by-key test failed.
     exit 1;
 fi
 
 # Confirm that we can checksum the database by key, with match
 results=$(./srd -T $pass --checksum-by-key '')
-expected=$(cat test.d/output/checksum-by-key)
-if [ "$results" != "$expected" ]; then
+if [ "$results" != "$by_key" ]; then
     echo "Checksum-by-key '' test failed."
     exit 1;
 fi
@@ -159,7 +164,8 @@ fi
 # Confirm that we can checksum the database by key, with match
 results=$(./srd -T $pass --checksum-by-key The)
 expected=$(cat test.d/output/checksum-by-key-the)
-if [ "$results" != "$expected" ]; then
+if [ "$(echo "$results" | strip_checksums)" != "$expected" ] ||
+       [ "$results" != "$(echo "$by_key" | grep -F -x -f <(echo "$results"))" ]; then
     echo "Checksum-by-key 'The' test failed."
     exit 1;
 fi

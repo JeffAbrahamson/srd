@@ -61,6 +61,7 @@ Root::Root(const string &passphrase, const string &dir_name, const bool create,
   if (!is_writeable())
     mode(ReadOnly, true);
   if (create) {
+    checksum_key = pseudo_random_string(32);
     cout << "Root node does not exist, will create." << endl;
     if (mode(Verbose))
       cout << "    [" << full_path() << "]" << endl;
@@ -155,7 +156,7 @@ void Root::use_format2(const string &passphrase, const KdfParams &params) {
   string master_key = derive_master_key(passphrase, params);
   string name_key = derive_subkey(master_key, RootNameSubkey);
   string encryption_key = derive_subkey(master_key, EncryptionSubkey);
-  basename(keyed_name(name_key, "root"));
+  basename(keyed_hash(name_key, "root"));
   db_key = make_shared<const Key>(Key::Format2, encryption_key);
   explicit_bzero(master_key.data(), master_key.size());
   explicit_bzero(name_key.data(), name_key.size());
@@ -209,6 +210,10 @@ void Root::load() {
              (*this)[key.proxy_name()].key_cache(key.cached_key());
            });
   assert(size() == static_cast<unsigned int>(root_data.keys_size()));
+  // Roots written before checksum keys existed get one derived from
+  // the database key, which is stored at the next commit.
+  checksum_key = root_data.has_checksum_key() ? root_data.checksum_key()
+                                              : db_key->keyed_hash("checksum");
   validate();
 }
 
@@ -380,6 +385,8 @@ Root Root::copy_to(const std::string &passphrase,
   refresh_for_update();
   validate();
   Root new_root(passphrase, dirname(), true, replacing_format1);
+  // Keep checksums comparable across the change.
+  new_root.checksum_key = checksum_key;
   for (const_iterator it = begin(); it != end(); it++)
     new_root.add_leaf((*it).second.key(), (*it).second.payload(), false);
   new_root.commit();
@@ -424,6 +431,7 @@ void Root::commit() {
   }
 
   RootData root_data;
+  root_data.set_checksum_key(checksum_key);
   for_each(begin(), end(),
            [&root_data](LeafProxyMapInternalType::value_type val) mutable {
              RootData_KeyData *key_data = root_data.add_keys();
@@ -482,5 +490,10 @@ void Root::checksum() const {
     text += to_string(key.size()) + ":" + key;
     text += to_string(payload.size()) + ":" + payload;
   }
-  cout << message_digest(text) << endl;
+  cout << checksum_of(text) << endl;
+}
+
+string Root::checksum_of(const string &text) const {
+  assert(!checksum_key.empty());
+  return keyed_hash(checksum_key, text);
 }

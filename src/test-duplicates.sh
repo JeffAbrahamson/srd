@@ -37,4 +37,15 @@ printf '[dup]\nchanged\n' | ./srd -T $pass -d second -e
 [ "$(./srd -T $pass --checksum)" != "$without_other" ] ||
     fail "Checksum ignores a duplicate's payload."
 
+# Checksums are keyed per database, so they can't be used to test
+# guesses at records:  the same contents give different checksums in
+# different databases.
+printf '[same]\ncontents\n' | ./srd -T a-$pass --create -e
+printf '[same]\ncontents\n' | ./srd -T b-$pass --create -e
+[ "$(./srd -T a-$pass --checksum)" != "$(./srd -T b-$pass --checksum)" ] ||
+    fail "Two databases share a checksum key."
+[ "$(./srd -T a-$pass --checksum-by-key)" != \
+  "$(./srd -T b-$pass --checksum-by-key)" ] ||
+    fail "Two databases share a checksum-by-key key."
+
 make clean-test

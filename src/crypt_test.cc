@@ -125,12 +125,13 @@ int test_lengths() {
 }
 
 /*
-  Return 1 if f() doesn't throw runtime_error, else 0.
+  Return 1 if f() doesn't throw E, else 0.
 */
-template <typename F> int expect_throw(const string &what, F f) {
+template <typename E = runtime_error, typename F>
+int expect_throw(const string &what, F f) {
   try {
     f();
-  } catch (const runtime_error &) {
+  } catch (const E &) {
     return 0;
   }
   cout << "Expected an exception:  " << what << endl;
@@ -197,15 +198,17 @@ int test_subkeys() {
     cout << "Subkeys are wrong." << endl;
     errors++;
   }
-  string root_name = keyed_name(name, "root");
+  string root_name = keyed_hash(name, "root");
   if (root_name.size() != 64 ||
       root_name.find_first_not_of("0123456789abcdef") != string::npos ||
-      root_name != keyed_name(name, "root") ||
-      root_name == keyed_name(enc, "root") ||
-      root_name == keyed_name(name, "roof")) {
-    cout << "Keyed names are wrong:  " << root_name << endl;
+      root_name != keyed_hash(name, "root") ||
+      root_name == keyed_hash(enc, "root") ||
+      root_name == keyed_hash(name, "roof")) {
+    cout << "Keyed hashes are wrong:  " << root_name << endl;
     errors++;
   }
+  errors += expect_throw<logic_error>("short hash key",
+                                      [&] { keyed_hash("short", "x"); });
   errors += expect_throw("short master key",
                          [&] { derive_subkey("short", EncryptionSubkey); });
   return errors;

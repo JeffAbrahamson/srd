@@ -450,7 +450,7 @@ private:
 class LeafChecksumVisitor : public LeafVisitor {
 
 public:
-  LeafChecksumVisitor(){};
+  LeafChecksumVisitor(const Root &in_root) : the_root(in_root){};
 
   void operator()(const LeafProxyMap &lpm) const {
     // Sort on content alone, so that the output doesn't depend on the
@@ -458,11 +458,14 @@ public:
     vector<pair<string, string>> lines;
     for (LeafProxyMap::const_iterator it = lpm.begin(); it != lpm.end(); ++it)
       lines.emplace_back(it->second.key(),
-                         message_digest(it->second.payload()));
+                         the_root.checksum_of(it->second.payload()));
     sort(lines.begin(), lines.end());
     for (const auto &[key, digest] : lines)
       cout << "[" << key << "]  " << digest << endl;
   }
+
+private:
+  const Root &the_root;
 };
 
 
@@ -1032,7 +1035,7 @@ int run(int argc, char *argv[]) {
   } else if (options.count("delete-all")) {
     lv = new LeafDeleteVisitor(root);
   } else if (options.count("checksum-by-key")) {
-    lv = new LeafChecksumVisitor();
+    lv = new LeafChecksumVisitor(root);
     if (0 == match_key.size())
       match_key.push_back(""); // match all keys if no match requested
   } else {
