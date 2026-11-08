@@ -125,7 +125,7 @@ sync cleanly, because each record is its own file.  But if two
 machines each add, delete, or rename a record before syncing, both
 rewrite the root.  Only one root survives; the other machine's change
 is lost or left in a conflict copy, depending on the sync tool.
-README.dev.html describes the design criteria behind this.
+README.dev.md describes the design criteria behind this.
 
 ## File format conversion
 

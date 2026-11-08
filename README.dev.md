@@ -1,0 +1,106 @@
+# About the srd code
+
+This is a quick tour of the srd source code.
+
+## Functional overview
+
+From a functional viewpoint, srd manages a set of text fragments.
+Think of them as text on sticky (PostIt(TM)) notes.  Each text
+fragment has a name, which is also text.  Text may be retrieved from a
+single note or from multiple notes and is searchable.  We'll refer to
+the name and the note as key and payload.
+
+## Implementation overview
+
+A database is a directory holding an index (called the root) and one
+file per record (called a leaf).  Each leaf holds a record's key and
+payload, and has a random file name that never changes.  The root
+lists the leaves' file names, with each leaf's key cached so that
+searching on keys needn't open every leaf.
+
+The root doesn't store the password or a hash of it.  Instead, the
+root's file name is derived from the password, so the password both
+finds the root and decrypts it.  An incorrect password finds no root.
+This is also how one directory can hold several databases:  each
+password names a different root.
+
+Every file is serialized with protobuf (`root.proto`, `leaf.proto`),
+compressed, and then encrypted.
+
+## Design criteria
+
+Two properties shape the on-disk format.  Changes to the format
+should preserve them.
+
+* **One database, several machines.**  A user may use the same
+  database from several machines, by sharing or synchronising its
+  directory.  Nothing about a database may depend on state kept
+  outside its directory, such as a per-machine counter or cache that
+  the other machines don't share.
+
+* **Friendly to backups and to sync between machines.**  A change
+  rewrites as few files as possible:  editing a record's payload
+  rewrites only that record's file, and adding, deleting, or renaming
+  a record rewrites that record's file and the root.  So incremental
+  backups stay small, and when two machines sync the same directory,
+  most concurrent edits touch different files and don't conflict.
+  Restoring a backup of the whole directory must give a usable
+  database.
+
+The second property is why each record lives in its own file, and why
+data that would change on every edit (per-record version numbers or
+MACs, for instance) doesn't belong in the root.  A known gap:  the
+root isn't protected from two-sided changes.  If two machines each
+add, delete, or rename a record before syncing, their roots conflict.
+Only one root survives; the other machine's change is lost or left in
+a conflict copy, depending on the sync tool.
+
+## File overview
+
+The principal entry point for the program is `main.cc`.  In other
+words, it contains `main()`.  It handles option parsing, password
+entry, and running the user's editor.  Everything else is (at least
+conceptually) library.
+
+The index object is `root.cc`.  It is tested by `root_test.cc`.
+
+The root's main data structure is a leaf_proxy_map (implemented in
+`leaf_proxy_map.cc`, tested by `leaf_proxy_test.cc`).  The
+leaf_proxy_map is also the abstraction by which we return search
+results, facilitating searching on existing results.  Said
+differently, the root is a leaf_proxy_map with persistence.
+
+A leaf proxy (`leaf_proxy.cc`) represents a leaf without loading the
+data.  Once we load the file, the leaf proxy contains a pointer to the
+leaf (`leaf.cc`, tested in `leaf_test.cc`).  This is the *virtual
+proxy* pattern:  a stand-in that loads the real object on first use.
+
+The files `compress.cc` (tested by `compress_test.cc`) and `crypt.cc`
+(tested by `crypt_test.cc`) handle compression/decompression and
+encryption/decryption respectively.  File operations are abstracted
+in the mixin class `file.cc` (tested by `file_test.cc`), with a few
+free functions in `file_util.cc` (tested by `file_util_test.cc`).
+`mode.cc` (tested in `mode_test.cc`) isolates a bit of global state:
+verbose mode, test mode, and read-only mode.
+
+`lock.cc` (tested by `lock_test.cc`) provides the database lock:  a
+file named `lock` in the database directory, taken with `flock()` and
+never removed.  Anything that reads the root, changes it, and writes
+it back holds the lock throughout, so that concurrent srd processes
+can't lose each other's changes.  Every file is replaced by an atomic
+rename, so reading a record needs no lock.
+
+Many of the tests require text to manipulate.  The file `test_text.cc`
+provides that text.
+
+## Testing
+
+`make test` builds and runs the unit tests (`*_test.cc`), then the
+end-to-end tests:  shell scripts (`test*.sh`) that drive the srd
+binary in test mode (`-T`, which takes the password on the command
+line and uses a database directory under the current directory), and
+`test-tty.py`, which types passwords at srd on a pseudo-terminal.  Any
+failure stops the build.
+
+`make test-sanitize` runs the same tests with AddressSanitizer and
+UndefinedBehaviorSanitizer.
