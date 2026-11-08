@@ -17,7 +17,6 @@ PROTOBUF_H = $(PROTOBUF_SRC:%.proto=%.pb.h)
 
 SRC = 			\
 	$(PROTOBUF_C)	\
-	base64.cc	\
 	compress.cc	\
 	crypt.cc	\
 	file.cc		\
@@ -34,7 +33,6 @@ HEADER = srd.h $(PROTOBUF_H)
 OBJECT = $(SRC:%.cc=%.o)
 
 TESTS = 			\
-	base64_test		\
 	compress_test		\
 	crypt_test 		\
 	file_test 		\
