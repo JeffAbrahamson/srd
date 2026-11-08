@@ -19,7 +19,9 @@
 
 #include <iostream>
 #include <stdexcept>
+#include <stdlib.h>
 #include <string>
+#include <unistd.h>
 
 #include "srd.h"
 
@@ -73,10 +75,19 @@ int test_encoding() {
 
 /*
   The header is created once and then reused.
+
+  Use a directory of our own:  other tests, run in parallel, create
+  databases (and so headers) in the shared test directory.
 */
 int test_file() {
   int errors = 0;
-  Header header("");
+  char dir_template[] = "srd-test-header-XXXXXX";
+  if (!mkdtemp(dir_template)) {
+    cout << "Failed to create a test directory." << endl;
+    return 1;
+  }
+  const string dir(dir_template);
+  Header header(dir);
   if (header.exists()) {
     cout << "Test directory already has a header." << endl;
     return 1;
@@ -97,6 +108,8 @@ int test_file() {
   }
   mode(Testing, true);
   header.rm();
+  unlink((dir + "/lock").c_str());
+  rmdir(dir.c_str());
   return errors;
 }
 }
