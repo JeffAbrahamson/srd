@@ -61,6 +61,12 @@ Format 2 (`header.cc`, and the libsodium half of `crypt.cc`):
   would need state outside the directory or a root that changes on
   every edit, which the design criteria below rule out.
 
+* What isn't hidden:  anyone who can list the directory (a sync
+  service, say) sees how many records there are, roughly how large
+  each is (files aren't padded), and when each was last written.
+  Hiding that would mean padding files or rewriting more of them on
+  each edit.
+
 Format 1, still read so that old databases can be converted:  the key
 is 50 rounds of unsalted SHA-256 of the passphrase (in test mode, the
 passphrase itself), the root's name is 30 more rounds, and files are
