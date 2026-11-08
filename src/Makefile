@@ -21,6 +21,7 @@ SRC = 			\
 	crypt.cc	\
 	file.cc		\
 	file_util.cc	\
+	header.cc	\
 	leaf.cc		\
 	leaf_proxy.cc	\
 	leaf_proxy_map.cc \
@@ -37,6 +38,7 @@ TESTS = 			\
 	crypt_test 		\
 	file_test 		\
 	file_util_test 		\
+	header_test		\
 	leaf_test 		\
 	leaf_proxy_test 	\
 	lock_test		\
@@ -94,6 +96,7 @@ test : srd $(TESTS)
 	./test-passwd.sh
 	./test-delete.sh
 	./test-binary.sh
+	./test-format.sh
 	./test-key-change.sh
 	./test-readonly.sh
 	./test-edit.sh

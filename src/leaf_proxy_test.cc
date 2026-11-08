@@ -34,23 +34,25 @@ int test_leaf_proxy(string);
 
 /*
   Message key is hash of message.
-  Password is hash of key.
+  The database key is derived from the message.
   Persist the leaf proxy (so the underlying leaf), then reconstitute it.
 */
 int test_leaf_proxy(const string message) {
   // Arbitrary assignments
   string key = message_digest(message);
-  string password = message_digest(key);
+  KeyPtr db_key = make_shared<const Key>(
+      Key::Format2, derive_subkey(derive_master_key(message, new_kdf_params()),
+                                  EncryptionSubkey));
 
   string base_name, dir_name, full_path;
   {
-    LeafProxy first_leaf_proxy(password, "", "");
+    LeafProxy first_leaf_proxy(db_key, "", "");
     first_leaf_proxy.set(key, message);
     base_name = first_leaf_proxy.basename();
     first_leaf_proxy.commit();
   }
 
-  LeafProxy second_leaf_proxy(password, base_name, "");
+  LeafProxy second_leaf_proxy(db_key, base_name, "");
   int ret = 0;
   if (second_leaf_proxy.basename().size() == 0) {
     cout << "Proxy has empty basename." << endl;
@@ -66,7 +68,7 @@ int test_leaf_proxy(const string message) {
   }
   second_leaf_proxy.erase();
 
-  LeafProxy third_leaf_proxy(password, base_name, "");
+  LeafProxy third_leaf_proxy(db_key, base_name, "");
   if (third_leaf_proxy.basename().size() == 0) {
     cout << "Proxy has empty basename." << endl;
     ret++;

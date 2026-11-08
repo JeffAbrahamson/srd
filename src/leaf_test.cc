@@ -39,16 +39,15 @@ int test_leaf(string);
   data that we stored.
 
   For simplicity, we start with a message, which will be the payload,
-  and then compute key and password as hashes of the message.
+  and then compute the record's key as a hash of the message.
 */
-int test_leaf(const string message) {
+int test_leaf_with(const string message, const KeyPtr &db_key) {
   // Arbitrary assignments
   string key = message_digest(message);
-  string password = message_digest(key);
 
   string base_name, dir_name, full_path;
   {
-    Leaf first_leaf(password, "", "");
+    Leaf first_leaf(db_key, "", "");
     first_leaf.key(key);
     first_leaf.payload(message);
     base_name = first_leaf.basename();
@@ -57,7 +56,7 @@ int test_leaf(const string message) {
     // and on destruction here, it will be persisted.
   }
 
-  Leaf second_leaf(password, base_name, dir_name);
+  Leaf second_leaf(db_key, base_name, dir_name);
   int ret = 0;
   if (second_leaf.key() != key) {
     cout << "Key mismatch" << endl;
@@ -86,14 +85,38 @@ int test_leaf(const string message) {
     ret++;
   }
 
+  // A format 2 leaf is bound to its name:  a copy under another name
+  // doesn't decrypt.
+  if (Key::Format2 == db_key->format()) {
+    Leaf copy(db_key, base_name + "-copy", dir_name, false);
+    copy.file_contents(second_leaf.file_contents());
+    try {
+      Leaf loaded(db_key, base_name + "-copy", dir_name);
+      cout << "A leaf copied to another name still loaded." << endl;
+      ret++;
+    } catch (const runtime_error &) {
+    }
+    copy.rm();
+  }
+
   second_leaf.erase();
-  Leaf third_leaf(password, base_name, dir_name);
+  Leaf third_leaf(db_key, base_name, dir_name);
   if (third_leaf.key() != "" || third_leaf.payload() != "") {
     cout << "Failed to remove leaf." << endl;
     ret++;
   }
 
   return ret;
+}
+
+int test_leaf(const string message) {
+  KeyPtr format1_key = make_shared<const Key>(
+      Key::Format1, message_digest(message_digest(message)));
+  KeyPtr format2_key = make_shared<const Key>(
+      Key::Format2, derive_subkey(derive_master_key(message, new_kdf_params()),
+                                  EncryptionSubkey));
+  return test_leaf_with(message, format1_key) +
+         test_leaf_with(message, format2_key);
 }
 }
 

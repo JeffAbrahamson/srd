@@ -265,18 +265,9 @@ string get_password(const string prompt) {
     pass_phrase = read_secret_line();
   }
   cerr << endl;
-
-  // Iterate hash (arbitrarily) 50 times.  Motivated by gpg's behavior.
-  // Wipe the pass phrase and each intermediate digest when done with
-  // it, to minimize the risk of seeing them in a swap or core image.
-  string digest = message_digest(pass_phrase, false);
-  explicit_bzero(pass_phrase.data(), pass_phrase.size());
-  for (int i = 1; i < 50; i++) {
-    string next = message_digest(digest, false);
-    explicit_bzero(digest.data(), digest.size());
-    digest.swap(next);
-  }
-  return digest;
+  // The root derives keys from the pass phrase.  It can't be hashed
+  // here, because the salt is in the database directory.
+  return pass_phrase;
 }
 
 /*
@@ -876,7 +867,7 @@ bool do_checksum(const string &password) {
 
 /*
   Keep secrets out of core dumps.  Errors used to end in abort(), and
-  a core file would then hold the password digest and decrypted
+  a core file would then hold the passphrase, keys, and decrypted
   records.  PR_SET_DUMPABLE also stops other processes of the same
   user from attaching with ptrace.
 */

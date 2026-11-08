@@ -176,7 +176,7 @@ void init_key_iv(const string password, crypto_key_type &key,
 /*
   Encrypt and return cipher text.
 */
-string srd::encrypt(const string &plain_text, const string &password) {
+string srd::format1_encrypt(const string &plain_text, const string &password) {
   try {
     crypto_key_type key;
     crypto_iv_type iv;
@@ -211,7 +211,7 @@ string srd::encrypt(const string &plain_text, const string &password) {
 /*
   Decrypt and return plain text.
 */
-string srd::decrypt(const string &cipher_text, const string &password) {
+string srd::format1_decrypt(const string &cipher_text, const string &password) {
   try {
     crypto_key_type key;
     crypto_iv_type iv;
@@ -394,4 +394,40 @@ string srd::aead_decrypt(const string &cipher_text, const string &key,
                         "been changed."));
   assert(plain_len == plain_text.size());
   return plain_text;
+}
+
+/* ************************************************************ */
+/* Format 1 password and keys */
+
+/*
+  Format 1 hashed the passphrase with 50 rounds of SHA-256.  In test
+  mode, the passphrase on the command line was used as is, and old
+  test databases (test.d/regression-db.tgz) depend on that.
+*/
+string srd::format1_password(const string &passphrase) {
+  if (mode(Testing))
+    return passphrase;
+  // Wipe each intermediate digest when done with it, to minimize the
+  // risk of seeing them in a swap or core image.
+  string digest = message_digest(passphrase, false);
+  for (int i = 1; i < 50; i++) {
+    string next = message_digest(digest, false);
+    sodium_memzero(digest.data(), digest.size());
+    digest.swap(next);
+  }
+  return digest;
+}
+
+Key::~Key() { sodium_memzero(m_secret.data(), m_secret.size()); }
+
+string Key::encrypt(const string &plain_text, const string &context) const {
+  if (Format1 == m_format)
+    return format1_encrypt(plain_text, m_secret);
+  return aead_encrypt(plain_text, m_secret, context);
+}
+
+string Key::decrypt(const string &cipher_text, const string &context) const {
+  if (Format1 == m_format)
+    return format1_decrypt(cipher_text, m_secret);
+  return aead_decrypt(cipher_text, m_secret, context);
 }

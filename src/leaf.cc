@@ -41,9 +41,9 @@ using namespace std;
   Don't do this.  It's just a hook for removing leaves that we
   haven't loaded.  The only usage should be leaf_proxy::erase().
 */
-Leaf::Leaf(const string &pass, const string base_name, const string dir_name,
+Leaf::Leaf(const KeyPtr &key, const string base_name, const string dir_name,
            const bool do_load)
-    : m_password(pass), m_modified(false), m_loaded(false) {
+    : m_key(key), m_modified(false), m_loaded(false) {
   basename(base_name); // If empty, will be computed for us
   dirname(dir_name);   // If empty, will be computed for us
   if (!exists()) {
@@ -99,7 +99,7 @@ void Leaf::load() {
     return;
   if (mode(Verbose))
     cout << "Loading leaf:  " << basename() << endl;
-  string plain_text = decrypt(file_contents(), m_password);
+  string plain_text = m_key->decrypt(file_contents(), "leaf:" + basename());
   string big_text = decompress(plain_text);
   LeafData leaf_data;
   if (!leaf_data.ParseFromString(big_text)) {
@@ -127,7 +127,7 @@ void Leaf::commit() {
     throw(runtime_error("Failed to serialize leaf."));
   }
   string plain_text = compress(big_text);
-  string cipher_text = encrypt(plain_text, m_password);
+  string cipher_text = m_key->encrypt(plain_text, "leaf:" + basename());
   file_contents(cipher_text);
   m_modified = false;
   validate();
@@ -153,7 +153,7 @@ void Leaf::erase() {
   All should be in order!
 */
 void Leaf::validate() {
-  assert(m_password.size() > 0);
+  assert(m_key);
   assert(basename().size() > 0);
   assert(dirname().size() > 0);
 }

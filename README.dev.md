@@ -27,6 +27,43 @@ password names a different root.
 Every file is serialized with protobuf (`root.proto`, `leaf.proto`),
 compressed, and then encrypted.
 
+### File formats
+
+Format 2 (`header.cc`, and the libsodium half of `crypt.cc`):
+
+* The directory's header, `srd.header`, holds the Argon2id costs and a
+  random salt.  It's written when the first format 2 database in the
+  directory is created and never changes, so the databases in a
+  directory share it.  It isn't authenticated, and needn't be:
+  changing it changes every key derived from it, so no root can be
+  found.  srd refuses costs below libsodium's "interactive" level
+  (except in test mode), so a header planted before a database is
+  created can't make guessing cheap.
+
+* Argon2id turns the passphrase and salt into a master key, from which
+  `crypto_kdf` derives an encryption key and a root-naming key.  The
+  root's name is a keyed hash, so a directory listing doesn't let
+  anyone test password guesses without paying for Argon2id.
+
+* Each file is `SRD2`, a random 24-byte nonce, and the
+  XChaCha20-Poly1305 ciphertext.  The authenticated context is the
+  file's role and name (`root:<name>`, `leaf:<name>`), so a file that
+  is changed, truncated, or copied over another doesn't decrypt.
+
+* What isn't detected:  replacing a file with an older version of
+  itself, or the whole directory with an older copy.  Detecting that
+  would need state outside the directory or a root that changes on
+  every edit, which the design criteria below rule out.
+
+Format 1, still read so that old databases can be upgraded:  the key
+is 50 rounds of unsalted SHA-256 of the passphrase (in test mode, the
+passphrase itself), the root's name is 30 more rounds, and files are
+AES-128-CBC with a fixed IV and no MAC.
+
+To open a database, srd tries format 2 if the directory has a header,
+then format 1.  New databases, including those made by a password
+change, are always format 2.
+
 ## Design criteria
 
 Two properties shape the on-disk format.  Changes to the format
@@ -77,7 +114,9 @@ proxy* pattern:  a stand-in that loads the real object on first use.
 
 The files `compress.cc` (tested by `compress_test.cc`) and `crypt.cc`
 (tested by `crypt_test.cc`) handle compression/decompression and
-encryption/decryption respectively.  File operations are abstracted
+encryption/decryption respectively.  `header.cc` (tested by
+`header_test.cc`) reads and writes the directory's header.  File
+operations are abstracted
 in the mixin class `file.cc` (tested by `file_test.cc`), with a few
 free functions in `file_util.cc` (tested by `file_util_test.cc`).
 `mode.cc` (tested in `mode_test.cc`) isolates a bit of global state:

@@ -45,9 +45,9 @@ LeafProxy::LeafProxy() {
   The filename (base) and directory (dir) may be empty and will be
   created if needed.
 */
-LeafProxy::LeafProxy(const string &pass, const string base, const string dir)
-    : password(pass), input_base_name(base), input_dir_name(dir) {
-  assert(!password.empty());
+LeafProxy::LeafProxy(const KeyPtr &key, const string base, const string dir)
+    : key_ptr(key), input_base_name(base), input_dir_name(dir) {
+  assert(key_ptr);
   the_leaf = NULL;
   valid = true;
   validate();
@@ -59,7 +59,7 @@ LeafProxy::LeafProxy(const string &pass, const string base, const string dir)
   operator=() about why.
 */
 LeafProxy::LeafProxy(const LeafProxy &other)
-    : password(other.password), input_base_name(other.input_base_name),
+    : key_ptr(other.key_ptr), input_base_name(other.input_base_name),
       input_dir_name(other.input_dir_name), valid(other.valid),
       cached_key(other.cached_key), the_leaf(NULL) {
   validate();
@@ -75,7 +75,7 @@ LeafProxy::LeafProxy(const LeafProxy &other)
 LeafProxy &LeafProxy::operator=(const LeafProxy &other) {
   // Read everything from other before releasing our own leaf, which
   // is other's if this is self-assignment.
-  string new_password = other.password;
+  KeyPtr new_key = other.key_ptr;
   string new_base_name, new_dir_name;
   if (other.the_leaf) {
     // If we've loaded the leaf, use its location
@@ -93,7 +93,7 @@ LeafProxy &LeafProxy::operator=(const LeafProxy &other) {
 
   // Release (and so commit) the leaf we had, as destruction would.
   delete_leaf();
-  password = new_password;
+  key_ptr = new_key;
   input_base_name = new_base_name;
   input_dir_name = new_dir_name;
   valid = new_valid;
@@ -243,7 +243,7 @@ void LeafProxy::erase() {
   validate();
   if (!the_leaf)
     // Initialize without loading
-    the_leaf = new Leaf(password, input_base_name, input_dir_name, false);
+    the_leaf = new Leaf(key_ptr, input_base_name, input_dir_name, false);
   the_leaf->erase(); // Marks it unmodified, so deleting won't rewrite it.
   delete_leaf();
   validate();
@@ -258,7 +258,7 @@ void LeafProxy::init_leaf(bool do_load) const {
   validate();
   if (the_leaf)
     return;
-  the_leaf = new Leaf(password, input_base_name, input_dir_name, do_load);
+  the_leaf = new Leaf(key_ptr, input_base_name, input_dir_name, do_load);
   validate();
 }
 
@@ -286,10 +286,10 @@ void LeafProxy::validate(bool force_load) const {
     return;
   assert(valid);
   assert((void *)the_leaf > (void *)0x1FF); // kludge, catch some bad pointers
-  // Is it worth making a password accessor in leaf just to check this?
-  // Indeed, does it even need to be true?  We could, in priciple, have
-  // different passwords for each leaf.
-  // assert(password == the_leaf->password);
+  // Is it worth making a key accessor in leaf just to check this?
+  // Indeed, does it even need to be true?  We could, in principle, have
+  // different keys for each leaf.
+  // assert(key_ptr == the_leaf->m_key);
   if (the_leaf->is_loaded() &&
       ("" != cached_key && cached_key != the_leaf->key()))
     throw(runtime_error("Bad cached key."));

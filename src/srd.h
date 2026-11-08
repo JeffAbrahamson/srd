@@ -26,6 +26,7 @@
 #include <cstdint>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <set>
 #include <string>
 #include <sys/types.h>
@@ -58,12 +59,16 @@ std::string pseudo_random_string(int length);
 // and http://www.cryptopp.com/wiki/FAQ
 
 /*
-  This is a simple mixin class that provides encryption and decryption.
+  Format 1 encryption:  AES-128-CBC keyed by (a prefix of) password,
+  with an IV derived from it.  Kept only to read and upgrade old
+  databases.
 */
-std::string encrypt(const std::string &plain_message,
-                    const std::string &password);
-std::string decrypt(const std::string &cipher_message,
-                    const std::string &password);
+std::string format1_encrypt(const std::string &plain_message,
+                            const std::string &password);
+std::string format1_decrypt(const std::string &cipher_message,
+                            const std::string &password);
+// The format 1 password for a passphrase.
+std::string format1_password(const std::string &passphrase);
 
 /*
   Format 2 primitives, built on libsodium.
@@ -112,6 +117,35 @@ std::string aead_encrypt(const std::string &plain_text, const std::string &key,
                          const std::string &context);
 std::string aead_decrypt(const std::string &cipher_text,
                          const std::string &key, const std::string &context);
+
+/*
+  The key to one database's files, shared by its root and leaves.
+
+  A format 2 key is the encryption subkey, and the file's context
+  (role and name) is authenticated.  A format 1 key is the legacy
+  password string; it ignores the context.
+*/
+class Key {
+public:
+  enum Format { Format1 = 1, Format2 = 2 };
+
+  Key(Format format, const std::string &secret)
+      : m_format(format), m_secret(secret) {}
+  ~Key();
+  Key(const Key &) = delete;
+  Key &operator=(const Key &) = delete;
+
+  Format format() const { return m_format; }
+  std::string encrypt(const std::string &plain_text,
+                      const std::string &context) const;
+  std::string decrypt(const std::string &cipher_text,
+                      const std::string &context) const;
+
+private:
+  const Format m_format;
+  std::string m_secret;
+};
+typedef std::shared_ptr<const Key> KeyPtr;
 
 /* ************************************************************ */
 /* mode */
@@ -210,6 +244,36 @@ private:
 };
 
 /* ************************************************************ */
+/* Header */
+
+/*
+  A database directory's header file, srd.header, holds what's needed
+  to derive keys from a passphrase:  the format version, the Argon2id
+  costs, and a random salt.  It's written once, when the first format
+  2 database in the directory is created, and never changes, so
+  databases sharing the directory share the salt.
+
+  The header isn't authenticated, and needn't be:  changing it changes
+  every key derived from it, so the roots can no longer be found.
+  check_kdf_params() refuses costs too weak to trust.
+*/
+class Header : public File {
+public:
+  static const std::string file_name;
+
+  explicit Header(const std::string &dir_name)
+      : File(file_name, dir_name) {}
+
+  // Read and check the header.  It must exist.
+  KdfParams params();
+  // Read the header, or create it if absent.  Holds the database lock.
+  KdfParams params_or_create();
+
+  static std::string encode(const KdfParams &params);
+  static KdfParams decode(const std::string &data);
+};
+
+/* ************************************************************ */
 /* Leaf */
 
 /*
@@ -218,15 +282,12 @@ private:
   to do so, persist our data (via the inherited file object).
 
   We have a key and a payload.  For purposes of being useful,
-  we keep track of the password.  That's admittedly not a good
-  idea, since a core dump would potentially contain the
-  password multiple times, which would make it easier to find.
-  On the other hand, it's not the human-readable pass phrase
-  at least.
+  we keep the database's key, shared with the root and the
+  other leaves.
 */
 class Leaf : public File {
 public:
-  Leaf(const std::string &password, const std::string base_name = std::string(),
+  Leaf(const KeyPtr &key, const std::string base_name = std::string(),
        const std::string dir_name = std::string(), const bool do_load = true);
   virtual ~Leaf();
 
@@ -258,7 +319,7 @@ public:
 private:
   void load();
 
-  const std::string m_password;
+  const KeyPtr m_key;
   bool m_modified;
   // m_loaded is true if the leaf has been loaded from its underlying file
   // or if the leaf is new (and perhaps hasn't been persisted yet).
@@ -282,7 +343,7 @@ class LeafProxy {
 
 public:
   LeafProxy(); // needed by std::map::operator[]()
-  LeafProxy(const std::string &password,
+  LeafProxy(const KeyPtr &key,
             const std::string base_name = std::string(),
             const std::string dir_name = std::string());
   /*
@@ -344,7 +405,7 @@ private:
   void init_leaf(bool do_load = true) const;
   void delete_leaf() const;
 
-  std::string password; // should be const but for operator=()
+  KeyPtr key_ptr; // should be const but for operator=()
 
   // input_base_name and input_dir_name exist to create
   // the leaf, but we consult the leaf for actual
@@ -496,7 +557,7 @@ private:
 */
 class Root : public File, public LeafProxyMap {
 public:
-  Root(const std::string &password, const std::string path = std::string(),
+  Root(const std::string &passphrase, const std::string path = std::string(),
        const bool create = false);
   virtual ~Root();
 
@@ -510,7 +571,8 @@ public:
                 const std::string &payload);
   void rm_leaf(const std::string &proxy_key);
 
-  Root change_password(const std::string &new_password);
+  Root change_password(const std::string &new_passphrase);
+  Key::Format format() const { return db_key->format(); }
   void commit();
   void validate(bool force_load = false) const;
   void checksum() const;
@@ -518,9 +580,13 @@ public:
 private:
   void load();
   void refresh_for_update();
+  void find_key(const std::string &passphrase);
+  void create_key(const std::string &passphrase);
+  void use_format2(const std::string &passphrase, const KdfParams &params);
+  void use_format1(const std::string &passphrase);
 
   // Data members
-  const std::string password;
+  KeyPtr db_key;
   bool modified;
   bool valid; // if false, all operations except deletion should fail
   bool persisted; // true once this root has been read from or written to disk

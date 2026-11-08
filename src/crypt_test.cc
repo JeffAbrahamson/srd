@@ -71,8 +71,8 @@ int test_message_digest(const string message) {
 int test_encryption(const string message) {
   int ret = 0;
   string password(message_digest(message, false));
-  string cipher_text = encrypt(message, password);
-  string plain_text = decrypt(cipher_text, password);
+  string cipher_text = format1_encrypt(message, password);
+  string plain_text = format1_decrypt(cipher_text, password);
   if (cipher_text == message) {
     cout << "Encryption did not change message!" << endl;
     ret++;

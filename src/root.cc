@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <functional>
 #include <stdlib.h>
+#include <string.h>
 #include <sstream>
 #include <string>
 #include <unistd.h>
@@ -37,31 +38,20 @@ using namespace std;
   an alternate directory.  Otherwise, it should be an empty string so
   that the directory may be computed based on app (or library) policy.
 
-  The name of the root node must be determinable solely by the password.
+  The name of the root node must be determinable solely by the
+  passphrase (and, in format 2, the directory's header).
 */
-Root::Root(const string &pass, const string dir_name, const bool create)
-    : password(pass), modified(false), valid(true), persisted(false) {
-  string base_name(pass);
-  for (int i = 0; i < 30; i++)
-    base_name = message_digest(base_name, true);
-  basename(base_name); // Must be reproducible from password alone
-  dirname(dir_name);   // If empty, will be computed for us
-  bool already_exists = exists();
-  if (already_exists == create) {
-    // i.e., if exists() != !create
-    if (create)
-      throw(runtime_error(
-          "A database identified by this password already exists."));
-    throw(runtime_error("Root doesn't exist.  (Incorrect password?)"));
-  }
-  persisted = already_exists;
+Root::Root(const string &passphrase, const string dir_name, const bool create)
+    : modified(false), valid(true), persisted(false) {
+  dirname(dir_name); // If empty, will be computed for us
+  if (create)
+    create_key(passphrase);
+  else
+    find_key(passphrase);
+  persisted = !create;
   if (!is_writeable())
     mode(ReadOnly, true);
-  if (!already_exists) {
-    if (mode(ReadOnly)) {
-      throw(runtime_error(
-          "Refusing to create new root node while read-only."));
-    }
+  if (create) {
     cout << "Root node does not exist, will create." << endl;
     if (mode(Verbose))
       cout << "    [" << full_path() << "]" << endl;
@@ -71,6 +61,96 @@ Root::Root(const string &pass, const string dir_name, const bool create)
   }
   load();
   validate();
+}
+
+namespace {
+const string already_exists_message(
+    "A database identified by this password already exists.");
+}
+
+/*
+  Find the database that passphrase names:  format 2 if the directory
+  has a header, else (or failing that) format 1.  Set our key and
+  name, or throw if there's no such database.
+*/
+void Root::find_key(const string &passphrase) {
+  Header header(dirname());
+  string header_error;
+  if (header.exists()) {
+    try {
+      use_format2(passphrase, header.params());
+      if (exists())
+        return;
+    } catch (const runtime_error &e) {
+      // A bad header mustn't hide format 1 databases beside it.
+      header_error = e.what();
+    }
+  }
+  use_format1(passphrase);
+  if (exists())
+    return;
+  db_key.reset();
+  if (!header_error.empty())
+    throw(runtime_error(header_error));
+  throw(runtime_error("Root doesn't exist.  (Incorrect password?)"));
+}
+
+/*
+  Set our key and name for a new format 2 database, creating the
+  directory's header if need be.  Throw if passphrase already names a
+  database, in either format.
+*/
+void Root::create_key(const string &passphrase) {
+  use_format1(passphrase);
+  if (exists())
+    throw(runtime_error(already_exists_message));
+  Header header(dirname());
+  const bool had_header = header.exists();
+  if (had_header) {
+    use_format2(passphrase, header.params());
+    if (exists())
+      throw(runtime_error(already_exists_message));
+  }
+  if (!dir_is_writeable())
+    mode(ReadOnly, true);
+  if (mode(ReadOnly))
+    throw(runtime_error("Refusing to create new root node while read-only."));
+  if (!had_header) {
+    // Another srd may have created the header meanwhile, perhaps
+    // along with this database.
+    use_format2(passphrase, header.params_or_create());
+    if (exists())
+      throw(runtime_error(already_exists_message));
+  }
+}
+
+/*
+  Format 2:  derive the master key from passphrase and the header's
+  parameters, and from it the encryption key and the root's name.
+*/
+void Root::use_format2(const string &passphrase, const KdfParams &params) {
+  string master_key = derive_master_key(passphrase, params);
+  string name_key = derive_subkey(master_key, RootNameSubkey);
+  string encryption_key = derive_subkey(master_key, EncryptionSubkey);
+  basename(keyed_name(name_key, "root"));
+  db_key = make_shared<const Key>(Key::Format2, encryption_key);
+  explicit_bzero(master_key.data(), master_key.size());
+  explicit_bzero(name_key.data(), name_key.size());
+  explicit_bzero(encryption_key.data(), encryption_key.size());
+}
+
+/*
+  Format 1:  the root's name is 30 more hashes of the password, and
+  the password is the key.
+*/
+void Root::use_format1(const string &passphrase) {
+  string password = format1_password(passphrase);
+  string base_name(password);
+  for (int i = 0; i < 30; i++)
+    base_name = message_digest(base_name, true);
+  basename(base_name);
+  db_key = make_shared<const Key>(Key::Format1, password);
+  explicit_bzero(password.data(), password.size());
 }
 
 /*
@@ -94,7 +174,7 @@ void Root::load() {
   // reading the root and validating it.  (Re-entrant:  callers that
   // go on to modify the root already hold it.)
   Lock lock(dirname());
-  string plain_text = decrypt(file_contents(), password);
+  string plain_text = db_key->decrypt(file_contents(), "root:" + basename());
   persisted = true;
   string big_text = decompress(plain_text);
   RootData root_data;
@@ -106,7 +186,7 @@ void Root::load() {
   for_each(root_data.keys().begin(), root_data.keys().end(),
            [root_data, this](RootData_KeyData key) mutable {
              (*this)[key.proxy_name()] =
-                 LeafProxy(password, key.proxy_name(), "");
+                 LeafProxy(db_key, key.proxy_name(), "");
              (*this)[key.proxy_name()].key_cache(key.cached_key());
            });
   assert(size() == static_cast<unsigned int>(root_data.keys_size()));
@@ -166,7 +246,7 @@ void Root::add_leaf(const string &key, const string &payload,
   Lock lock(dirname());
   refresh_for_update();
   validate();
-  LeafProxy proxy(password, "", dirname());
+  LeafProxy proxy(db_key, "", dirname());
   proxy.set(key, payload);
   (*this)[proxy.basename()] = proxy;
   modified = true; // Adding a leaf requires persisting the root.
@@ -254,12 +334,12 @@ void Root::rm_leaf(const string &proxy_key) {
   Return the new root.  Will throw runtime_error if the new password
   generates an existing root object.
 */
-Root Root::change_password(const std::string &new_password) {
+Root Root::change_password(const std::string &new_passphrase) {
   // Reconcile or reject external changes while holding the database lock.
   Lock lock(dirname());
   refresh_for_update();
   validate();
-  Root new_root(new_password, dirname(), true);
+  Root new_root(new_passphrase, dirname(), true);
   for (const_iterator it = begin(); it != end(); it++)
     new_root.add_leaf((*it).second.key(), (*it).second.payload(), false);
   new_root.commit();
@@ -316,7 +396,7 @@ void Root::commit() {
     throw(runtime_error("Failed to serialize root."));
   }
   string plain_text = compress(big_text);
-  string cipher_text = encrypt(plain_text, password);
+  string cipher_text = db_key->encrypt(plain_text, "root:" + basename());
   file_contents(cipher_text);
   persisted = true;
   modified = false;
@@ -335,7 +415,7 @@ void Root::commit() {
 */
 void Root::validate(bool force_load) const {
   assert(valid);
-  assert(password.size() > 0);
+  assert(db_key);
   // Validate each of the leaf proxies.  Note that this won't cause them to
   // load.
   for (const_iterator it = begin(); it != end(); it++) {

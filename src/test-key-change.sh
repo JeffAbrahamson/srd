@@ -30,13 +30,20 @@ if ! ./srd -T $pass -V; then
     exit 1;
 fi
 test_dir=srd-test-0000-$LOGNAME
-sacrificial_file=$(ls -t $test_dir/ | grep -v "^lock$" | tail -1)
+# The oldest file that isn't the lock or the header is a record.
+sacrificial_file=$(ls -t $test_dir/ | grep -v -e "^lock$" -e "^srd.header$" |
+		       tail -1)
 rm $test_dir/$sacrificial_file
 
 echo
 echo This next test should fail with a message about validation failure.
-if ./srd -T $pass -V; then
+if results=$(./srd -T $pass -V 2>&1); then
     echo Validation should have failed but instead succeeded.
+    exit 1
+fi
+echo "$results"
+if ! echo "$results" | grep -q "forced validation failed"; then
+    echo "Validation failed, but not because of the missing record."
     exit 1
 fi
 echo "Looks like it failed on schedule.  So this test succeeds."
