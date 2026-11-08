@@ -1,6 +1,12 @@
-#CC = clang++ -ggdb3 -Wall -Wextra -std=c++20 $(EXTRA_FLAGS)
-#CC = g++ -ggdb3 -Wall -Wextra -std=c++20 $(EXTRA_FLAGS)
-CC = g++ -ggdb3 -Wall -Wextra -std=c++20 $(EXTRA_FLAGS)
+# Optimize by default:  besides speed, the compiler's hardening
+# (_FORTIFY_SOURCE's checked string and memory functions) only works
+# in optimized builds.  For an unoptimized build, say for debugging,
+# run "make OPTIMIZE=-O0".
+OPTIMIZE ?= -O2
+
+#CC = clang++ $(OPTIMIZE) -ggdb3 -Wall -Wextra -std=c++20 $(EXTRA_FLAGS)
+#CC = g++ $(OPTIMIZE) -ggdb3 -Wall -Wextra -std=c++20 $(EXTRA_FLAGS)
+CC = g++ $(OPTIMIZE) -ggdb3 -Wall -Wextra -std=c++20 $(EXTRA_FLAGS)
 
 # Run the tests under AddressSanitizer and UndefinedBehaviorSanitizer.
 # Objects built with and without sanitizers can't be mixed, so this

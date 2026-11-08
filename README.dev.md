@@ -148,6 +148,13 @@ rename, so reading a record needs no lock.
 Many of the tests require text to manipulate.  The file `test_text.cc`
 provides that text.
 
+## Building
+
+`make` builds with `-O2`, which also turns on the compiler's
+`_FORTIFY_SOURCE` checks where it enables them by default (as
+Ubuntu's does).  `make OPTIMIZE=-O0` builds without optimizing, for
+debugging.
+
 ## Testing
 
 `make test` builds and runs the unit tests (`*_test.cc`), then the
