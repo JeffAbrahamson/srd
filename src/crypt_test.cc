@@ -259,6 +259,39 @@ int test_aead(const string message) {
   }
   return errors;
 }
+
+/*
+  Keys (in protected memory) encrypt as the functions they wrap.
+*/
+int test_keys() {
+  int errors = 0;
+  const string message("The murmuring pines and the hemlocks");
+  string password = message_digest("pw");
+  Key format1_key(Key::Format1, password);
+  if (format1_key.decrypt(format1_encrypt(message, password), "ignored") !=
+          message ||
+      format1_decrypt(format1_key.encrypt(message, "ignored"), password) !=
+          message) {
+    cout << "Format 1 key doesn't match format1_encrypt()." << endl;
+    errors++;
+  }
+  string secret = derive_subkey(derive_master_key("pw", new_kdf_params()),
+                                EncryptionSubkey);
+  Key format2_key(Key::Format2, secret);
+  if (aead_decrypt(format2_key.encrypt(message, "c"), secret, "c") !=
+          message ||
+      format2_key.decrypt(aead_encrypt(message, secret, "c"), "c") != message) {
+    cout << "Format 2 key doesn't match aead_encrypt()." << endl;
+    errors++;
+  }
+  try {
+    Key empty(Key::Format2, "");
+    cout << "Made an empty key." << endl;
+    errors++;
+  } catch (const logic_error &) {
+  }
+  return errors;
+}
 }
 
 int main() {
@@ -275,6 +308,7 @@ int main() {
   err_count += test_kdf();
   err_count += test_subkeys();
   err_count += count_if(messages.begin(), messages.end(), test_aead);
+  err_count += test_keys();
 
   if (err_count)
     cout << "Errors (" << err_count << ") in test!!" << endl;

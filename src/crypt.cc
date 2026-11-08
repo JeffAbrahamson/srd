@@ -116,11 +116,12 @@ using namespace std;
   We also use this to generate pseudorandom filenames, in which case
   the filesystem_safe flag avoids embedded '/'.
 */
-string srd::message_digest(const string &message, bool filesystem_safe) {
+string srd::message_digest(string_view message, bool filesystem_safe) {
   string digest;
   CryptoPP::SHA256 hash;
   CryptoPP::StringSource(
-      message, true,
+      reinterpret_cast<const CryptoPP::byte *>(message.data()), message.size(),
+      true,
       new CryptoPP::HashFilter(
           hash, new CryptoPP::Base64Encoder(new CryptoPP::StringSink(digest))));
 
@@ -156,30 +157,44 @@ namespace {
 /*
   Initialize the key and iv given the password.
 */
-void init_key_iv(const string password, crypto_key_type &key,
+void init_key_iv(string_view password, crypto_key_type &key,
                  crypto_iv_type &iv) {
   // Key and IV setup.
   // IV is just hash of key
   bzero(key, CryptoPP::CIPHER::DEFAULT_KEYLENGTH);
   size_t key_len = min(static_cast<size_t>(CryptoPP::CIPHER::DEFAULT_KEYLENGTH),
                        password.size());
-  memcpy(key, password.c_str(), key_len);
+  memcpy(key, password.data(), key_len);
 
   bzero(iv, CryptoPP::CIPHER::BLOCKSIZE);
   string iv_string = message_digest(password);
   size_t iv_len = min(static_cast<size_t>(CryptoPP::CIPHER::BLOCKSIZE),
                       iv_string.size());
   memcpy(iv, iv_string.c_str(), iv_len);
+  explicit_bzero(iv_string.data(), iv_string.size());
 }
+
+/*
+  Wipe a key and IV when they go out of scope.
+*/
+struct KeyIvWiper {
+  crypto_key_type &key;
+  crypto_iv_type &iv;
+  ~KeyIvWiper() {
+    sodium_memzero(key, sizeof(key));
+    sodium_memzero(iv, sizeof(iv));
+  }
+};
 }
 
 /*
   Encrypt and return cipher text.
 */
-string srd::format1_encrypt(const string &plain_text, const string &password) {
+string srd::format1_encrypt(const string &plain_text, string_view password) {
   try {
     crypto_key_type key;
     crypto_iv_type iv;
+    KeyIvWiper wiper{key, iv};
     init_key_iv(password, key, iv);
 
     // Cipher Text Sink
@@ -211,10 +226,11 @@ string srd::format1_encrypt(const string &plain_text, const string &password) {
 /*
   Decrypt and return plain text.
 */
-string srd::format1_decrypt(const string &cipher_text, const string &password) {
+string srd::format1_decrypt(const string &cipher_text, string_view password) {
   try {
     crypto_key_type key;
     crypto_iv_type iv;
+    KeyIvWiper wiper{key, iv};
     init_key_iv(password, key, iv);
 
     // Recovered Text Sink
@@ -269,6 +285,10 @@ void init_sodium() {
 }
 
 const unsigned char *bytes(const string &s) {
+  return reinterpret_cast<const unsigned char *>(s.data());
+}
+
+const unsigned char *bytes(string_view s) {
   return reinterpret_cast<const unsigned char *>(s.data());
 }
 
@@ -350,7 +370,7 @@ string srd::keyed_name(const string &key, const string &label) {
   Format:  magic | nonce | ciphertext and tag.  The magic and the
   context are the associated data.
 */
-string srd::aead_encrypt(const string &plain_text, const string &key,
+string srd::aead_encrypt(const string &plain_text, string_view key,
                          const string &context) {
   init_sodium();
   if (key.size() != crypto_aead_xchacha20poly1305_ietf_KEYBYTES)
@@ -371,7 +391,7 @@ string srd::aead_encrypt(const string &plain_text, const string &key,
   return cipher_text;
 }
 
-string srd::aead_decrypt(const string &cipher_text, const string &key,
+string srd::aead_decrypt(const string &cipher_text, string_view key,
                          const string &context) {
   init_sodium();
   if (key.size() != crypto_aead_xchacha20poly1305_ietf_KEYBYTES)
@@ -418,16 +438,33 @@ string srd::format1_password(const string &passphrase) {
   return digest;
 }
 
-Key::~Key() { sodium_memzero(m_secret.data(), m_secret.size()); }
+Key::Key(Format format, string_view secret)
+    : m_format(format), m_secret(nullptr), m_size(secret.size()) {
+  init_sodium();
+  if (secret.empty())
+    throw(logic_error("Empty key."));
+  m_secret = static_cast<unsigned char *>(sodium_malloc(m_size));
+  if (!m_secret)
+    throw(runtime_error("Failed to allocate protected memory for a key."));
+  memcpy(m_secret, secret.data(), m_size);
+  sodium_mprotect_readonly(m_secret);
+}
+
+// sodium_free() wipes the memory before releasing it.
+Key::~Key() { sodium_free(m_secret); }
+
+string_view Key::secret() const {
+  return string_view(reinterpret_cast<const char *>(m_secret), m_size);
+}
 
 string Key::encrypt(const string &plain_text, const string &context) const {
   if (Format1 == m_format)
-    return format1_encrypt(plain_text, m_secret);
-  return aead_encrypt(plain_text, m_secret, context);
+    return format1_encrypt(plain_text, secret());
+  return aead_encrypt(plain_text, secret(), context);
 }
 
 string Key::decrypt(const string &cipher_text, const string &context) const {
   if (Format1 == m_format)
-    return format1_decrypt(cipher_text, m_secret);
-  return aead_decrypt(cipher_text, m_secret, context);
+    return format1_decrypt(cipher_text, secret());
+  return aead_decrypt(cipher_text, secret(), context);
 }

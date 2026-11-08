@@ -29,6 +29,7 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <string_view>
 #include <sys/types.h>
 #include <utility>
 #include <vector>
@@ -48,7 +49,7 @@ std::string decompress(const std::string &);
 /* Encryption */
 
 // Compute a hash (message digest).
-std::string message_digest(const std::string &message,
+std::string message_digest(std::string_view message,
                            const bool filesystem_safe = false);
 
 // Return a (not necessarily human readable) string of random bits.
@@ -64,9 +65,9 @@ std::string pseudo_random_string(int length);
   databases.
 */
 std::string format1_encrypt(const std::string &plain_message,
-                            const std::string &password);
+                            std::string_view password);
 std::string format1_decrypt(const std::string &cipher_message,
-                            const std::string &password);
+                            std::string_view password);
 // The format 1 password for a passphrase.
 std::string format1_password(const std::string &passphrase);
 
@@ -113,10 +114,10 @@ std::string keyed_name(const std::string &key, const std::string &label);
   copied to another name won't decrypt.  aead_decrypt() throws
   runtime_error on any failure.
 */
-std::string aead_encrypt(const std::string &plain_text, const std::string &key,
+std::string aead_encrypt(const std::string &plain_text, std::string_view key,
                          const std::string &context);
-std::string aead_decrypt(const std::string &cipher_text,
-                         const std::string &key, const std::string &context);
+std::string aead_decrypt(const std::string &cipher_text, std::string_view key,
+                         const std::string &context);
 
 /*
   The key to one database's files, shared by its root and leaves.
@@ -124,13 +125,19 @@ std::string aead_decrypt(const std::string &cipher_text,
   A format 2 key is the encryption subkey, and the file's context
   (role and name) is authenticated.  A format 1 key is the legacy
   password string; it ignores the context.
+
+  The secret lives in memory from sodium_malloc():  locked so it
+  can't be swapped out, guarded against overruns, read-only once set,
+  and wiped when the key is destroyed.  Copies made elsewhere (the
+  passphrase as typed, intermediate hashes) are wiped by their
+  owners, but std::string offers no guarantees, so this is
+  best-effort; core dumps are disabled as well.
 */
 class Key {
 public:
   enum Format { Format1 = 1, Format2 = 2 };
 
-  Key(Format format, const std::string &secret)
-      : m_format(format), m_secret(secret) {}
+  Key(Format format, std::string_view secret);
   ~Key();
   Key(const Key &) = delete;
   Key &operator=(const Key &) = delete;
@@ -142,8 +149,11 @@ public:
                       const std::string &context) const;
 
 private:
+  std::string_view secret() const;
+
   const Format m_format;
-  std::string m_secret;
+  unsigned char *m_secret;
+  const size_t m_size;
 };
 typedef std::shared_ptr<const Key> KeyPtr;
 

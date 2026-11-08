@@ -255,6 +255,20 @@ private:
   struct sigaction m_old_actions[num_signals];
 };
 
+/*
+  Wipe a string (a passphrase) when it goes out of scope.
+*/
+class Wiper {
+public:
+  explicit Wiper(string &s) : m_s(s) {}
+  ~Wiper() { explicit_bzero(m_s.data(), m_s.size()); }
+  Wiper(const Wiper &) = delete;
+  Wiper &operator=(const Wiper &) = delete;
+
+private:
+  string &m_s;
+};
+
 string get_password(const string prompt) {
   // Prompt on stderr, so that a caller capturing stdout (e.g., to feed
   // a record to another program) gets only the records and the user
@@ -286,6 +300,7 @@ bool change_password(const string &password) {
   Root old_root(password, "");
 
   string passwd;
+  Wiper wipe_passwd(passwd);
   if (mode(Testing)) {
     // When testing, password is in the clear on the commandline
     // and we surely don't want to ask again.
@@ -299,6 +314,7 @@ bool change_password(const string &password) {
       return 1;
     }
     string passwd2 = get_password("Please retype new password:  ");
+    Wiper wipe_passwd2(passwd2);
     if (passwd != passwd2) {
       cout << "Passwords don't match." << endl;
       return 1;
@@ -824,6 +840,7 @@ bool do_create(const string &password) {
     // When testing, password is in the clear on the commandline
     // and we surely don't want to ask again.
     string passwd2 = get_password("Please retype your password:  ");
+    Wiper wipe_passwd2(passwd2);
     if (password != passwd2) {
       cout << "Passwords don't match." << endl;
       return 1;
@@ -937,6 +954,7 @@ int run(int argc, char *argv[]) {
     set_base_dir(options["database-dir"].as<string>());
 
   string passwd;
+  Wiper wipe_passwd(passwd);
   if (is_test)
     passwd = options["TEST"].as<string>();
   else
