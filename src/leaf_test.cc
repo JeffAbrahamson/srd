@@ -100,10 +100,16 @@ int test_leaf_with(const string message, const KeyPtr &db_key) {
   }
 
   second_leaf.erase();
-  Leaf third_leaf(db_key, base_name, dir_name);
-  if (third_leaf.key() != "" || third_leaf.payload() != "") {
+  if (second_leaf.exists()) {
     cout << "Failed to remove leaf." << endl;
     ret++;
+  }
+  // A leaf loaded by name must exist, not pass for an empty one.
+  try {
+    Leaf third_leaf(db_key, base_name, dir_name);
+    cout << "A removed leaf loaded." << endl;
+    ret++;
+  } catch (const runtime_error &) {
   }
 
   return ret;

@@ -31,7 +31,9 @@ using namespace std;
 /*
   If newly created, just decide what our filename is and we're done.
   If we know our filename, then fetch the file contents, decrypt, decompress,
-  and deserialize to member variables.
+  and deserialize to member variables.  A leaf we're asked to load by
+  name must exist:  the root lists it, so if it's gone, the record is
+  lost, and we mustn't pass it off as empty.
 
   We don't have a concept of a leaf with persisted but unloaded data.
   That concept lives in the leaf_proxy class, which creates or destroys
@@ -47,6 +49,9 @@ Leaf::Leaf(const KeyPtr &key, const string base_name, const string dir_name,
   basename(base_name); // If empty, will be computed for us
   dirname(dir_name);   // If empty, will be computed for us
   if (!exists()) {
+    if (do_load && !base_name.empty())
+      throw(runtime_error("The file for a record is missing:  \"" +
+                          full_path() + "\""));
     // If never persisted, then ok to return empty leaf.
     m_loaded = true;
     return;

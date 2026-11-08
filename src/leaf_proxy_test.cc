@@ -73,14 +73,14 @@ int test_leaf_proxy(const string message) {
     cout << "Proxy has empty basename." << endl;
     ret++;
   }
-  if (third_leaf_proxy.key() != "") {
-    cout << "Key should be empty after delete, but isn't." << endl;
+  // The leaf's file is gone, so reading the record fails, rather than
+  // finding an empty record.
+  try {
+    third_leaf_proxy.payload();
+    cout << "A deleted leaf's payload loaded." << endl;
     ret++;
-  };
-  if (third_leaf_proxy.payload() != "") {
-    cout << "Payload should be empty after delete, but isn't." << endl;
-    ret++;
-  };
+  } catch (const runtime_error &) {
+  }
 
   return ret;
 }
