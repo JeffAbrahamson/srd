@@ -119,6 +119,14 @@ lose each other's records (test-concurrency.sh checks this).  What
 isn't detected is two people editing the *same* record at the same
 time:  the later save wins.  Cf. issues #26, #27 (both closed).
 
+The lock only works within one directory on one machine.  If you sync
+the database directory between machines, edits to different records
+sync cleanly, because each record is its own file.  But if two
+machines each add, delete, or rename a record before syncing, both
+rewrite the root.  Only one root survives; the other machine's change
+is lost or left in a conflict copy, depending on the sync tool.
+README.dev.html describes the design criteria behind this.
+
 ## File format conversion
 
 If you began using srd before 2 May 2015, you used a file format based
