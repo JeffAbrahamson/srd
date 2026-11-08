@@ -37,5 +37,25 @@ chmod +x $spy
 SPY_LOG=$PWD/$log EDITOR=./$spy ./srd -T $pass k -e
 [ "$(cat $log)" = 0 ] || fail "Core dumps not disabled:  limit $(cat $log)."
 
+# A database directory others can change is refused; one they can
+# only list draws a warning.
+db_dir=srd-test-0000-$LOGNAME
+chmod 770 $db_dir
+results=$(./srd -T $pass k 2>&1)
+status=$?
+chmod 700 $db_dir
+[ 1 = $status ] || fail "Group-writable directory:  expected exit 1, got $status."
+echo "$results" | grep -q "Others may write to the database directory" ||
+    fail "Group-writable directory:  unexpected output:  $results"
+chmod 750 $db_dir
+results=$(./srd -T $pass k 2>&1 > /dev/null)
+status=$?
+chmod 700 $db_dir
+[ 0 = $status ] || fail "Group-readable directory:  expected exit 0, got $status."
+[ 1 = $(echo "$results" | grep -c "Warning:  others may list") ] ||
+    fail "Group-readable directory:  expected one warning, got:  $results"
+results=$(./srd -T $pass k 2>&1 > /dev/null)
+[ -z "$results" ] || fail "Private directory:  unexpected output:  $results"
+
 rm -f $spy $log
 make clean-test

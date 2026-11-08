@@ -52,6 +52,7 @@ Root::Root(const string &passphrase, const string &dir_name, const bool create,
            const bool replacing_format1)
     : modified(false), valid(true), persisted(false) {
   dirname(dir_name); // If empty, will be computed for us
+  check_database_dir(dirname());
   if (create)
     create_key(passphrase, replacing_format1);
   else

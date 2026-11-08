@@ -179,6 +179,8 @@ typedef std::pair<time_t, unsigned long int>
 /* File */
 
 void set_base_dir(const std::string &in_dir);
+// Throw unless dir is ours and only we may change it.
+void check_database_dir(const std::string &dir);
 
 /*
   A simple mix-in class to handle reading and writing (binary) files,

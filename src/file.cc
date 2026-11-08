@@ -24,6 +24,7 @@
 #include <fstream>
 #include <iostream>
 #include <pwd.h>
+#include <set>
 #include <stdexcept>
 #include <sstream>
 #include <stdlib.h>
@@ -90,6 +91,36 @@ void srd::set_base_dir(const std::string &in_dir) {
   if (mode(Verbose))
     cout << "Setting base dir to " << in_dir << endl;
   base_dir = in_dir;
+}
+
+/*
+  Refuse a database directory that someone else could change:  one we
+  don't own, or one that group or others may write to.  Warn if group
+  or others may list it.  (stat() follows symbolic links, so the
+  directory may be a link into, say, a synced folder.)
+
+  Check each directory once per process, so as to warn only once.
+*/
+void srd::check_database_dir(const string &dir) {
+  static set<string> checked;
+  if (checked.count(dir))
+    return;
+  struct stat st;
+  if (stat(dir.c_str(), &st))
+    throw(runtime_error("Failed to stat directory \"" + dir + "\":  " +
+                        strerror(errno)));
+  if (!S_ISDIR(st.st_mode))
+    throw(runtime_error("\"" + dir + "\" is not a directory."));
+  if (st.st_uid != geteuid())
+    throw(runtime_error("The database directory \"" + dir +
+                        "\" belongs to someone else."));
+  if (st.st_mode & (S_IWGRP | S_IWOTH))
+    throw(runtime_error("Others may write to the database directory \"" +
+                        dir + "\".  (\"chmod go-w\" fixes this.)"));
+  if (st.st_mode & (S_IRWXG | S_IRWXO))
+    cerr << "Warning:  others may list the database directory \"" << dir
+         << "\".  (\"chmod go=\" fixes this.)" << endl;
+  checked.insert(dir);
 }
 
 /*
