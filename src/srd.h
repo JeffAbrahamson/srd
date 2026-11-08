@@ -572,16 +572,21 @@ public:
   void rm_leaf(const std::string &proxy_key);
 
   Root change_password(const std::string &new_passphrase);
+  // Rewrite a format 1 database as format 2, keeping its passphrase.
+  Root upgrade(const std::string &passphrase);
   Key::Format format() const { return db_key->format(); }
   void commit();
   void validate(bool force_load = false) const;
   void checksum() const;
 
 private:
+  Root(const std::string &passphrase, const std::string &path,
+       const bool create, const bool replacing_format1);
+  Root copy_to(const std::string &passphrase, const bool replacing_format1);
   void load();
   void refresh_for_update();
   void find_key(const std::string &passphrase);
-  void create_key(const std::string &passphrase);
+  void create_key(const std::string &passphrase, const bool replacing_format1);
   void use_format2(const std::string &passphrase, const KdfParams &params);
   void use_format1(const std::string &passphrase);
 

@@ -97,6 +97,7 @@ test : srd $(TESTS)
 	./test-delete.sh
 	./test-binary.sh
 	./test-format.sh
+	./test-upgrade.sh
 	./test-key-change.sh
 	./test-readonly.sh
 	./test-edit.sh

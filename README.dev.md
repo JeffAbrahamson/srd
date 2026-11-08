@@ -62,7 +62,10 @@ AES-128-CBC with a fixed IV and no MAC.
 
 To open a database, srd tries format 2 if the directory has a header,
 then format 1.  New databases, including those made by a password
-change, are always format 2.
+change, are always format 2.  `--upgrade` (`Root::upgrade()`) is a
+password change to the same passphrase.  `test.d/format1-db.tgz` is
+a small format 1 database, made by srd before format 2, for testing
+the upgrade.
 
 ## Design criteria
 

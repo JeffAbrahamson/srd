@@ -42,10 +42,18 @@ using namespace std;
   passphrase (and, in format 2, the directory's header).
 */
 Root::Root(const string &passphrase, const string dir_name, const bool create)
+    : Root(passphrase, dir_name, create, false) {}
+
+/*
+  As above.  If replacing_format1, the format 1 database that
+  passphrase names may exist:  we're about to replace it.
+*/
+Root::Root(const string &passphrase, const string &dir_name, const bool create,
+           const bool replacing_format1)
     : modified(false), valid(true), persisted(false) {
   dirname(dir_name); // If empty, will be computed for us
   if (create)
-    create_key(passphrase);
+    create_key(passphrase, replacing_format1);
   else
     find_key(passphrase);
   persisted = !create;
@@ -66,6 +74,16 @@ Root::Root(const string &passphrase, const string dir_name, const bool create)
 namespace {
 const string already_exists_message(
     "A database identified by this password already exists.");
+
+/*
+  Format 1:  the root's name is 30 more hashes of the password.
+*/
+string format1_root_name(const string &password) {
+  string base_name(password);
+  for (int i = 0; i < 30; i++)
+    base_name = message_digest(base_name, true);
+  return base_name;
+}
 }
 
 /*
@@ -87,8 +105,12 @@ void Root::find_key(const string &passphrase) {
     }
   }
   use_format1(passphrase);
-  if (exists())
+  if (exists()) {
+    cerr << "Note:  this database is in srd's old, weaker format.  "
+            "srd --upgrade converts it."
+         << endl;
     return;
+  }
   db_key.reset();
   if (!header_error.empty())
     throw(runtime_error(header_error));
@@ -98,11 +120,11 @@ void Root::find_key(const string &passphrase) {
 /*
   Set our key and name for a new format 2 database, creating the
   directory's header if need be.  Throw if passphrase already names a
-  database, in either format.
+  database, in either format (except format 1, if replacing_format1).
 */
-void Root::create_key(const string &passphrase) {
+void Root::create_key(const string &passphrase, const bool replacing_format1) {
   use_format1(passphrase);
-  if (exists())
+  if (exists() && !replacing_format1)
     throw(runtime_error(already_exists_message));
   Header header(dirname());
   const bool had_header = header.exists();
@@ -140,15 +162,11 @@ void Root::use_format2(const string &passphrase, const KdfParams &params) {
 }
 
 /*
-  Format 1:  the root's name is 30 more hashes of the password, and
-  the password is the key.
+  Format 1:  the password is the key.
 */
 void Root::use_format1(const string &passphrase) {
   string password = format1_password(passphrase);
-  string base_name(password);
-  for (int i = 0; i < 30; i++)
-    base_name = message_digest(base_name, true);
-  basename(base_name);
+  basename(format1_root_name(password));
   db_key = make_shared<const Key>(Key::Format1, password);
   explicit_bzero(password.data(), password.size());
 }
@@ -335,11 +353,32 @@ void Root::rm_leaf(const string &proxy_key) {
   generates an existing root object.
 */
 Root Root::change_password(const std::string &new_passphrase) {
+  return copy_to(new_passphrase, false);
+}
+
+/*
+  Rewrite this format 1 database as format 2, as a password change
+  to the same passphrase.  New databases are always format 2.
+*/
+Root Root::upgrade(const std::string &passphrase) {
+  if (Key::Format1 != format())
+    throw(runtime_error("The database is already in the current format."));
+  if (format1_root_name(format1_password(passphrase)) != basename())
+    throw(logic_error("Upgrade with a passphrase that didn't open the root."));
+  return copy_to(passphrase, true);
+}
+
+/*
+  Copy this database to a new one that passphrase names, then remove
+  this one.  See change_password().
+*/
+Root Root::copy_to(const std::string &passphrase,
+                   const bool replacing_format1) {
   // Reconcile or reject external changes while holding the database lock.
   Lock lock(dirname());
   refresh_for_update();
   validate();
-  Root new_root(new_passphrase, dirname(), true);
+  Root new_root(passphrase, dirname(), true, replacing_format1);
   for (const_iterator it = begin(); it != end(); it++)
     new_root.add_leaf((*it).second.key(), (*it).second.payload(), false);
   new_root.commit();

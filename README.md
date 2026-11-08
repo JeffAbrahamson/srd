@@ -11,6 +11,10 @@ suspect it wouldn't work elsewhere, but that hasn't been tested.
 There's a library if you want to use the code in another context with
 minimal hacking.
 
+*srd changed file format in November 2026, to stronger encryption
+ and password hashing.  It still reads the old format, and says so
+ when it does; run `srd --upgrade` to convert.  See below.*
+
 *srd changed file format in May 2015.  See below if this affects you.
  You will know it affects you because you can't read your srd files
  anymore.*
@@ -68,6 +72,10 @@ Actions (if none, then match):
                                   to -m arg, can be used with -mDd.  If more
                                   than one match, will request confirmation.
   -p [ --passwd ]                 Change password (no other options permitted)
+  --upgrade                       Convert a database in srd's old, weaker
+                                  format to the current one, keeping its
+                                  password (no other options permitted).
+                                  Changing the password also converts it.
   --create                        Create database.  The database is identified
                                   by a hash of the password, so --create
                                   distinguishes between creating a new database
@@ -128,6 +136,30 @@ is lost or left in a conflict copy, depending on the sync tool.
 README.dev.md describes the design criteria behind this.
 
 ## File format conversion
+
+### Format 2 (November 2026)
+
+Databases created since November 2026 use format 2:  the password is
+hashed with Argon2id and a random salt (kept in the database
+directory's `srd.header`), and every file is encrypted and
+authenticated with XChaCha20-Poly1305.  Format 1 hashed the password
+without a salt, named the index file after that hash (so a directory
+listing was enough to test password guesses), and didn't detect
+changes to files.
+
+srd still reads format 1 databases, and prints a note when it does.
+To convert one, run
+
+```
+srd --upgrade
+```
+
+and give its password.  Changing the password (`srd --passwd`) also
+converts it.  The conversion writes the new database before removing
+the old one.  If you use the database on several machines, upgrade
+on one and let the change sync; an older srd can't read format 2.
+
+### Protobuf (May 2015)
 
 If you began using srd before 2 May 2015, you used a file format based
 on Boost serialization.  For [several
