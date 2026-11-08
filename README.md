@@ -158,16 +158,3 @@ and give its password.  Changing the password (`srd --passwd`) also
 converts it.  The conversion writes the new database before removing
 the old one.  If you use the database on several machines, upgrade
 on one and let the change sync; an older srd can't read format 2.
-
-### Protobuf (May 2015)
-
-If you began using srd before 2 May 2015, you used a file format based
-on Boost serialization.  For [several
-reasons](https://github.com/JeffAbrahamson/srd/issues/54), this caused
-problems.  As a result, srd switched to using Google protobufs.
-
-In the unlikely event you began using srd before the file format
-change, you'll need to recover the conversion version of srd from
-github.  It is on branch `convert_to_protobuf`.  README.md on that
-branch explains how to convert.  After conversion, it is best to
-switch back to the modern production version (branch master).
