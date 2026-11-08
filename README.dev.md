@@ -152,3 +152,7 @@ failure stops the build.
 
 `make test-sanitize` runs the same tests with AddressSanitizer and
 UndefinedBehaviorSanitizer.
+
+GitHub Actions (`.github/workflows/test.yml`) runs both on Ubuntu
+24.04 for every push and pull request.  Its package list should match
+`README.packages`.

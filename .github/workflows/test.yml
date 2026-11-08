@@ -1,0 +1,42 @@
+name: test
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer push to the same branch makes an older run moot.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: make ${{ matrix.target }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [test, test-sanitize]
+    env:
+      # The tests name their database directory after LOGNAME, which
+      # the runner doesn't always set.
+      LOGNAME: runner
+    steps:
+      - uses: actions/checkout@v4
+
+      # Keep in step with README.packages.
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            g++ make openssl perl python3 protobuf-compiler \
+            libboost-dev libboost-program-options-dev libbz2-dev \
+            libcrypto++-dev libprotobuf-dev libpstreams-dev libsodium-dev
+
+      - name: make ${{ matrix.target }}
+        working-directory: src
+        run: make -j"$(nproc)" ${{ matrix.target }}

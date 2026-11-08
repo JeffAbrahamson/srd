@@ -27,4 +27,7 @@ over time, and I don't verify this README each time I compile the
 package.  If you find a bug in the above, please let me know and I'm
 happy to fix.
 
-The tests (make test) also use perl and python3.
+The tests (make test) also use perl, python3, and openssl.
+
+.github/workflows/test.yml installs these packages for CI; keep the
+two lists in step.
