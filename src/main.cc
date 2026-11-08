@@ -252,15 +252,19 @@ private:
 };
 
 string get_password(const string prompt) {
-  // We read with read(2), not cin, so cin won't flush cout for us.
-  cout << prompt << flush;
+  // Prompt on stderr, so that a caller capturing stdout (e.g., to feed
+  // a record to another program) gets only the records and the user
+  // still sees the prompt.  Flush cout first so earlier output isn't
+  // reordered after the prompt.
+  cout << flush;
+  cerr << prompt << flush;
 
   string pass_phrase;
   {
     NoEchoTerminal no_echo;
     pass_phrase = read_secret_line();
   }
-  cout << endl;
+  cerr << endl;
 
   // Iterate hash (arbitrarily) 50 times.  Motivated by gpg's behavior.
   // Wipe the pass phrase and each intermediate digest when done with
