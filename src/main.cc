@@ -570,18 +570,37 @@ void user_add(Root &root) {
   mkdtemp() creates it mode 0700, so neither the record nor any swap
   or backup files the editor writes beside it are visible to other
   users.  Everything in it is removed on destruction.
+
+  Prefer a directory in memory, so that the record never reaches a
+  disk, where removing it would leave its blocks behind, and where a
+  crash would leave it whole:  $XDG_RUNTIME_DIR (the user's own, and
+  in memory on systemd systems), then $TMPDIR if the user chose one,
+  then /dev/shm, then /tmp, which is on disk on many systems.
 */
 class PrivateTempDir {
 public:
   PrivateTempDir() {
-    string pattern =
-        (std::filesystem::temp_directory_path() / "srd-XXXXXX").string();
-    vector<char> buf(pattern.begin(), pattern.end());
-    buf.push_back('\0');
-    if (!mkdtemp(buf.data()))
-      throw(runtime_error(string("Failed to create temporary directory:  ") +
-                          strerror(errno)));
-    m_path = buf.data();
+    vector<string> candidates;
+    for (const char *var : {"XDG_RUNTIME_DIR", "TMPDIR"}) {
+      const char *dir = getenv(var);
+      if (dir && '/' == *dir)
+        candidates.push_back(dir);
+    }
+    candidates.push_back("/dev/shm");
+    candidates.push_back("/tmp");
+    int error = 0;
+    for (const string &dir : candidates) {
+      string pattern = dir + "/srd-XXXXXX";
+      vector<char> buf(pattern.begin(), pattern.end());
+      buf.push_back('\0');
+      if (mkdtemp(buf.data())) {
+        m_path = buf.data();
+        return;
+      }
+      error = errno;
+    }
+    throw(runtime_error(string("Failed to create temporary directory:  ") +
+                        strerror(error)));
   }
   ~PrivateTempDir() {
     std::error_code ec;

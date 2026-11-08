@@ -135,6 +135,15 @@ rewrite the root.  Only one root survives; the other machine's change
 is lost or left in a conflict copy, depending on the sync tool.
 README.dev.md describes the design criteria behind this.
 
+Editing a record (`-e`) puts it in the clear in a private temporary
+directory, in memory if possible (`$XDG_RUNTIME_DIR`, then `$TMPDIR`,
+`/dev/shm`, `/tmp`), and removes it when the editor exits.  What
+srd can't control is copies your editor keeps elsewhere:  vim's
+viminfo saves registers (text you yank or delete) and its undo files
+save history, and Emacs may keep backups or auto-saves in a central
+directory, or save the kill ring between sessions.  Check your
+editor's settings, or use one that keeps nothing.
+
 ## File format conversion
 
 ### Format 2 (November 2026)

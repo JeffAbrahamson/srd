@@ -7,6 +7,8 @@ pass=$(date +%s.%N)
 echo setting pass=$pass
 spy=test_$pass-spy
 log=test_$pass-log
+# srd prefers XDG_RUNTIME_DIR to TMPDIR.
+unset XDG_RUNTIME_DIR
 export TMPDIR=$PWD/test_$pass-tmp
 mkdir $TMPDIR
 
@@ -18,6 +20,7 @@ cat > $spy <<'EOF'
 [ "$1" = "--flag" ] || { echo "bad args: $*" >> "$SPY_LOG"; exit 1; }
 file=$2
 stat -c '%a' "$(dirname "$file")" "$file" >> "$SPY_LOG"
+dirname "$(dirname "$file")" > "$SPY_LOG.dir"
 [ -n "$SPY_SLEEP" ] && { touch "$SPY_LOG.started"; sleep "$SPY_SLEEP"; }
 cat > "$file"
 touch "$SPY_LOG.finished"
@@ -52,5 +55,14 @@ status=$?
 [ -e $log.finished ] || fail "srd did not wait for the editor."
 [ -z "$(ls -A $TMPDIR)" ] || fail "Temp files left after SIGTERM."
 
-rm -rf $spy $log $log.* $TMPDIR
+# XDG_RUNTIME_DIR, which is in memory on most systems, comes first.
+rm -f $log $log.*
+run_dir=$PWD/test_$pass-run
+mkdir -m 700 $run_dir
+printf '[third]\ny\n' | XDG_RUNTIME_DIR=$run_dir ./srd -T $pass -e
+[ "$(cat $log.dir)" = "$run_dir" ] ||
+    fail "Expected to edit in XDG_RUNTIME_DIR, not $(cat $log.dir)."
+[ -z "$(ls -A $run_dir)" ] || fail "Temp files left in XDG_RUNTIME_DIR."
+
+rm -rf $spy $log $log.* $TMPDIR $run_dir
 make clean-test
