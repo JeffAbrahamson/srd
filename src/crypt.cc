@@ -22,6 +22,7 @@
 #include <crypto++/osrng.h>
 #include <crypto++/sha.h>
 #include <errno.h>
+#include <sodium.h>
 #include <sstream>
 #include <stdexcept>
 
@@ -239,4 +240,158 @@ string srd::decrypt(const string &cipher_text, const string &password) {
     cerr << "Unknown Error" << endl;
   }
   throw(runtime_error("decryption failed"));
+}
+
+/* ************************************************************ */
+/* Format 2 primitives (libsodium) */
+
+namespace {
+
+// The first bytes of every format 2 encrypted file.
+const string aead_magic("SRD2");
+
+// Context for crypto_kdf.  Exactly crypto_kdf_CONTEXTBYTES long.
+const char kdf_context[] = "srd-keys";
+static_assert(sizeof(kdf_context) - 1 == crypto_kdf_CONTEXTBYTES);
+
+// Bounds on Argon2id costs read from a database.  The floor stops a
+// tampered header from making password guesses cheap; the ceiling
+// stops it from making srd exhaust memory.
+const uint64_t opslimit_floor = crypto_pwhash_argon2id_OPSLIMIT_INTERACTIVE;
+const uint64_t memlimit_floor = crypto_pwhash_argon2id_MEMLIMIT_INTERACTIVE;
+const uint64_t opslimit_ceiling = 16;
+const uint64_t memlimit_ceiling = 4ULL << 30; // 4 GiB
+
+void init_sodium() {
+  static const bool ok = sodium_init() >= 0;
+  if (!ok)
+    throw(runtime_error("Failed to initialize libsodium."));
+}
+
+const unsigned char *bytes(const string &s) {
+  return reinterpret_cast<const unsigned char *>(s.data());
+}
+
+unsigned char *bytes(string &s) {
+  return reinterpret_cast<unsigned char *>(s.data());
+}
+}
+
+KdfParams srd::new_kdf_params() {
+  init_sodium();
+  KdfParams params;
+  if (mode(Testing)) {
+    // The test suite creates many databases; keep that fast.
+    params.opslimit = crypto_pwhash_argon2id_OPSLIMIT_MIN;
+    params.memlimit = crypto_pwhash_argon2id_MEMLIMIT_MIN;
+  } else {
+    params.opslimit = crypto_pwhash_argon2id_OPSLIMIT_MODERATE;
+    params.memlimit = crypto_pwhash_argon2id_MEMLIMIT_MODERATE;
+  }
+  params.salt.resize(crypto_pwhash_argon2id_SALTBYTES);
+  randombytes_buf(bytes(params.salt), params.salt.size());
+  return params;
+}
+
+void srd::check_kdf_params(const KdfParams &params) {
+  if (params.salt.size() != crypto_pwhash_argon2id_SALTBYTES)
+    throw(runtime_error("Database header has a salt of the wrong size."));
+  // Test databases use the minimum costs, so only test mode may
+  // open them.
+  const uint64_t ops_min =
+      mode(Testing) ? crypto_pwhash_argon2id_OPSLIMIT_MIN : opslimit_floor;
+  const uint64_t mem_min =
+      mode(Testing) ? crypto_pwhash_argon2id_MEMLIMIT_MIN : memlimit_floor;
+  if (params.opslimit < ops_min || params.memlimit < mem_min)
+    throw(runtime_error("Database header asks for a password hash that is "
+                        "too weak.  (Has it been tampered with?)"));
+  if (params.opslimit > opslimit_ceiling || params.memlimit > memlimit_ceiling)
+    throw(runtime_error("Database header asks for a password hash that is "
+                        "too costly.  (Has it been tampered with?)"));
+}
+
+string srd::derive_master_key(const string &passphrase,
+                              const KdfParams &params) {
+  init_sodium();
+  check_kdf_params(params);
+  string key(crypto_kdf_KEYBYTES, '\0');
+  if (crypto_pwhash(bytes(key), key.size(), passphrase.data(),
+                    passphrase.size(), bytes(params.salt), params.opslimit,
+                    params.memlimit, crypto_pwhash_ALG_ARGON2ID13) != 0)
+    throw(runtime_error("Password hashing failed (out of memory?)."));
+  return key;
+}
+
+string srd::derive_subkey(const string &master_key, SubkeyId id) {
+  init_sodium();
+  if (master_key.size() != crypto_kdf_KEYBYTES)
+    throw(runtime_error("Master key has the wrong size."));
+  string subkey(crypto_aead_xchacha20poly1305_ietf_KEYBYTES, '\0');
+  static_assert(crypto_aead_xchacha20poly1305_ietf_KEYBYTES >=
+                    crypto_kdf_BYTES_MIN &&
+                crypto_aead_xchacha20poly1305_ietf_KEYBYTES <=
+                    crypto_kdf_BYTES_MAX);
+  crypto_kdf_derive_from_key(bytes(subkey), subkey.size(), id, kdf_context,
+                             bytes(master_key));
+  return subkey;
+}
+
+string srd::keyed_name(const string &key, const string &label) {
+  init_sodium();
+  unsigned char hash[32];
+  crypto_generichash(hash, sizeof(hash), bytes(label), label.size(), bytes(key),
+                     key.size());
+  char hex[2 * sizeof(hash) + 1];
+  sodium_bin2hex(hex, sizeof(hex), hash, sizeof(hash));
+  return hex;
+}
+
+/*
+  Format:  magic | nonce | ciphertext and tag.  The magic and the
+  context are the associated data.
+*/
+string srd::aead_encrypt(const string &plain_text, const string &key,
+                         const string &context) {
+  init_sodium();
+  if (key.size() != crypto_aead_xchacha20poly1305_ietf_KEYBYTES)
+    throw(runtime_error("Encryption key has the wrong size."));
+  const size_t nonce_len = crypto_aead_xchacha20poly1305_ietf_NPUBBYTES;
+  string cipher_text(aead_magic.size() + nonce_len + plain_text.size() +
+                         crypto_aead_xchacha20poly1305_ietf_ABYTES,
+                     '\0');
+  copy(aead_magic.begin(), aead_magic.end(), cipher_text.begin());
+  unsigned char *nonce = bytes(cipher_text) + aead_magic.size();
+  randombytes_buf(nonce, nonce_len);
+  const string ad = aead_magic + context;
+  unsigned long long body_len;
+  crypto_aead_xchacha20poly1305_ietf_encrypt(
+      nonce + nonce_len, &body_len, bytes(plain_text), plain_text.size(),
+      bytes(ad), ad.size(), nullptr, nonce, bytes(key));
+  assert(aead_magic.size() + nonce_len + body_len == cipher_text.size());
+  return cipher_text;
+}
+
+string srd::aead_decrypt(const string &cipher_text, const string &key,
+                         const string &context) {
+  init_sodium();
+  if (key.size() != crypto_aead_xchacha20poly1305_ietf_KEYBYTES)
+    throw(runtime_error("Encryption key has the wrong size."));
+  const size_t nonce_len = crypto_aead_xchacha20poly1305_ietf_NPUBBYTES;
+  const size_t overhead =
+      aead_magic.size() + nonce_len + crypto_aead_xchacha20poly1305_ietf_ABYTES;
+  if (cipher_text.size() < overhead ||
+      cipher_text.compare(0, aead_magic.size(), aead_magic) != 0)
+    throw(runtime_error("Not an srd file, or truncated."));
+  const unsigned char *nonce = bytes(cipher_text) + aead_magic.size();
+  const size_t body_len = cipher_text.size() - aead_magic.size() - nonce_len;
+  string plain_text(cipher_text.size() - overhead, '\0');
+  const string ad = aead_magic + context;
+  unsigned long long plain_len;
+  if (crypto_aead_xchacha20poly1305_ietf_decrypt(
+          bytes(plain_text), &plain_len, nullptr, nonce + nonce_len, body_len,
+          bytes(ad), ad.size(), nonce, bytes(key)) != 0)
+    throw(runtime_error("Decryption failed:  the file is damaged or has "
+                        "been changed."));
+  assert(plain_len == plain_text.size());
+  return plain_text;
 }

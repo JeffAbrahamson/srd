@@ -50,6 +50,7 @@ LIBS = 				\
 	-lbz2			\
 	-lcrypto++		\
 	-lprotobuf		\
+	-lsodium		\
 
 all : srd test TAGS
 

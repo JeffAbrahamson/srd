@@ -123,6 +123,142 @@ int test_lengths() {
     cout << mdfs_error_count << " errors from message_digest(,true)." << endl;
   return prs_error_count = md_error_count + mdfs_error_count;
 }
+
+/*
+  Return 1 if f() doesn't throw runtime_error, else 0.
+*/
+template <typename F> int expect_throw(const string &what, F f) {
+  try {
+    f();
+  } catch (const runtime_error &) {
+    return 0;
+  }
+  cout << "Expected an exception:  " << what << endl;
+  return 1;
+}
+
+/*
+  Check key derivation:  deterministic, sensitive to passphrase and
+  salt, and guarded against weak or costly parameters.
+*/
+int test_kdf() {
+  int errors = 0;
+  KdfParams params = new_kdf_params();
+  KdfParams other_salt = new_kdf_params();
+  if (params.salt == other_salt.salt) {
+    cout << "Two new salts are equal." << endl;
+    errors++;
+  }
+  string key = derive_master_key("passphrase", params);
+  if (key.size() != 32) {
+    cout << "Master key has size " << key.size() << endl;
+    errors++;
+  }
+  if (key != derive_master_key("passphrase", params)) {
+    cout << "Key derivation isn't deterministic." << endl;
+    errors++;
+  }
+  if (key == derive_master_key("passphrasf", params) ||
+      key == derive_master_key("passphrase", other_salt)) {
+    cout << "Key derivation ignores passphrase or salt." << endl;
+    errors++;
+  }
+
+  KdfParams bad = params;
+  bad.salt.pop_back();
+  errors += expect_throw("short salt", [&] { check_kdf_params(bad); });
+  bad = params;
+  bad.memlimit = 8ULL << 30;
+  errors += expect_throw("huge memlimit", [&] { check_kdf_params(bad); });
+  bad = params;
+  bad.opslimit = 1000;
+  errors += expect_throw("huge opslimit", [&] { check_kdf_params(bad); });
+
+  // Outside test mode, the minimum (test) costs are refused.
+  mode(Testing, false);
+  errors += expect_throw("test costs outside test mode",
+                         [&] { check_kdf_params(params); });
+  KdfParams real = new_kdf_params();
+  check_kdf_params(real);
+  mode(Testing, true);
+  return errors;
+}
+
+/*
+  Check that subkeys and keyed names are deterministic and distinct.
+*/
+int test_subkeys() {
+  int errors = 0;
+  string master = derive_master_key("passphrase", new_kdf_params());
+  string enc = derive_subkey(master, EncryptionSubkey);
+  string name = derive_subkey(master, RootNameSubkey);
+  if (enc.size() != 32 || name.size() != 32 || enc == name ||
+      enc == master || enc != derive_subkey(master, EncryptionSubkey)) {
+    cout << "Subkeys are wrong." << endl;
+    errors++;
+  }
+  string root_name = keyed_name(name, "root");
+  if (root_name.size() != 64 ||
+      root_name.find_first_not_of("0123456789abcdef") != string::npos ||
+      root_name != keyed_name(name, "root") ||
+      root_name == keyed_name(enc, "root") ||
+      root_name == keyed_name(name, "roof")) {
+    cout << "Keyed names are wrong:  " << root_name << endl;
+    errors++;
+  }
+  errors += expect_throw("short master key",
+                         [&] { derive_subkey("short", EncryptionSubkey); });
+  return errors;
+}
+
+/*
+  Check that authenticated encryption round-trips, uses a fresh nonce,
+  and rejects any change to the file, the key, or the context.
+*/
+int test_aead(const string message) {
+  int errors = 0;
+  string key = derive_subkey(derive_master_key("pw", new_kdf_params()),
+                             EncryptionSubkey);
+  string cipher_text = aead_encrypt(message, key, "leaf:name");
+  if (aead_decrypt(cipher_text, key, "leaf:name") != message) {
+    cout << "AEAD round trip failed." << endl;
+    errors++;
+  }
+  if (cipher_text == aead_encrypt(message, key, "leaf:name")) {
+    cout << "AEAD reused a nonce." << endl;
+    errors++;
+  }
+  if (cipher_text.find(message) != string::npos && message.size() > 8) {
+    cout << "AEAD left the message in the clear." << endl;
+    errors++;
+  }
+  errors += expect_throw("wrong context", [&] {
+    aead_decrypt(cipher_text, key, "leaf:other");
+  });
+  string other_key(key);
+  other_key[0] ^= 1;
+  errors += expect_throw("wrong key", [&] {
+    aead_decrypt(cipher_text, other_key, "leaf:name");
+  });
+  errors += expect_throw("truncated", [&] {
+    aead_decrypt(cipher_text.substr(0, cipher_text.size() - 1), key,
+                 "leaf:name");
+  });
+  errors += expect_throw("empty", [&] { aead_decrypt("", key, "leaf:name"); });
+  // Flipping any single byte must be detected.
+  for (size_t i = 0; i < cipher_text.size(); i++) {
+    string damaged(cipher_text);
+    damaged[i] ^= 0x01;
+    try {
+      aead_decrypt(damaged, key, "leaf:name");
+      cout << "AEAD accepted a change at byte " << i << endl;
+      errors++;
+      break;
+    } catch (const runtime_error &) {
+    }
+  }
+  return errors;
+}
 }
 
 int main() {
@@ -136,6 +272,9 @@ int main() {
   err_count = count_if(messages.begin(), messages.end(), test_message_digest);
   err_count += count_if(messages.begin(), messages.end(), test_encryption);
   err_count += test_lengths();
+  err_count += test_kdf();
+  err_count += test_subkeys();
+  err_count += count_if(messages.begin(), messages.end(), test_aead);
 
   if (err_count)
     cout << "Errors (" << err_count << ") in test!!" << endl;

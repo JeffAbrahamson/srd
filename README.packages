@@ -6,6 +6,7 @@ installed, even though you've installed a compiler.
   libbz2-dev
   libcrypto++-dev
   libprotobuf-dev
+  libsodium-dev
   libboost-all-dev
 
 You'll also need at least these tools.

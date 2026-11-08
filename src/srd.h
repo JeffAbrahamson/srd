@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <assert.h>
 #include <boost/algorithm/string/case_conv.hpp>
+#include <cstdint>
 #include <iostream>
 #include <map>
 #include <set>
@@ -63,6 +64,54 @@ std::string encrypt(const std::string &plain_message,
                     const std::string &password);
 std::string decrypt(const std::string &cipher_message,
                     const std::string &password);
+
+/*
+  Format 2 primitives, built on libsodium.
+
+  A database's passphrase and salt give a master key (Argon2id).  The
+  master key gives subkeys (BLAKE2b, via crypto_kdf), one per purpose,
+  so that no key serves two purposes.  Files are encrypted with
+  XChaCha20-Poly1305 under a fresh random nonce on every write, which
+  authenticates them as well:  a changed or truncated file fails to
+  decrypt.
+*/
+
+// Argon2id cost parameters and salt for deriving a master key.
+struct KdfParams {
+  std::uint64_t opslimit;
+  std::uint64_t memlimit; // bytes
+  std::string salt;       // crypto_pwhash_SALTBYTES random bytes
+};
+
+// Parameters, with a fresh random salt, for a new database.
+KdfParams new_kdf_params();
+// Throw runtime_error if params are too weak or too costly to use.
+void check_kdf_params(const KdfParams &params);
+// Derive the 32-byte master key.  Slow and memory-hungry, by design.
+std::string derive_master_key(const std::string &passphrase,
+                              const KdfParams &params);
+
+// Subkey identifiers.  Never renumber them:  each identifies a key.
+enum SubkeyId : std::uint64_t {
+  EncryptionSubkey = 1,
+  RootNameSubkey = 2,
+};
+std::string derive_subkey(const std::string &master_key, SubkeyId id);
+
+// A file name (64 hex digits) that only the holder of key can compute.
+std::string keyed_name(const std::string &key, const std::string &label);
+
+/*
+  Authenticated encryption under a 32-byte key.  The context (for
+  instance, a role and the file's name) is authenticated but not
+  stored:  decryption fails unless given the same context, so a file
+  copied to another name won't decrypt.  aead_decrypt() throws
+  runtime_error on any failure.
+*/
+std::string aead_encrypt(const std::string &plain_text, const std::string &key,
+                         const std::string &context);
+std::string aead_decrypt(const std::string &cipher_text,
+                         const std::string &key, const std::string &context);
 
 /* ************************************************************ */
 /* mode */
