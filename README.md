@@ -141,6 +141,27 @@ save history, and Emacs may keep backups or auto-saves in a central
 directory, or save the kill ring between sessions.  Check your
 editor's settings, or use one that keeps nothing.
 
+Changing the password (`--passwd`) re-encrypts and rewrites every
+record, because the encryption key is derived from the password
+itself.  On a large database that takes a while and makes the next
+backup or sync large.  A random master key, stored encrypted under
+the password, would make a password change rewrite only one file.
+srd doesn't do this on purpose:  with a master key, anyone who has
+an old copy of the database and its old password could still decrypt
+records written after the change.  Re-encrypting everything means
+an old password decrypts only old copies.  (The checksum key does
+carry over, so that checksums stay comparable across a password
+change.  An old copy and its password therefore reveal that key, and
+with it someone could test guesses at a newer record's contents
+against its `--checksum-by-key` output, if they also saw that
+output.)
+
+A listing reads records' files as it goes, without holding the
+database lock.  If another srd deletes a record while the listing
+runs, the listing can stop with "The file for a record is missing".
+Run it again.  This is rare, and holding the lock for every read
+would make readers wait on writers.
+
 ## File format conversion
 
 ### Format 2 (November 2026)

@@ -53,7 +53,9 @@ Format 2 (`header.cc`, and the libsodium half of `crypt.cc`):
 * `--checksum` and `--checksum-by-key` print keyed hashes, under a
   random key stored in the root, so the output can't be used to test
   guesses at records' contents.  Password changes keep the key, so
-  checksums stay comparable across them.  (Roots from before the key
+  checksums stay comparable across them.  The cost:  an old copy of
+  the database and its old password reveal the key, and so let
+  someone test guesses against later checksum output.  (Roots from before the key
   existed get one derived from the database key.)
 
 * What isn't detected:  replacing a file with an older version of
