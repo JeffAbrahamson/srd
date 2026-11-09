@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <assert.h>
 #include <boost/algorithm/string/case_conv.hpp>
+#include <compare>
 #include <cstdint>
 #include <iostream>
 #include <map>
@@ -384,17 +385,11 @@ public:
     It's because calling key() can load the leaf itself, which
     means this isn't const.
 
-    We probably only need operator<() for the compare in
-    LeafProxyMap.  Provide them all to avoid some subtle
-    bug some day.
+    Records order by key.
   */
-  bool operator<=(const LeafProxy &rhs) const { return key() <= rhs.key(); }
-
-  bool operator<(const LeafProxy &rhs) const { return key() < rhs.key(); }
-
-  bool operator>=(const LeafProxy &rhs) const { return key() >= rhs.key(); }
-
-  bool operator>(const LeafProxy &rhs) const { return key() > rhs.key(); }
+  std::strong_ordering operator<=>(const LeafProxy &rhs) const {
+    return key() <=> rhs.key();
+  }
 
   bool set(const std::string &in_key, const std::string &in_payload);
 
@@ -472,7 +467,7 @@ struct IdentStringMatcher : public StringMatcher {
   }
   bool contains(const std::string &in_a,
                 const std::string &in_b) const override {
-    return in_a.find(in_b) != std::string::npos;
+    return in_a.contains(in_b);
   }
 };
 
@@ -484,8 +479,8 @@ struct UpperStringMatcher : public StringMatcher {
   }
   bool contains(const std::string &in_a,
                 const std::string &in_b) const override {
-    return boost::algorithm::to_upper_copy(in_a).find(
-               boost::algorithm::to_upper_copy(in_b)) != std::string::npos;
+    return boost::algorithm::to_upper_copy(in_a).contains(
+        boost::algorithm::to_upper_copy(in_b));
   }
 };
 

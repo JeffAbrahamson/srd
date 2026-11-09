@@ -12,7 +12,7 @@ installed, even though you've installed a compiler.
 You'll also need at least these tools.
 
   make
-  g++ (13 or later, for C++20)
+  g++ (14 or later, for C++23)
   protobuf-compiler
 
 If that last line (-all-dev) feels too heavy, the following may be

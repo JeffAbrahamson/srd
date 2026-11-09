@@ -32,7 +32,7 @@ static map<Mode, bool> modes;
 void srd::mode(const Mode m, const bool new_state) { modes[m] = new_state; }
 
 bool srd::mode(const Mode m) {
-  map<Mode, bool>::const_iterator it = modes.find(m);
+  auto it = modes.find(m);
   if (it == modes.end()) {
     cerr << "Failed to find mode " << m << endl;
     cerr << "This is a bug whose effects are undefined." << endl;

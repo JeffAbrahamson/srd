@@ -402,8 +402,7 @@ string srd::aead_decrypt(const string &cipher_text, string_view key,
   const size_t nonce_len = crypto_aead_xchacha20poly1305_ietf_NPUBBYTES;
   const size_t overhead =
       aead_magic.size() + nonce_len + crypto_aead_xchacha20poly1305_ietf_ABYTES;
-  if (cipher_text.size() < overhead ||
-      cipher_text.compare(0, aead_magic.size(), aead_magic) != 0)
+  if (cipher_text.size() < overhead || !cipher_text.starts_with(aead_magic))
     throw(runtime_error("Not an srd file, or truncated."));
   const unsigned char *nonce = bytes(cipher_text) + aead_magic.size();
   const size_t body_len = cipher_text.size() - aead_magic.size() - nonce_len;

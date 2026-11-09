@@ -4,9 +4,9 @@
 # run "make OPTIMIZE=-O0".
 OPTIMIZE ?= -O2
 
-#CC = clang++ $(OPTIMIZE) -ggdb3 -Wall -Wextra -std=c++20 $(EXTRA_FLAGS)
-#CC = g++ $(OPTIMIZE) -ggdb3 -Wall -Wextra -std=c++20 $(EXTRA_FLAGS)
-CC = g++ $(OPTIMIZE) -ggdb3 -Wall -Wextra -std=c++20 $(EXTRA_FLAGS)
+#CC = clang++ $(OPTIMIZE) -ggdb3 -Wall -Wextra -std=c++23 $(EXTRA_FLAGS)
+#CC = g++ $(OPTIMIZE) -ggdb3 -Wall -Wextra -std=c++23 $(EXTRA_FLAGS)
+CC = g++ $(OPTIMIZE) -ggdb3 -Wall -Wextra -std=c++23 $(EXTRA_FLAGS)
 
 # Run the tests under AddressSanitizer and UndefinedBehaviorSanitizer.
 # Objects built with and without sanitizers can't be mixed, so this

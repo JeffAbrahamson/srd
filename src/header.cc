@@ -77,7 +77,7 @@ string Header::encode(const KdfParams &params) {
 }
 
 KdfParams Header::decode(const string &data) {
-  if (data.size() != header_size || data.compare(0, magic.size(), magic))
+  if (data.size() != header_size || !data.starts_with(magic))
     throw(runtime_error("The database header (" + file_name +
                         ") is damaged."));
   size_t pos = magic.size();

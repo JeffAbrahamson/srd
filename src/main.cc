@@ -23,6 +23,7 @@
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <ranges>
 #include <set>
 #include <signal.h>
 #include <stdexcept>
@@ -370,11 +371,10 @@ public:
     bool full_display_on =
         ((full_display && lpm.size() > 1) || (!keys_only && 1 == lpm.size()));
     LeafProxyMap::LeafProxyList leaves = lpm.sorted_by_key();
-    for (LeafProxyMap::LeafProxyList::const_iterator it = leaves.begin();
-         it != leaves.end(); ++it) {
-      (*it).print_key();
+    for (const LeafProxy &leaf : leaves) {
+      leaf.print_key();
       if (full_display_on)
-        (*it).print_payload(grep);
+        leaf.print_payload(grep);
     }
   }
 
@@ -410,8 +410,8 @@ public:
         return;
       }
     }
-    for (LeafProxyMap::const_iterator it = lpm.begin(); it != lpm.end(); ++it)
-      the_root.rm_leaf(it->first);
+    for (const auto &[proxy_key, proxy] : lpm)
+      the_root.rm_leaf(proxy_key);
   }
 
 private:
@@ -429,11 +429,12 @@ public:
   void operator()(const LeafProxyMap &lpm) const {
     // Sort on content alone, so that the output doesn't depend on the
     // (random) file names of records that share a key.
-    vector<pair<string, string>> lines;
-    for (LeafProxyMap::const_iterator it = lpm.begin(); it != lpm.end(); ++it)
-      lines.emplace_back(it->second.key(),
-                         the_root.checksum_of(it->second.payload()));
-    sort(lines.begin(), lines.end());
+    auto lines = lpm | views::values |
+                 views::transform([this](const LeafProxy &lp) {
+                   return pair(lp.key(), the_root.checksum_of(lp.payload()));
+                 }) |
+                 ranges::to<vector>();
+    ranges::sort(lines);
     for (const auto &[key, digest] : lines)
       cout << "[" << key << "]  " << digest << endl;
   }
@@ -446,11 +447,10 @@ private:
 /*
   Utility function to provide a reference to a StringMatcher (via operator*).
 */
-const boost::shared_ptr<StringMatcher>
-string_matcher(const bool case_sensitive) {
+unique_ptr<StringMatcher> string_matcher(const bool case_sensitive) {
   if (case_sensitive)
-    return boost::shared_ptr<IdentStringMatcher>(new IdentStringMatcher());
-  return boost::shared_ptr<UpperStringMatcher>(new UpperStringMatcher());
+    return make_unique<IdentStringMatcher>();
+  return make_unique<UpperStringMatcher>();
 }
 
 void do_edit(const string &password, const vector_string &match_key,
@@ -493,8 +493,8 @@ void do_edit(const string &password, const vector_string &match_key,
     return;
   }
 
-  for (LeafProxyMap::iterator it = lpm.begin(); it != lpm.end(); ++it)
-    it->second.print_key();
+  for (const auto &[proxy_key, proxy] : lpm)
+    proxy.print_key();
 
   return;
 }
@@ -748,14 +748,15 @@ bool do_import(const string &password, const string &filename) {
   // Point out keys that will end up on more than one record.  Import
   // never replaces a record.
   Root root(password, "");
-  set<string> existing_keys;
-  for (LeafProxyMap::const_iterator it = root.begin(); it != root.end(); ++it)
-    existing_keys.insert(it->second.key());
+  const auto existing_keys =
+      root | views::values |
+      views::transform([](const LeafProxy &lp) { return lp.key(); }) |
+      ranges::to<set>();
   set<string> seen_keys;
   cout << "Found " << incoming.size() << " keys:" << endl;
   for (const auto &[key, payload] : incoming) {
     cout << "\t" << key;
-    if (existing_keys.count(key))
+    if (existing_keys.contains(key))
       cout << "  (already exists)";
     else if (!seen_keys.insert(key).second)
       cout << "  (repeated in file)";
@@ -812,7 +813,7 @@ vector<pair<string, string>> import_read_file(const string filename) {
       return vector<pair<string, string>>();
     } else if (line.empty()) {
       incoming.back().second += "\n";
-    } else if (0 != line.compare(0, prefix.size(), prefix)) {
+    } else if (!line.starts_with(prefix)) {
       cerr << "Error at line " << line_num << ": expected two space indent."
            << endl;
       return vector<pair<string, string>>();

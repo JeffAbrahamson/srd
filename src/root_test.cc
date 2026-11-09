@@ -19,9 +19,9 @@
 
 #include <algorithm>
 #include <errno.h>
+#include <ranges>
 #include <string>
 #include <string.h>
-#include <sstream>
 #include <time.h>
 #include <unistd.h>
 
@@ -46,13 +46,8 @@ int test_root_basic(string password) {
   {
     Root root(password, "");
 
-    for (vector_string::iterator it = messages.begin(); it != messages.end();
-         it++) {
-      ostringstream ss;
-      ss << it->size();
-      string key(ss.str());
-      string foo = *it;
-      string payload(*it);
+    for (const string &payload : messages) {
+      const string key = to_string(payload.size());
       root.add_leaf(key, payload, false); // commit at end of scope
     }
   }
@@ -60,17 +55,10 @@ int test_root_basic(string password) {
   cout << "Re-instantiating root." << endl;
   {
     Root root(password, "");
-    for (vector_string::iterator it = messages.begin(); it != messages.end();
-         it++) {
+    for (const string &payload : messages) {
       // For each message, confirm that we can find it.
-      ostringstream ss;
-      ss << it->size();
-      string key(ss.str());
-      string foo = *it;
-      string payload(*it);
-      // So we are expecting (key, payload)
       vector_string payloads_to_find;
-      payloads_to_find.push_back(*it);
+      payloads_to_find.push_back(payload);
       LeafProxyMap results =
           root.filter_payloads(payloads_to_find, true, IdentStringMatcher());
       if (0 == results.size())
@@ -211,17 +199,11 @@ int test_root_doubles(const map<string, string> &text) {
   Return false if not.
 */
 bool confirm_ordering(Root &root) {
-  int errors = 0;
-  string last_key; // any key is >= ""
   LeafProxyMap::LeafProxyList leaves = root.sorted_by_key();
   assert(leaves.size() == root.size());
-  for (LeafProxyMap::LeafProxyList::const_iterator it = leaves.begin(); it != leaves.end();
-       it++) {
-    const string key((*it).key());
-    if (key < last_key)
-      errors++;
-    last_key = key;
-  }
+  const auto errors = ranges::count_if(
+      leaves | views::pairwise,
+      [](const auto &pair) { return get<1>(pair) < get<0>(pair); });
   if (errors > 0)
     cout << "Found " << errors << " ordering errors." << endl;
   return 0 == errors;
@@ -284,13 +266,8 @@ int test_root_change_password() {
   {
     Root root(password, "", true);
 
-    for (vector_string::iterator it = messages.begin(); it != messages.end();
-         it++) {
-      ostringstream ss;
-      ss << it->size();
-      string key(ss.str());
-      string foo = *it;
-      string payload(*it);
+    for (const string &payload : messages) {
+      const string key = to_string(payload.size());
       root.add_leaf(key, payload, false);
     }
     root.commit();
@@ -302,17 +279,10 @@ int test_root_change_password() {
     Root new_root = old_root.change_password(password2);
 
     cout << "Checking the new root." << endl;
-    for (vector_string::iterator it = messages.begin(); it != messages.end();
-         it++) {
+    for (const string &payload : messages) {
       // For each message, confirm that we can find it.
-      ostringstream ss;
-      ss << it->size();
-      string key(ss.str());
-      string foo = *it;
-      string payload(*it);
-      // So we are expecting (key, payload)
       vector_string payloads_to_find;
-      payloads_to_find.push_back(*it);
+      payloads_to_find.push_back(payload);
       LeafProxyMap results = new_root.filter_payloads(payloads_to_find, true,
                                                       IdentStringMatcher());
       if (0 == results.size())

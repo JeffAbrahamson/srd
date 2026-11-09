@@ -193,7 +193,7 @@ void LeafProxy::print_payload(const string &pattern) const {
   stringstream payload_ss(payload());
   string line;
   while (getline(payload_ss, line, '\n'))
-    if (0 == pattern.size() || string::npos != line.find(pattern))
+    if (line.contains(pattern))
       cout << prefix << line << endl;
 }
 

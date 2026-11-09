@@ -103,7 +103,7 @@ void srd::set_base_dir(const std::string &in_dir) {
 */
 void srd::check_database_dir(const string &dir) {
   static set<string> checked;
-  if (checked.count(dir))
+  if (checked.contains(dir))
     return;
   struct stat st;
   if (stat(dir.c_str(), &st))
@@ -138,9 +138,7 @@ string File::dirname() {
   if ("" == m_dir_name) {
     // Test mode only affects what directory we generate, if asked.
     if (mode(Testing)) {
-      ostringstream spath;
-      spath << "srd-test-0000-" << login_name();
-      m_dir_name = spath.str();
+      m_dir_name = "srd-test-0000-" + login_name();
     } else
       m_dir_name = get_base_dir();
   }

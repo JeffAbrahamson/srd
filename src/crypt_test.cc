@@ -108,7 +108,7 @@ int test_lengths() {
     string mdfs(message_digest(s, true));
     if (mdfs.size() != 44)
       mdfs_error_count++;
-    if (mdfs.find('/') != string::npos)
+    if (mdfs.contains('/'))
       mdfs_error_count++;
   }
   time_t end_time = time(0);
@@ -231,7 +231,7 @@ int test_aead(const string message) {
     cout << "AEAD reused a nonce." << endl;
     errors++;
   }
-  if (cipher_text.find(message) != string::npos && message.size() > 8) {
+  if (cipher_text.contains(message) && message.size() > 8) {
     cout << "AEAD left the message in the clear." << endl;
     errors++;
   }
