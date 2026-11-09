@@ -9,3 +9,4 @@ srd-test-*
 TAGS
 *.pb.cc
 *.pb.h
+*.passed

@@ -164,7 +164,13 @@ end-to-end tests:  shell scripts (`test*.sh`) that drive the srd
 binary in test mode (`-T`, which takes the password on the command
 line and uses a database directory under the current directory), and
 `test-tty.py`, which types passwords at srd on a pseudo-terminal.  Any
-failure stops the build.
+failure stops the build.  Each test that passes leaves a `.passed`
+stamp, so a second `make test` reruns only the tests whose inputs
+have changed:  a unit test's binary, or an end-to-end test's script,
+srd, `test_editor.sh` or `test.d/`.
+The stamps don't notice other changes, such as an upgraded library
+or different build flags (`OPTIMIZE`, `EXTRA_FLAGS`), so run `make
+clean` first after one; it removes them.
 
 `make test-sanitize` runs the same tests with AddressSanitizer and
 UndefinedBehaviorSanitizer.

@@ -36,8 +36,8 @@ Work in `src/`:
   run them.  Never claim success you haven't seen.
 - A bug fix comes with a test that fails before the fix and passes
   after, where that's practical.  End-to-end tests are `test-*.sh`
-  scripts run by `make test` in test mode (`-T`):  add new ones to the
-  `test` target in the Makefile.
+  scripts run by `make test` in test mode (`-T`):  add new ones to
+  `END_TO_END_TESTS` in the Makefile.
 
 ## Secrets
 
