@@ -197,6 +197,13 @@ void Root::load() {
     cerr << "Failed to deserialize root." << endl;
     throw(runtime_error("Failed to deserialize root"));
   }
+  // The root is authenticated in format 2 but not in format 1, so
+  // don't let it name files outside the database directory, or the
+  // header and temporary files inside it.
+  for (const auto &key : root_data.keys())
+    if (!is_safe_file_name(key.proxy_name()))
+      throw(runtime_error("The index holds an invalid record file name.  "
+                          "(Has it been tampered with?)"));
   // TODO(jeff@purple.com): It's a kludge to capture this in the lambda closure.
   for_each(root_data.keys().begin(), root_data.keys().end(),
            [root_data, this](RootData_KeyData key) mutable {

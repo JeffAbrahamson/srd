@@ -643,6 +643,7 @@ void file_create_private(const std::string &filename, const std::string &data);
 void file_write_all(int fd, const std::string &data,
                     const std::string &filename);
 bool file_exists(const std::string &filename);
+bool is_safe_file_name(const std::string &name);
 void file_rm(const std::string &filename);
 }
 

@@ -41,5 +41,17 @@ int main() {
   tmp_name_s << "/tmp/srd-" << getpid() << "-" << time(0) << "XXXXXX";
   string tmp_name = tmp_name_s.str();
 
+  for (const string name : {"abc+DEF_123=", "0123456789abcdef"})
+    if (!is_safe_file_name(name)) {
+      cout << "is_safe_file_name rejected \"" << name << "\"" << endl;
+      err_count++;
+    }
+  for (const string name : {"", "a/b", "/etc/passwd", ".", "..", "../x",
+                            "srd.header", "abc.new", "a\nb", "a\x1b[2Jb"})
+    if (is_safe_file_name(name)) {
+      cout << "is_safe_file_name accepted \"" << name << "\"" << endl;
+      err_count++;
+    }
+
   return 0 != err_count;
 }

@@ -17,6 +17,8 @@
   along with srd.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <algorithm>
+#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <iostream>
@@ -96,6 +98,19 @@ bool srd::file_exists(const string &fn) {
     throw(runtime_error(strerror(error)));
   }
   return true;
+}
+
+/*
+  Return whether name may be used as a record's file name.  The index
+  supplies these names, so check them before use.  srd makes them
+  from base64 (with '/' replaced by '_') or hex, so allow only those
+  characters.  That rules out '/', "..", control characters, the
+  header ("srd.header") and temporary files ("*.new").
+*/
+bool srd::is_safe_file_name(const string &name) {
+  return !name.empty() && ranges::all_of(name, [](char c) {
+    return isascii(c) && (isalnum(c) || '+' == c || '=' == c || '_' == c);
+  });
 }
 
 /*
