@@ -81,21 +81,6 @@ $(OBJECT) main.o test_text.o $(TEST_OBJECTS) : $(PROTOBUF_H)
 srd : $(HEADER) main.o $(OBJECT) Makefile
 	$(CC) -o srd main.o $(OBJECT) $(LIBS)
 
-############################################################
-# These rules aren't executed by default, they're here to
-# document how to build the app from libraries.  The point
-# is to make it easier to build other apps from libsrd.
-#
-# To build srd from srdlib.a:
-srd-from-archive :
-	$(CC) -o srd-from-archive main.o libsrd.a $(LIBS)
-#
-# To build srd from srdlib.so:
-srd-from-so :
-	$(CC) -o srd-from-so main.o -L. -lsrd $(LIBS)
-#
-############################################################
-
 test : srd $(TESTS)
 	./test.sh
 	./test-case.sh
