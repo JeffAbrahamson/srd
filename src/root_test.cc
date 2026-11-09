@@ -17,7 +17,7 @@
   along with srd.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <boost/bind.hpp>
+#include <algorithm>
 #include <errno.h>
 #include <string>
 #include <string.h>
@@ -136,17 +136,13 @@ int test_root_singles(const map<string, string> &text) {
   {
     // Instantiate and add (key,value) pairs
     Root root(password, "", true);
-    // Using a std::for_each and boost::bind here would add to a
-    // temporary object, so iterate by hand.  Is there a better way?
-    for (map<string, string>::const_iterator it = text.begin();
-         it != text.end(); it++) {
-      root.add_leaf(it->first, it->second, false);
+    for (const auto &[key, payload] : text) {
+      root.add_leaf(key, payload, false);
     }
     root.commit();
-    // Read-only, but that's fine.  Probably making an unnecessary copy.
-    int errors = count_if(text.begin(), text.end(),
-                          boost::bind(&confirm_once, root, _1));
-    error_count += errors;
+    // Count the records with errors.
+    error_count += ranges::count_if(
+        text, [&root](const auto &record) { return confirm_once(root, record) != 0; });
   }
 
   return error_count;
@@ -198,17 +194,13 @@ int test_root_doubles(const map<string, string> &text) {
   {
     // Instantiate and add (key,value) pairs
     Root root(password, "", true);
-    // Using a std::for_each and boost::bind here would add to a
-    // temporary object, so iterate by hand.  Is there a better way?
-    for (map<string, string>::const_iterator it = text.begin();
-         it != text.end(); it++) {
-      root.add_leaf(it->first, it->second, false);
+    for (const auto &[key, payload] : text) {
+      root.add_leaf(key, payload, false);
     }
     root.commit();
-    // Read-only, but that's fine.  Probably making an unnecessary copy.
-    int errors = count_if(text.begin(), text.end(),
-                          boost::bind(&confirm_twice, root, _1));
-    error_count += errors;
+    // Count the records with errors.
+    error_count += ranges::count_if(
+        text, [&root](const auto &record) { return confirm_twice(root, record) != 0; });
   }
 
   return error_count;
