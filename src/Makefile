@@ -78,6 +78,11 @@ $(OBJECT) main.o test_text.o $(TEST_OBJECTS) : $(PROTOBUF_H)
 %.pb.h %.pb.cc : %.proto
 	protoc --cpp_out=. $<
 
+# Only pattern rules mention the generated .pb.cc files, so make would
+# delete them as intermediate after a build, and the next build would
+# regenerate them and rebuild srd.
+.SECONDARY : $(PROTOBUF_C) $(PROTOBUF_H)
+
 srd : $(HEADER) main.o $(OBJECT) Makefile
 	$(CC) -o srd main.o $(OBJECT) $(LIBS)
 
