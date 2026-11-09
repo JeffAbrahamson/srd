@@ -176,5 +176,6 @@ clean` first after one; it removes them.
 UndefinedBehaviorSanitizer.
 
 GitHub Actions (`.github/workflows/test.yml`) runs both on Ubuntu
-24.04 for every push and pull request.  Its package list should match
-`README.packages`.
+26.04 for every push and pull request.  (24.04's g++ is GCC 13, which
+lacks parts of C++23 that srd uses.)  The workflow's package list
+should match `README.packages`.
